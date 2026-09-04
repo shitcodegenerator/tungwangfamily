@@ -1,0 +1,27 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/town_world.gd" id="1_world"]
+
+[node name="TideRootTown" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("1_world")
+
+[node name="Ground" type="TileMapLayer" parent="."]
+z_index = -3
+texture_filter = 1
+
+[node name="Decoration" type="TileMapLayer" parent="."]
+z_index = -2
+texture_filter = 1
+
+[node name="Collision" type="TileMapLayer" parent="."]
+z_index = 10
+
+[node name="Props" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Interactables" type="Node2D" parent="."]
+
+[node name="Exits" type="Node2D" parent="."]
+
+[node name="SpawnPoints" type="Node2D" parent="."]

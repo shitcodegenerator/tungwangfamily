@@ -1,0 +1,634 @@
+{
+  "world_size": [
+    30,
+    36
+  ],
+  "spawn_points": [
+    [
+      14,
+      29
+    ],
+    [
+      12,
+      29
+    ],
+    [
+      16,
+      29
+    ],
+    [
+      14,
+      31
+    ]
+  ],
+  "zones": [
+    {
+      "name": "上層樹冠平台",
+      "rows": [
+        0,
+        11
+      ]
+    },
+    {
+      "name": "中層樹洞街",
+      "rows": [
+        12,
+        23
+      ]
+    },
+    {
+      "name": "下層樹根廣場",
+      "rows": [
+        24,
+        35
+      ]
+    }
+  ],
+  "exits": [
+    {
+      "name": "west_bridge",
+      "label": "← 平原・森林（未開放）",
+      "tile": [
+        2,
+        16
+      ],
+      "label_offset": [
+        0,
+        -40
+      ],
+      "interact": "west_bridge",
+      "interact_center": [
+        34,
+        540
+      ],
+      "interact_size": [
+        60,
+        80
+      ],
+      "prompt_offset": [
+        8,
+        -58
+      ]
+    },
+    {
+      "name": "east_harbor",
+      "label": "船港・海底根系（未開放）→",
+      "tile": [
+        26,
+        27
+      ],
+      "label_offset": [
+        -40,
+        -40
+      ],
+      "interact": "east_harbor",
+      "interact_center": [
+        926,
+        892
+      ],
+      "interact_size": [
+        60,
+        80
+      ],
+      "prompt_offset": [
+        -8,
+        -58
+      ]
+    },
+    {
+      "name": "north_canopy",
+      "label": "↑ 雲端樹冠（未開放）",
+      "tile": [
+        14,
+        2
+      ],
+      "label_offset": [
+        108,
+        -34
+      ],
+      "interact": "north_canopy",
+      "interact_center": [
+        480,
+        50
+      ],
+      "interact_size": [
+        120,
+        40
+      ],
+      "prompt_offset": [
+        0,
+        -34
+      ]
+    }
+  ],
+  "connectors": [
+    {
+      "name": "lower_to_middle",
+      "tile": [
+        14,
+        23
+      ]
+    },
+    {
+      "name": "middle_to_upper",
+      "tile": [
+        23,
+        11
+      ]
+    }
+  ],
+  "props": [
+    {
+      "texture": "house_window_lantern",
+      "x": 208,
+      "y": 512,
+      "collision": [
+        68,
+        64
+      ]
+    },
+    {
+      "texture": "house_banner",
+      "x": 304,
+      "y": 512,
+      "collision": [
+        70,
+        64
+      ]
+    },
+    {
+      "texture": "house_narrow",
+      "x": 864,
+      "y": 512,
+      "collision": [
+        50,
+        64
+      ]
+    },
+    {
+      "texture": "house_tree_door",
+      "x": 144,
+      "y": 672,
+      "collision": [
+        84,
+        64
+      ]
+    },
+    {
+      "texture": "house_tree_window",
+      "x": 720,
+      "y": 672,
+      "collision": [
+        76,
+        64
+      ]
+    },
+    {
+      "texture": "house_balcony",
+      "x": 816,
+      "y": 672,
+      "collision": [
+        84,
+        64
+      ]
+    },
+    {
+      "texture": "tree_heart",
+      "x": 480,
+      "y": 448,
+      "collision": null,
+      "z_bias": -1,
+      "interact": "tree_heart",
+      "interact_size": [
+        128,
+        40
+      ],
+      "prompt_offset": [
+        0,
+        -64
+      ]
+    },
+    {
+      "texture": "bulletin_board",
+      "x": 656,
+      "y": 480,
+      "collision": [
+        46,
+        12
+      ],
+      "interact": "bulletin_board"
+    },
+    {
+      "texture": "lamp_post",
+      "x": 368,
+      "y": 512,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 688,
+      "y": 512,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 368,
+      "y": 608,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 656,
+      "y": 608,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 272,
+      "y": 864,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 720,
+      "y": 960,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 336,
+      "y": 1024,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "lamp_post",
+      "x": 624,
+      "y": 1024,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 5,
+      "glow": true,
+      "glow_y": 14
+    },
+    {
+      "texture": "crate",
+      "x": 688,
+      "y": 832,
+      "collision": [
+        26,
+        20
+      ]
+    },
+    {
+      "texture": "crate",
+      "x": 720,
+      "y": 832,
+      "collision": [
+        26,
+        20
+      ]
+    },
+    {
+      "texture": "crate",
+      "x": 176,
+      "y": 864,
+      "collision": [
+        26,
+        20
+      ]
+    },
+    {
+      "texture": "crate",
+      "x": 176,
+      "y": 896,
+      "collision": [
+        26,
+        20
+      ]
+    },
+    {
+      "texture": "rock_moss",
+      "x": 240,
+      "y": 832,
+      "collision": [
+        30,
+        18
+      ]
+    },
+    {
+      "texture": "signpost",
+      "x": 80,
+      "y": 512,
+      "collision": [
+        12,
+        8
+      ]
+    },
+    {
+      "texture": "signpost",
+      "x": 720,
+      "y": 864,
+      "collision": [
+        12,
+        8
+      ]
+    },
+    {
+      "texture": "signpost",
+      "x": 368,
+      "y": 96,
+      "collision": [
+        12,
+        8
+      ]
+    },
+    {
+      "texture": "fence",
+      "x": 32,
+      "y": 544,
+      "collision": [
+        64,
+        30
+      ]
+    },
+    {
+      "texture": "fence",
+      "x": 32,
+      "y": 576,
+      "collision": [
+        64,
+        30
+      ]
+    },
+    {
+      "texture": "fence",
+      "x": 928,
+      "y": 896,
+      "collision": [
+        64,
+        30
+      ]
+    },
+    {
+      "texture": "fence",
+      "x": 928,
+      "y": 928,
+      "collision": [
+        64,
+        30
+      ]
+    },
+    {
+      "texture": "canopy_gate",
+      "x": 480,
+      "y": 64,
+      "collision": [
+        106,
+        60
+      ]
+    },
+    {
+      "texture": "cloud_big",
+      "x": 240,
+      "y": 300,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        6,
+        9.0
+      ]
+    },
+    {
+      "texture": "cloud_long",
+      "x": 600,
+      "y": 300,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        8,
+        12.0
+      ]
+    },
+    {
+      "texture": "cloud_small",
+      "x": 110,
+      "y": 70,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        5,
+        7.5
+      ]
+    },
+    {
+      "texture": "cloud_swirl",
+      "x": 880,
+      "y": 120,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        4,
+        8.5
+      ]
+    },
+    {
+      "texture": "cloud_small",
+      "x": 760,
+      "y": 340,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        6,
+        10.0
+      ]
+    },
+    {
+      "texture": "cloud_big",
+      "x": 440,
+      "y": 350,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.9,
+      "drift": [
+        7,
+        11.0
+      ]
+    },
+    {
+      "texture": "cloud_long",
+      "x": 250,
+      "y": 130,
+      "collision": null,
+      "z_bias": -1,
+      "alpha": 0.85,
+      "drift": [
+        5,
+        9.5
+      ]
+    },
+    {
+      "texture": "tree_spiral",
+      "x": 300,
+      "y": 192,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "tree_platform",
+      "x": 620,
+      "y": 192,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "harbor_berth",
+      "x": 800,
+      "y": 876,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "lily_pond",
+      "x": 140,
+      "y": 1090,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "lily_pond",
+      "x": 850,
+      "y": 1088,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "vine_branch",
+      "x": 368,
+      "y": 448,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "vine_branch",
+      "x": 608,
+      "y": 448,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "vine_branch",
+      "x": 96,
+      "y": 400,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "lily_pond",
+      "x": 544,
+      "y": 1088,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "flag_banner",
+      "x": 336,
+      "y": 832,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 4
+    },
+    {
+      "texture": "flag_banner",
+      "x": 624,
+      "y": 832,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 4
+    },
+    {
+      "texture": "flag_banner",
+      "x": 80,
+      "y": 480,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 4
+    },
+    {
+      "texture": "flag_banner",
+      "x": 880,
+      "y": 608,
+      "collision": [
+        10,
+        8
+      ],
+      "frames": 4,
+      "fps": 4
+    }
+  ]
+}
