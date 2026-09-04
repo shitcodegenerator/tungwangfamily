@@ -1,6 +1,6 @@
 {
   "phase": "phase4_cc_fried_food_battle",
-  "asset_status": "reference_and_cutting_source",
+  "asset_status": "reference_and_cutting_source_visual_polish",
   "generated_assets": [
     {
       "id": "fried_food_demon",
@@ -22,7 +22,7 @@
     },
     {
       "id": "throwable_items",
-      "file": "ITEM_throwables_vegetable_tea_water_reference.png",
+      "file": "ITEM_throwables_vegetable_tea_water_reference_v2.png",
       "kind": "item_reference",
       "notes": "Vegetable bundle, green tea and water; initial damage is identical"
     },
@@ -52,7 +52,7 @@
     },
     {
       "id": "fried_food_demon_cave",
-      "file": "CAVE_fried_food_demon_arena_reference.png",
+      "file": "CAVE_fried_food_demon_arena_reference_v2.png",
       "kind": "map_layout_reference",
       "notes": "Rebuild with 32x32 tiles; keep a wide walkable center and three pickup zones"
     },
