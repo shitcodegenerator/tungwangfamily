@@ -30,6 +30,7 @@ var shots_dir: String = "user://screenshots"
 var failures: PackedStringArray = PackedStringArray()
 var passes: PackedStringArray = PackedStringArray()
 var follower_violations: PackedStringArray = PackedStringArray()
+var boss_bound_violations: PackedStringArray = PackedStringArray()
 var switches_done: int = 0
 var _running: bool = false
 
@@ -101,6 +102,7 @@ func _run() -> void:
 	await _phase2_checks()
 	await _phase3_checks()
 	await _phase4_checks()
+	await _phase46_checks()
 	while switches_done < SWITCH_TARGET:
 		party.cycle_leader()
 		switches_done += 1
@@ -108,6 +110,7 @@ func _run() -> void:
 	_check(party.order.size() == 4 and party.get_leader() != null, "連續切換 %d 次後隊伍完整" % switches_done)
 	await get_tree().create_timer(1.5).timeout
 	_check(follower_violations.is_empty(), "跟隨者全程未穿牆、未掉出地圖（違規 %d 筆）" % follower_violations.size())
+	_check(boss_bound_violations.is_empty(), "Boss 全程未越過活動上限（違規 %d 筆）" % boss_bound_violations.size())
 	_running = false
 	_report()
 
@@ -301,7 +304,9 @@ func _phase4_checks() -> void:
 	_check(not state.has_item("chunhsiang_noodles") and state.has_flag("cc_noodle_delivered") and quests.is_objective_current(quest_id, "defeat_demon"), "麵已交付、旗標與目標更新")
 	_check(battle.active and battle.boss != null and battle.boss_hp() == 5, "戰鬥開始，Boss 生命 5")
 	_check(main_node.save_game() == "", "洞窟內 F6 存檔（任務與傳送狀態）")
+	_check(battle.boss.min_y >= 128.0 and battle.boss.global_position.y >= battle.boss.min_y, "Boss 生成點在活動上限之下（min_y %.0f）" % battle.boss.min_y)
 	await _screenshot("13_cave_arrival")
+	_check(_min_member_gap() >= 20.0, "抵達洞窟後四人與 CC 沒有同格重疊（最小間距 %.0f）" % _min_member_gap())
 
 	# 受傷：Boss 衝撞 → 變色閃爍與無敵時間；生命 3 → 2
 	battle.set_boss_paused(true)
@@ -442,11 +447,83 @@ func _phase4_checks() -> void:
 	party.set_leader_by_index(3)
 	switches_done += 1
 	var younger := party.get_leader()
-	_check(is_equal_approx(younger.controlled_speed(), 124.0) and is_equal_approx(party.members[0].controlled_speed(), 96.0), "弟弟被操控時速度 124，哥哥 96")
+	_check(younger.controlled_speed() > party.members[0].controlled_speed() and is_equal_approx(party.members[0].controlled_speed(), party.members[0].data.walk_speed), "弟弟被操控時比哥哥快，哥哥用 walk_speed")
 	await _push_for(Vector2i.RIGHT, 0.3)
 	party.set_leader_by_index(0)
 	switches_done += 1
 	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+
+
+## Phase 4.6：行走／待機動畫切換、停下先停在 contact A、陰影固定在地面錨點、待機時 VisualRoot 不位移、切換領頭者後動畫正確。
+func _phase46_checks() -> void:
+	var leader := party.get_leader()
+	_press_only(Vector2i.RIGHT)
+	await get_tree().create_timer(0.3).timeout
+	_check(String(leader.current_animation()) == "walk_right" and leader.sprite.is_playing(), "移動中播放 walk_right")
+	var shadow: Sprite2D = leader.get_node("Shadow")
+	var shadow_offset_moving := shadow.global_position - leader.global_position
+	_release_all()
+	await get_tree().create_timer(0.05).timeout
+	_check(String(leader.current_animation()) == "walk_right" and not leader.sprite.is_playing() and leader.sprite.frame == 0, "剛停下時停在行走表 contact A 幀")
+	await get_tree().create_timer(0.3).timeout
+	_check(String(leader.current_animation()) == "idle_right" and leader.sprite.is_playing(), "停下 0.12 秒後切回 idle_right")
+	var shadow_positions: Array[Vector2] = []
+	var visual_offsets: Array[float] = []
+	for _i: int in range(7):
+		shadow_positions.append(shadow.global_position)
+		visual_offsets.append(leader.visual_root.position.y)
+		await get_tree().create_timer(0.2).timeout
+	var shadow_fixed := true
+	var visual_fixed := true
+	for index: int in range(shadow_positions.size()):
+		if shadow_positions[index] != leader.global_position:
+			shadow_fixed = false
+		if not is_zero_approx(visual_offsets[index]):
+			visual_fixed = false
+	_check(shadow_fixed and shadow_offset_moving == Vector2.ZERO, "陰影全程固定在地面錨點（移動與待機 1.4 秒）")
+	_check(visual_fixed, "待機 1.4 秒內 VisualRoot 不位移（呼吸由待機表負責）")
+	var frames_seen := {}
+	for _i: int in range(8):
+		frames_seen[leader.sprite.frame] = true
+		await get_tree().create_timer(0.18).timeout
+	_check(frames_seen.size() >= 3, "待機表確實在播放（1.4 秒內看到 %d 個不同幀）" % frames_seen.size())
+	var all_have_shadow := true
+	for member: PlayableCharacter in party.members:
+		var member_shadow := member.get_node_or_null("Shadow") as Sprite2D
+		if member_shadow == null or member_shadow.global_position != member.global_position or not member.has_idle_sheet():
+			all_have_shadow = false
+	if party.has_pet():
+		var pet_shadow := party.pet.get_node_or_null("Shadow") as Sprite2D
+		if pet_shadow == null or pet_shadow.global_position != party.pet.global_position:
+			all_have_shadow = false
+	_check(all_have_shadow, "四位角色與 CC 都有陰影且都在各自的地面錨點")
+	party.cycle_leader()
+	switches_done += 1
+	var new_leader := party.get_leader()
+	_press_only(Vector2i.LEFT)
+	await get_tree().create_timer(0.3).timeout
+	_check(new_leader != leader and String(new_leader.current_animation()) == "walk_left", "切換領頭者後新領頭者播放 walk_left")
+	_release_all()
+	await get_tree().create_timer(0.4).timeout
+	_check(String(new_leader.current_animation()) == "idle_left", "新領頭者停下後回到 idle_left")
+	await _screenshot("19_idle_shadow")
+	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+	await get_tree().create_timer(1.2).timeout
+	_check(_min_member_gap() >= 20.0, "停下 1.2 秒後隊伍沒有同格重疊（最小間距 %.0f）" % _min_member_gap())
+
+
+## 隊伍成員（含 CC）兩兩之間的最小距離。
+func _min_member_gap() -> float:
+	var bodies: Array[Node2D] = []
+	for member: PlayableCharacter in party.order:
+		bodies.append(member)
+	if party.has_pet():
+		bodies.append(party.pet)
+	var smallest := INF
+	for a: int in range(bodies.size()):
+		for b: int in range(a + 1, bodies.size()):
+			smallest = minf(smallest, bodies[a].global_position.distance_to(bodies[b].global_position))
+	return smallest
 
 
 func _item_count_in_world() -> int:
@@ -595,6 +672,9 @@ func _physics_process(_delta: float) -> void:
 			follower_violations.append("%s 掉出地圖 %s" % [member.name, member.global_position])
 		elif world.parser.is_solid(tile.x, tile.y):
 			follower_violations.append("%s 位於實心格 %s" % [member.name, tile])
+	if battle != null and battle.active and battle.boss != null and is_instance_valid(battle.boss):
+		if battle.boss.global_position.y < battle.boss.min_y - 0.5:
+			boss_bound_violations.append("Boss y=%.1f 高於 min_y=%.1f" % [battle.boss.global_position.y, battle.boss.min_y])
 
 
 func _walk_to(goal: Vector2i) -> bool:

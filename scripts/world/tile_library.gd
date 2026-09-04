@@ -9,7 +9,8 @@ extends RefCounted
 ##   第 2 列：Phase 1 合成（虛空、雲霧、樓梯、橋上欄、橋下欄、深色樹皮、深色木板）
 ##   第 3 列：水面動畫（淺水 0～3、深水 4～7、中水 8～11，各 4 幀，由 TileSet 動畫播放）
 ##   第 4 列：A11～A19 補件（虛空 ×9、雲霧、深色樹皮、樓梯、花草草地、綠色樹幹、木板、家庭屋地板、船長房地板）
-##   第 5 列：Phase 4 洞窟（地面、岩壁、油漬地面、受光岩壁）
+##   第 5 列：Phase 4.6 洞窟正式 tile（由 assets/tiles/fried_food_cave_tiles_32.png 4×2 複製：
+##            濕苔地面 A、濕苔地面 B、岩壁面、岩壁頂、左上角、右上角、內凹角、晶簇 overlay）
 
 const TILE_SIZE := 32
 const TILE_VECTOR := Vector2i(TILE_SIZE, TILE_SIZE)
@@ -49,13 +50,23 @@ const MIST := Vector2i(9, 4)
 const BARK_DARK := Vector2i(10, 4)
 const STAIRS := Vector2i(11, 4)
 const GRASS_FLOWERS := Vector2i(12, 4)
-## 第 5 列：洞窟
-const CAVE_FLOOR := Vector2i(0, 5)
-const CAVE_WALL := Vector2i(1, 5)
-const CAVE_FLOOR_GREASY := Vector2i(2, 5)
-const CAVE_WALL_FACE := Vector2i(3, 5)
+## 第 5 列：洞窟（scenes.json 的 tile_style = "cave" 走 cave_atlas_for，不用 legend_overrides）
+const CAVE_FLOOR_A := Vector2i(0, 5)
+const CAVE_FLOOR_B := Vector2i(1, 5)
+const CAVE_WALL_FACE := Vector2i(2, 5)
+const CAVE_WALL_TOP := Vector2i(3, 5)
+const CAVE_CORNER_TL := Vector2i(4, 5)
+const CAVE_CORNER_TR := Vector2i(5, 5)
+const CAVE_CORNER_BL := Vector2i(6, 5)
+const CAVE_CRYSTAL := Vector2i(7, 5)
+## 地面 A／B 交錯的雜湊週期：5 格裡 3 格 A、2 格 B，避免棋盤格。
+const CAVE_FLOOR_PATTERN: Array[bool] = [true, false, true, true, false]
+## 晶簇 overlay 出現在「與地面相鄰的牆」上的機率。
+const CAVE_CRYSTAL_CHANCE := 0.22
 ## legend_overrides 的特殊鍵：牆（#）下方為可走格時改用此 tile（牆面受光）。
 const WALL_FACE_KEY := "#_face"
+const TILE_STYLE_KEY := "tile_style"
+const TILE_STYLE_CAVE := "cave"
 
 const DECO_FLOWERS := Vector2i(0, 1)
 const DECO_CLOVER := Vector2i(1, 1)
@@ -97,6 +108,8 @@ const SIMPLE_LEGEND := {
 ## 依圖例字元與鄰居決定地形 atlas 座標。
 ## options：overrides（圖例字元 → Vector2i，室內場景用來換地板／牆面）、dark_wall_last_row（此列以上的牆用深色樹皮）。
 static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Dictionary = {}) -> Vector2i:
+	if String(options.get(TILE_STYLE_KEY, "")) == TILE_STYLE_CAVE:
+		return cave_atlas_for(parser, x, y)
 	var ch := parser.char_at(x, y)
 	var overrides: Dictionary = options.get("overrides", {})
 	if ch == "#" and overrides.has(WALL_FACE_KEY) and parser.is_walkable(x, y + 1):
@@ -120,6 +133,33 @@ static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Diction
 	return BARK
 
 
+## 洞窟樣式：牆下方是地面 → 岩壁面；地圖左上、右上角 → 轉角；其餘牆 → 岩壁頂。
+## 可走格：'s'（原油漬格）固定用地面 B，其他依座標雜湊在 A／B 之間交錯。
+static func cave_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
+	var ch := parser.char_at(x, y)
+	if ch == "#":
+		if parser.is_walkable(x, y + 1):
+			return CAVE_WALL_FACE
+		if x == 0 and y == 0:
+			return CAVE_CORNER_TL
+		if x == parser.width - 1 and y == 0:
+			return CAVE_CORNER_TR
+		return CAVE_WALL_TOP
+	if ch == "s":
+		return CAVE_FLOOR_B
+	return CAVE_FLOOR_A if CAVE_FLOOR_PATTERN[posmod(x * 3 + y * 7, CAVE_FLOOR_PATTERN.size())] else CAVE_FLOOR_B
+
+
+## 洞窟裝飾：只在「與可走格相鄰的牆」上放晶簇 overlay（裝飾層，不改碰撞）。
+static func cave_decoration_for(parser: MapParser, x: int, y: int, rng: RandomNumberGenerator) -> Vector2i:
+	if parser.char_at(x, y) != "#":
+		return Vector2i(-1, -1)
+	var beside_floor := parser.is_walkable(x, y + 1) or parser.is_walkable(x, y - 1) or parser.is_walkable(x - 1, y) or parser.is_walkable(x + 1, y)
+	if beside_floor and rng.randf() < CAVE_CRYSTAL_CHANCE:
+		return CAVE_CRYSTAL
+	return Vector2i(-1, -1)
+
+
 ## 虛空依座標雜湊選取變體（確定性，不用亂數，讓截圖可重現）。
 static func void_atlas_for(x: int, y: int) -> Vector2i:
 	var index := VOID_PATTERN[posmod(x * 7 + y * 13, VOID_PATTERN.size())]
@@ -128,6 +168,8 @@ static func void_atlas_for(x: int, y: int) -> Vector2i:
 
 ## 依圖例與亂數決定裝飾層 atlas 座標；回傳 Vector2i(-1, -1) 代表不放裝飾。
 static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomNumberGenerator, options: Dictionary = {}) -> Vector2i:
+	if String(options.get(TILE_STYLE_KEY, "")) == TILE_STYLE_CAVE:
+		return cave_decoration_for(parser, x, y, rng)
 	var ch := parser.char_at(x, y)
 	var roll := rng.randf()
 	var dark_wall_last_row := int(options.get("dark_wall_last_row", UPPER_ZONE_LAST_ROW))

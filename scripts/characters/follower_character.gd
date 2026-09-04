@@ -15,9 +15,16 @@ const EASE_IN_RADIUS := 12.0
 ## 卡住判定：有速度卻幾乎沒位移持續超過此秒數，改為直線朝前一位隊員走。
 const STUCK_SECONDS := 0.4
 const RECOVER_SECONDS := 0.6
+## 停下時若與任一隊員（含領頭者、寵物）距離小於此值，以較慢速度推開，避免同格重疊。
+const SEPARATION_GAP := 26.0
+const SEPARATION_SPEED_SCALE := 0.5
 
 var leader: PlayableCharacter
 var active: bool = false
+## 其他隊員（由 PartyController 設定），只用來做停下後的分離；不影響跟隨鏈。
+var others: Array[Node2D] = []
+## 兩人完全重疊時的推開方向（PartyController 依序給不同方向，避免兩人往同一邊走而永遠分不開）。
+var tie_break: Vector2 = Vector2.RIGHT
 
 var _stuck_time: float = 0.0
 var _recover_time: float = 0.0
@@ -29,16 +36,42 @@ var _last_position: Vector2 = Vector2.INF
 func compute_velocity(base_speed: float, delta: float) -> Vector2:
 	if not active or leader == null or body == null:
 		return Vector2.ZERO
-	# 領頭者尚未移動（軌跡只有出生點／切換當下的那一點）時保持原位，避免出生或切換時整隊擠成一團。
+	# 領頭者尚未移動（軌跡只有出生點／切換當下的那一點）時不追軌跡，只做分離，避免出生、切換或返回時整隊疊在同一點。
 	if leader.trail.points.size() < 2 and _recover_time <= 0.0:
-		return Vector2.ZERO
+		return separation_velocity(body.global_position, _other_positions(), base_speed * SEPARATION_SPEED_SCALE, tie_break)
 	var target := leader.trail_point_behind(FOLLOW_DISTANCE)
 	if _recover_time > 0.0:
 		_recover_time -= delta
 		target = leader.global_position
 	var result := decide_velocity(body.global_position, leader.global_position, target, base_speed, delta)
+	if result.is_zero_approx():
+		result = separation_velocity(body.global_position, _other_positions(), base_speed * SEPARATION_SPEED_SCALE, tie_break)
 	_update_stuck_state(result, delta)
 	return result
+
+
+func _other_positions() -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	for other: Node2D in others:
+		if other != null and is_instance_valid(other) and other != body:
+			positions.append(other.global_position)
+	return positions
+
+
+## 純函式：停下時被其他隊員擠到（距離 < SEPARATION_GAP）就朝遠離他們的方向慢慢走開；沒有人靠太近則回傳零向量。
+## 完全重疊（距離趨近 0）時用 tie_break 決定方向。
+static func separation_velocity(body_position: Vector2, other_positions: Array[Vector2], speed: float, tie_break_direction: Vector2 = Vector2.RIGHT) -> Vector2:
+	var push := Vector2.ZERO
+	for other: Vector2 in other_positions:
+		var away := body_position - other
+		var distance := away.length()
+		if distance >= SEPARATION_GAP:
+			continue
+		var direction := away / distance if distance > 0.5 else tie_break_direction.normalized()
+		push += direction * (1.0 - distance / SEPARATION_GAP)
+	if push.is_zero_approx():
+		return Vector2.ZERO
+	return push.normalized() * speed
 
 
 func _update_stuck_state(desired: Vector2, delta: float) -> void:

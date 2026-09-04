@@ -59,6 +59,32 @@ def info_battle(data: dict) -> dict:
     return data.get("_battle") or {}
 
 
+BOSS_TOP_MARGIN_TILES = 2
+BOSS_HEAD_HEIGHT = 78
+
+
+def first_walkable_row(rows: list[str]) -> int:
+    for y, row in enumerate(rows):
+        if any(ch in WALKABLE for ch in row):
+            return y
+    return -1
+
+
+def boss_top_margin_errors(scene_id: str, rows: list[str], battle: dict) -> list[str]:
+    """Boss 生成點與活動下限（min_y）都必須離最上方的可走列至少 2 格，且頭部不會超出地圖上緣。"""
+    errors = []
+    top = first_walkable_row(rows)
+    min_y = float(battle.get("min_y", battle["y"]))
+    limit = (top + BOSS_TOP_MARGIN_TILES) * TILE
+    if min_y < limit:
+        errors.append(f"[{scene_id}] Boss min_y={min_y:g} 離地圖上緣不足 {BOSS_TOP_MARGIN_TILES} 格（需 ≥ {limit}）")
+    if float(battle["y"]) < min_y:
+        errors.append(f"[{scene_id}] Boss 生成點 y={battle['y']} 高於 min_y={min_y:g}")
+    if min_y - BOSS_HEAD_HEIGHT < 0:
+        errors.append(f"[{scene_id}] Boss 頭部會超出地圖上緣（min_y={min_y:g}，頭高 {BOSS_HEAD_HEIGHT}）")
+    return errors
+
+
 def bfs(rows: list[str], blocked: set[tuple[int, int]], start: tuple[int, int], goal: tuple[int, int]) -> list[tuple[int, int]] | None:
     width, height = len(rows[0]), len(rows)
 
@@ -159,6 +185,7 @@ def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[
             errors.append(f"[{scene_id}] Boss 周圍沒有可站格")
         else:
             checkpoints["boss"] = tile
+        errors.extend(boss_top_margin_errors(scene_id, rows, battle))
 
     interact_ids: set[str] = set()
     for entry in data.get("props", []) + data.get("exits", []) + data.get("npcs", []):

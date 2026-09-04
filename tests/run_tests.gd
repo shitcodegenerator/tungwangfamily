@@ -56,6 +56,8 @@ func _initialize() -> void:
 	test_wing_and_boss_math()
 	test_phase4_data()
 	test_phase4_assets()
+	test_phase46_sheets()
+	test_phase46_logic()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -493,10 +495,31 @@ func test_phase4_data() -> void:
 	var registry: Dictionary = SceneRouterScript.parse_registry(FileAccess.get_file_as_string("res://assets/maps/scenes.json"))
 	_assert(registry.has("fried_food_cave") and int(registry["fried_food_cave"]["battle"]["boss_hp"]) == 5, "洞窟場景登錄且 Boss 生命 5")
 	var parser: MapParser = MapParserScript.load_from_file("res://assets/maps/fried_food_cave.txt")
-	var overrides: Dictionary = TileLibraryScript.overrides_from_json(registry["fried_food_cave"]["legend_overrides"])
-	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 1, {"overrides": overrides}) == TileLibraryScript.CAVE_WALL_FACE, "地面上方的牆使用受光牆面")
-	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 0, {"overrides": overrides}) == TileLibraryScript.CAVE_WALL, "第二層牆使用一般岩壁")
-	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 3, {"overrides": overrides}) == TileLibraryScript.CAVE_FLOOR, "洞窟地面使用第 5 列地面")
+	var cave_options := {TileLibraryScript.TILE_STYLE_KEY: String(registry["fried_food_cave"].get("tile_style", ""))}
+	_assert(String(cave_options[TileLibraryScript.TILE_STYLE_KEY]) == "cave", "洞窟場景使用 tile_style = cave")
+	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 1, cave_options) == TileLibraryScript.CAVE_WALL_FACE, "地面上方的牆使用岩壁面")
+	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 0, cave_options) == TileLibraryScript.CAVE_WALL_TOP, "第二層牆使用岩壁頂")
+	_assert(TileLibraryScript.ground_atlas_for(parser, 0, 0, cave_options) == TileLibraryScript.CAVE_CORNER_TL and TileLibraryScript.ground_atlas_for(parser, parser.width - 1, 0, cave_options) == TileLibraryScript.CAVE_CORNER_TR, "地圖左上、右上角使用轉角 tile")
+	var floor_a := 0
+	var floor_b := 0
+	for x: int in range(2, 22):
+		var atlas: Vector2i = TileLibraryScript.ground_atlas_for(parser, x, 3, cave_options)
+		floor_a += 1 if atlas == TileLibraryScript.CAVE_FLOOR_A else 0
+		floor_b += 1 if atlas == TileLibraryScript.CAVE_FLOOR_B else 0
+	_assert(floor_a > 0 and floor_b > 0 and floor_a + floor_b == 20, "洞窟地面在 A／B 兩款之間交錯（A %d、B %d）" % [floor_a, floor_b])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	var crystals := 0
+	for x: int in range(parser.width):
+		for y: int in range(parser.height):
+			var deco: Vector2i = TileLibraryScript.decoration_atlas_for(parser, x, y, rng, cave_options)
+			if deco == TileLibraryScript.CAVE_CRYSTAL:
+				crystals += 1
+				if parser.is_walkable(x, y):
+					crystals = -999
+	_assert(crystals > 0, "晶簇只放在與地面相鄰的牆上，不占可走格（%d 個）" % crystals)
+	var battle_cfg: Dictionary = registry["fried_food_cave"]["battle"]
+	_assert(float(battle_cfg["min_y"]) >= 4 * 32 and float(battle_cfg["y"]) >= float(battle_cfg["min_y"]), "Boss 活動上限離地圖上緣至少 2 格（min_y %s）" % battle_cfg["min_y"])
 	var younger: CharacterData = load("res://assets/characters/playable/younger_brother.tres")
 	var big: CharacterData = load("res://assets/characters/playable/big_brother.tres")
 	_assert(younger.controlled_speed > younger.walk_speed and big.controlled_speed == 0.0, "弟弟被操控時速度較快，其他角色不變")
@@ -543,3 +566,99 @@ func test_phase4_assets() -> void:
 		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
 	var grandma: Texture2D = load("res://assets/characters/npcs/grandma_turtle_sheet.png")
 	_assert(grandma != null and grandma.get_size() == Vector2(240, 256) and ResourceLoader.exists("res://assets/props/breakfast_stall.png"), "阿嬤精靈表 240×256 與早餐攤存在")
+
+
+## Phase 4.6：四位角色的 4 幀行走表與待機表、陰影、洞窟 tile 組。
+func test_phase46_sheets() -> void:
+	var ids: Array[String] = ["big_brother", "calm_brother", "sister_sheep", "younger_brother"]
+	var wired := 0
+	var distinct_ok := true
+	var walk_bottom_ok := true
+	var idle_bottom_ok := true
+	for id: String in ids:
+		var data: CharacterData = load("res://assets/characters/playable/%s.tres" % id)
+		var walk: Texture2D = data.sprite_sheet
+		var idle: Texture2D = data.idle_sheet
+		if walk != null and idle != null and walk.get_size() == Vector2(192, 256) and idle.get_size() == Vector2(192, 256) and walk.resource_path.ends_with("%s_walk_v2_sheet.png" % id):
+			wired += 1
+		var walk_image := walk.get_image()
+		var idle_image := idle.get_image()
+		for row: int in range(4):
+			var frames: Array[PackedByteArray] = []
+			for column: int in range(4):
+				var cell := walk_image.get_region(Rect2i(column * 48, row * 64, 48, 64))
+				frames.append(cell.get_data())
+				if _alpha_bottom(cell) != 62:
+					walk_bottom_ok = false
+				var idle_bottom := _alpha_bottom(idle_image.get_region(Rect2i(column * 48, row * 64, 48, 64)))
+				if idle_bottom < 61 or idle_bottom > 63:
+					idle_bottom_ok = false
+			if frames[0] == frames[2] or frames[1] == frames[3]:
+				distinct_ok = false
+	_assert(wired == 4, "四位角色接上 192×256 的 v2 行走表與待機表（實際 %d）" % wired)
+	_assert(distinct_ok, "每個方向的行走幀 0≠2、1≠3（左右腳交替）")
+	_assert(walk_bottom_ok, "行走表每格 alpha 下緣都是 62（腳底 y=61，底部保留 2px）")
+	_assert(idle_bottom_ok, "待機表每格 alpha 下緣在 61～63（1px 呼吸幅度）")
+	var shadow: Texture2D = load("res://assets/effects/character_shadow.png")
+	var pet_shadow: Texture2D = load("res://assets/effects/pet_shadow.png")
+	_assert(shadow != null and shadow.get_size() == Vector2(32, 12) and pet_shadow != null and pet_shadow.get_size() == Vector2(24, 9), "角色陰影 32×12、寵物陰影 24×9")
+	for scene_path: String in ["res://scenes/characters/playable_character.tscn", "res://scenes/characters/npc.tscn", "res://scenes/characters/pet_follower.tscn"]:
+		var node: Node = (load(scene_path) as PackedScene).instantiate()
+		var shadow_node := node.get_node_or_null("Shadow") as Sprite2D
+		var first_child := node.get_child(0)
+		_assert(shadow_node != null and shadow_node.position == Vector2.ZERO and first_child == shadow_node and shadow_node.centered, "%s 的 Shadow 在地面錨點且排在 VisualRoot 之前" % scene_path.get_file())
+		node.free()
+	var pack: Texture2D = load("res://assets/tiles/fried_food_cave_tiles_32.png")
+	_assert(pack != null and pack.get_size() == Vector2(128, 64), "洞窟正式 tile 組 128×64")
+	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
+	var atlas_image := tileset.get_image()
+	var pack_image := pack.get_image()
+	var copied := true
+	for index: int in range(8):
+		var from := pack_image.get_region(Rect2i((index % 4) * 32, (index / 4) * 32, 32, 32))
+		var to := atlas_image.get_region(Rect2i(index * 32, 5 * 32, 32, 32))
+		# 匯入時 fix_alpha_border 會改寫透明與半透明邊緣像素的 RGB，只比對實心像素。
+		for y: int in range(32):
+			for x: int in range(32):
+				var a := from.get_pixel(x, y)
+				var b := to.get_pixel(x, y)
+				# 地面 A／B（index 0、1）的最右一欄由切割器補平，不比對。
+				if index < 2 and x == 31:
+					continue
+				if a.a >= 0.5 and (a != b):
+					copied = false
+	_assert(copied, "tileset 第 5 列第 0～7 欄與正式 tile 組的實心像素相同")
+	var sheet := ImageTexture.create_from_image(Image.create(192, 256, false, Image.FORMAT_RGBA8))
+	var idle_sheet := ImageTexture.create_from_image(Image.create(192, 256, false, Image.FORMAT_RGBA8))
+	var frames_with_idle: SpriteFrames = PlayerScript.build_sprite_frames(sheet, null, idle_sheet)
+	_assert(frames_with_idle.get_frame_count(&"idle_up") == 4 and is_equal_approx(frames_with_idle.get_animation_speed(&"idle_up"), PlayerScript.IDLE_FPS), "有待機表時 idle 4 幀、以 IDLE_FPS 播放")
+	var idle_frame: AtlasTexture = frames_with_idle.get_frame_texture(&"idle_left", 3)
+	_assert(idle_frame.atlas == idle_sheet and idle_frame.region == Rect2(144, 64, 48, 64), "idle_left 第 4 幀取自待機表第 1 列第 3 欄")
+
+
+## 一格裡最後一列有不透明像素的 y（exclusive，與 PIL getbbox 的 bottom 相同）；全透明回傳 0。
+func _alpha_bottom(cell: Image) -> int:
+	for y: int in range(cell.get_height() - 1, -1, -1):
+		for x: int in range(cell.get_width()):
+			if cell.get_pixel(x, y).a > 0.0:
+				return y + 1
+	return 0
+
+
+## Phase 4.6：停下後的分離、對話框 💢 圖片。
+func test_phase46_logic() -> void:
+	var none: Array[Vector2] = [Vector2(100, 0)]
+	_assert(FollowerScript.separation_velocity(Vector2.ZERO, none, 60.0).is_zero_approx(), "沒有人靠近時不分離")
+	var close: Array[Vector2] = [Vector2(10, 0)]
+	var pushed: Vector2 = FollowerScript.separation_velocity(Vector2.ZERO, close, 60.0)
+	_assert(pushed.x < 0.0 and is_equal_approx(pushed.length(), 60.0), "被右邊的隊員擠到時往左推開")
+	var stacked: Array[Vector2] = [Vector2.ZERO]
+	var tie_a: Vector2 = FollowerScript.separation_velocity(Vector2.ZERO, stacked, 60.0, Vector2.RIGHT)
+	var tie_b: Vector2 = FollowerScript.separation_velocity(Vector2.ZERO, stacked, 60.0, Vector2.LEFT)
+	_assert(tie_a.x > 0.0 and tie_b.x < 0.0, "完全重疊時依 tie_break 往不同方向推開")
+	var far: Array[Vector2] = [Vector2(FollowerScript.SEPARATION_GAP, 0)]
+	_assert(FollowerScript.separation_velocity(Vector2.ZERO, far, 60.0).is_zero_approx(), "距離達 SEPARATION_GAP 就不再推")
+	var bb := DialogueBoxScript.to_bbcode("……💢 [OS] 你怎麼忍心!!!")
+	_assert(bb.contains("[img=12x12]res://assets/ui/anger_mark.png[/img]") and not bb.contains("💢"), "💢 換成 anger_mark 圖片")
+	_assert(bb.contains("[lb]OS[rb]"), "方括號會被跳脫，不會被當成 bbcode")
+	_assert(DialogueBoxScript.to_bbcode("普通句子です") == "普通句子です", "沒有特殊字元時原樣輸出")

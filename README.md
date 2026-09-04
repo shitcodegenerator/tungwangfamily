@@ -116,6 +116,15 @@ battle_won／battle_lost ─► Main：旗標、任務事件、回到 state.retu
 - 戰鬥暫態（Boss 生命、玩家生命、手上物品）不進存檔；轉場開始時清空。
 - 寵物 `PetFollower` 掛在 `PartyController` 底下、跟在 `order.back()` 後面，不在可切換名單；`GameState.pet_id` 存檔。
 
+## 角色動畫、陰影與洞窟 tile（Phase 4.6）
+
+- 每位主角有兩張 192×256 表：`<id>_walk_v2_sheet.png`（4 幀行走：contact A、passing A、contact B、passing B）與 `<id>_idle_sheet.png`（4 幀待機，1px 呼吸畫在幀裡）；`CharacterData.sprite_sheet`／`idle_sheet` 分別指向它們。
+- 移動播 `walk_<dir>`（8 FPS）；停下先停在行走表第 0 幀 0.12 秒，再播 `idle_<dir>`（3.3 FPS）。有待機表的角色不做程式微晃動，VisualRoot 固定在 0。
+- 每個角色、NPC、CC 的第一個子節點是 `Shadow` Sprite2D，固定在地面錨點 (0,0)，不隨待機或跳躍位移。
+- 跟隨者停下時若與任何隊員距離 < 26px，會以半速推開（`FollowerCharacter.separation_velocity`），出生、切換、返回都不會疊成一點。
+- 洞窟：`scenes.json` 的 `tile_style: "cave"` 讓 `TileLibrary.cave_atlas_for` 依鄰居選 tileset 第 5 列（地面 A／B、岩壁面、岩壁頂、轉角、晶簇 overlay）；來源是 `assets/tiles/fried_food_cave_tiles_32.png`，由切割器複製進 tileset。`battle.min_y` 是 Boss 活動上限。
+- 對話框內文是 RichTextLabel；`💢` 由 `DialogueBox.to_bbcode` 換成 `assets/ui/anger_mark.png`。
+
 ## 城鎮生命與日夜
 
 - 道具 JSON 可加 `frames`/`fps`（橫向多幀循環：燈籠、旗幟）、`drift: [振幅, 週期]`（雲霧水平飄移）、
@@ -169,7 +178,7 @@ scripts/
   ui/dialogue_box.gd / ui/dialogue_manager.gd 對話框元件與單線對話流程
   world/map_parser.gd    ASCII 地圖解析與 BFS 路徑
   world/tile_library.gd  圖例 → atlas 座標、TileSet 建立
-  characters/player_character.gd   單一角色：輸入、移動、方向、動畫、微晃動
+  characters/player_character.gd   單一角色：輸入、移動、方向、行走／待機動畫
   characters/follower_character.gd 跟隨前一位隊員的軌跡
   characters/party_controller.gd   角色切換、隊伍順序
   characters/party_trail.gd        軌跡資料結構

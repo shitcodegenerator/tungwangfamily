@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="CharacterData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="CharacterData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/characters/character_data.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/characters/playable/sister_sheep_sheet.png" id="2_sheet"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/sister_sheep_walk_v2_sheet.png" id="2_sheet"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/sister_sheep_idle_sheet.png" id="4_idle"]
 
 [ext_resource type="Texture2D" path="res://assets/characters/playable/sister_sheep_action_sheet.png" id="3_action"]
 
@@ -10,7 +11,8 @@ script = ExtResource("1_script")
 id = &"sister_sheep"
 display_name = "妹妹（自然捲綿羊）"
 sprite_sheet = ExtResource("2_sheet")
-walk_speed = 96.0
+walk_speed = 150.0
 bob_phase = 0.45
 collision_size = Vector2(18, 10)
 action_sheet = ExtResource("3_action")
+idle_sheet = ExtResource("4_idle")

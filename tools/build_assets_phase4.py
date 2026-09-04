@@ -57,6 +57,15 @@ ACTION_ROW_ORDER = {
     "younger_brother": ["down", "right", "left", "up"],
 }
 OUTPUT_ROWS = ["down", "left", "right", "up"]
+## Phase 4.6 新造型行動表（作者提供原圖）：4 列 × 3 欄（列序 down/left/right/up；第 0 欄舉物、第 1 欄投擲、第 2 欄舉物變化）。
+## 背景可能是白底、棋盤格或透明；縮放以 v2 行走表站立幀高度為準。
+ACTION_V2_SOURCES = {
+    "big_brother": "ACTION_big_brother_v2_carry_throw_reference.png",
+    "calm_brother": "ACTION_calm_brother_v2_carry_throw_reference.png",
+    "sister_sheep": "ACTION_sister_sheep_v2_carry_throw_reference.png",
+    "younger_brother": "ACTION_younger_brother_v2_carry_throw_reference.png",
+}
+ACTION_V2_COLUMNS = 3
 FX_SPECS = {
     # 名稱: (格, 目標寬)
     "fx_teleport": ((0, 0), 64),
@@ -198,10 +207,45 @@ def idle_width(character_id: str) -> int:
     return box[2] - box[0]
 
 
+def walk_v2_idle_height(character_id: str) -> int | None:
+    """v2 行走表第 0 欄第 0 列（contact A，向下）的不透明高度；沒有 v2 表時回傳 None。"""
+    path = OUT_CHARS / f"{character_id}_walk_v2_sheet.png"
+    if not is_valid_png(path):
+        return None
+    sheet = Image.open(path).convert("RGBA")
+    box = sheet.crop((0, 0, CELL_W, CELL_H)).getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox()
+    return box[3] - box[1]
+
+
+def build_action_sheet_v2(character_id: str, source: Path, output: Path) -> bool:
+    """新造型行動表：去背（白底／棋盤格由邊緣泛洪；透明底不動）→ 4×3 分格 → 取第 0 欄舉物、第 1 欄投擲，
+    依 v2 行走表站立幀高度縮放，腳底貼齊 y=61。回傳是否成功。"""
+    target_height = walk_v2_idle_height(character_id)
+    if target_height is None:
+        return False
+    src = key_out_checkerboard(Image.open(source).convert("RGBA"))
+    cells = grid_cells_n(src, ACTION_V2_COLUMNS, 4, min_area=200)
+    carry_ref = cells[(0, 0)]
+    scale = target_height / (carry_ref[3] - carry_ref[1])
+    # 只依高度縮放，讓身形與行走幀一致；投擲幀伸出去的手超過 48px 時由 fit_sprite 置中裁掉指尖，不把整個人縮小。
+    scale = min(scale, (CELL_H - 2) / max(cells[(c, r)][3] - cells[(c, r)][1] for c in range(ACTION_V2_COLUMNS) for r in range(4)))
+    sheet = Image.new("RGBA", (CELL_W * ACTION_COLUMNS, CELL_H * len(OUTPUT_ROWS)), (0, 0, 0, 0))
+    for out_row in range(len(OUTPUT_ROWS)):
+        for out_col in range(ACTION_COLUMNS):
+            sprite = src.crop(cells[(out_col, out_row)])
+            sheet.paste(fit_sprite(sprite, CELL_W, CELL_H, scale=scale), (out_col * CELL_W, out_row * CELL_H))
+    sheet.save(output)
+    print("action v2:", character_id, sheet.size, f"scale={scale:.3f}")
+    return True
+
+
 def build_action_sheets() -> None:
     for character_id, source_name in ACTION_SOURCES.items():
         source = INCOMING / source_name
         output = OUT_CHARS / f"{character_id}_action_sheet.png"
+        v2_source = INCOMING / ACTION_V2_SOURCES.get(character_id, "")
+        if is_valid_png(v2_source) and build_action_sheet_v2(character_id, v2_source, output):
+            continue
         if not is_valid_png(source):
             print(f"action: {character_id} 參考檔損毀（非 PNG），略過；遊戲內以站立幀 + CarryAnchor 代替")
             if output.exists():
@@ -380,20 +424,49 @@ def cave_wall(seed: int, lit_top: bool) -> Image.Image:
     return tile
 
 
+CAVE_TILE_PACK = ROOT / "assets" / "tiles" / "fried_food_cave_tiles_32.png"
+
+
+def seamless_floor(tile: Image.Image) -> Image.Image:
+    """把地面 tile 最右一欄換成第 30 欄（純複製，不重新取樣），消除平鋪時的直向暗線。"""
+    fixed = tile.copy()
+    fixed.paste(tile.crop((TILE - 2, 0, TILE - 1, TILE)), (TILE - 1, 0))
+    return fixed
+
+
 def build_cave_tiles() -> None:
+    """洞窟 tile：Phase 4.6 正式 4×2 tile 組（128×64）依序複製到 atlas 第 5 列第 0～7 欄：
+    地面 A、地面 B、岩壁面、岩壁頂、左上角、右上角、內凹角、晶簇 overlay。
+    tile 組不存在或不合法時退回程式合成的 4 格（Phase 4 舊行為），欄位對應仍與 TileLibrary 一致。"""
     old = Image.open(OUT_TILES / "tide_root_town_tileset.png").convert("RGBA")
     atlas = Image.new("RGBA", (ATLAS_COLUMNS * TILE, ATLAS_ROWS * TILE), (0, 0, 0, 0))
     atlas.paste(old.crop((0, 0, ATLAS_COLUMNS * TILE, min(old.height, ATLAS_ROWS * TILE))), (0, 0))
-    tiles = [
-        cave_floor(41, 3),          # 0 洞窟地面
-        cave_wall(42, False),       # 1 洞窟岩壁
-        cave_floor(43, 8),          # 2 洞窟地面（油漬較多）
-        cave_wall(44, True),        # 3 洞窟岩壁（上緣受光，用於地面下方那列牆）
-    ]
+    if is_valid_png(CAVE_TILE_PACK):
+        pack = Image.open(CAVE_TILE_PACK).convert("RGBA")
+        if pack.size != (4 * TILE, 2 * TILE):
+            raise SystemExit(f"洞窟 tile 組尺寸應為 128×64，實際 {pack.size}")
+        tiles = [pack.crop((c * TILE, r * TILE, (c + 1) * TILE, (r + 1) * TILE)) for r in range(2) for c in range(4)]
+        # 兩款地面的最右一欄比其他欄暗約 15 階，平鋪時會形成整齊的直向接縫；改以第 30 欄複製過去補平。
+        for index in (0, 1):
+            tiles[index] = seamless_floor(tiles[index])
+        source = "正式 tile 組"
+    else:
+        print("提示：找不到正式洞窟 tile 組，改用程式合成")
+        tiles = [
+            cave_floor(41, 3),          # 0 地面 A
+            cave_floor(43, 8),          # 1 地面 B（油漬較多）
+            cave_wall(44, True),        # 2 岩壁面（上緣受光）
+            cave_wall(42, False),       # 3 岩壁頂
+            cave_wall(42, False),       # 4 左上角（合成版沒有轉角，沿用岩壁）
+            cave_wall(42, False),       # 5 右上角
+            cave_wall(42, False),       # 6 內凹角
+            Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0)),  # 7 晶簇 overlay（空）
+        ]
+        source = "程式合成"
     for col, tile in enumerate(tiles):
         atlas.paste(tile, (col * TILE, CAVE_ROW * TILE))
     atlas.save(OUT_TILES / "tide_root_town_tileset.png")
-    print("tileset:", atlas.size, f"洞窟 tile {len(tiles)} 格（第 {CAVE_ROW} 列）")
+    print("tileset:", atlas.size, f"洞窟 tile {len(tiles)} 格（第 {CAVE_ROW} 列，{source}）")
 
 
 def main() -> None:

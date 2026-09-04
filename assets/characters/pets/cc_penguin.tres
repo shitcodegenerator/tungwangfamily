@@ -8,6 +8,6 @@ script = ExtResource("1_script")
 id = &"cc_penguin"
 display_name = "CC"
 sprite_sheet = ExtResource("2_sheet")
-walk_speed = 100.0
+walk_speed = 155.0
 bob_phase = 0.3
 collision_size = Vector2(14, 8)

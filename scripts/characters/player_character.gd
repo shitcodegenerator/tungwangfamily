@@ -10,6 +10,10 @@ const IDLE_SHEET_COLUMNS := 5
 const DIRECTION_ROWS: Array[StringName] = [&"down", &"left", &"right", &"up"]
 const ACTION_NAMES: Array[StringName] = [&"carry", &"throw"]
 const WALK_FPS := 8.0
+## 待機表 4 幀，約 1.2 秒一輪。
+const IDLE_FPS := 3.3
+## 停止輸入後先停在行走表第 0 欄（contact A）這麼久，再切回待機，避免一放開方向鍵就跳姿勢。
+const STOP_TO_IDLE_SECONDS := 0.12
 const BOB_PERIOD := 0.8
 const BOB_OFFSETS: Array[float] = [0.0, -1.0, 0.0, 1.0]
 ## 精靈原點對齊腳底：單格 48×64，腳底位於 y=62。
@@ -26,6 +30,7 @@ var trail: PartyTrail = PartyTrail.new()
 var is_carrying: bool = false
 var _bob_time: float = 0.0
 var _is_moving: bool = false
+var _stop_timer: float = 0.0
 var _throw_time: float = 0.0
 var _hurt_time: float = 0.0
 
@@ -64,7 +69,7 @@ func _ready() -> void:
 func apply_data(character_data: CharacterData) -> void:
 	data = character_data
 	name = String(data.id) if not String(data.id).is_empty() else name
-	sprite.sprite_frames = build_sprite_frames(data.sprite_sheet, data.action_sheet)
+	sprite.sprite_frames = build_sprite_frames(data.sprite_sheet, data.action_sheet, data.idle_sheet)
 	sprite.centered = false
 	sprite.offset = SPRITE_OFFSET
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -95,6 +100,9 @@ func _physics_process(delta: float) -> void:
 	_is_moving = desired_velocity.length_squared() > 0.01
 	if _is_moving:
 		facing = direction_to_facing(desired_velocity, facing)
+		_stop_timer = STOP_TO_IDLE_SECONDS
+	elif _stop_timer > 0.0:
+		_stop_timer -= delta
 	_update_interaction_area()
 	_play_animation()
 
@@ -142,7 +150,8 @@ func _process(delta: float) -> void:
 		visual_root.modulate = HURT_TINT if blink else Color(1.0, 1.0, 1.0, 0.7)
 		if _hurt_time <= 0.0:
 			visual_root.modulate = Color.WHITE
-	if _is_moving:
+	# 有待機表的角色：微晃動已畫在待機幀裡，VisualRoot 不再位移（陰影與碰撞盒也就不會跟著動）。
+	if _is_moving or has_idle_sheet():
 		_bob_time = data.bob_phase if data != null else 0.0
 		visual_root.position.y = 0.0
 		return
@@ -165,6 +174,15 @@ func clear_trail() -> void:
 
 func trail_point_behind(distance: float) -> Vector2:
 	return trail.point_behind(global_position, distance)
+
+
+func has_idle_sheet() -> bool:
+	return data != null and data.idle_sheet != null
+
+
+## 目前顯示的動畫名稱（測試用）。
+func current_animation() -> StringName:
+	return sprite.animation if sprite != null else &""
 
 
 func facing_name() -> StringName:
@@ -190,10 +208,26 @@ func _play_animation() -> void:
 		animation = StringName("carry_" + String(facing_name()))
 	if not sprite.sprite_frames.has_animation(animation):
 		return
+	# 剛停下：先停在行走表的 contact A 幀，STOP_TO_IDLE_SECONDS 後才切回待機。
+	if not _is_moving and _stop_timer > 0.0 and animation.begins_with("idle_") and has_idle_sheet():
+		_hold_contact_frame(StringName("walk_" + String(facing_name())))
+		return
 	if sprite.animation != animation:
 		sprite.play(animation)
+		if animation.begins_with("idle_") and has_idle_sheet():
+			# 依 bob_phase 錯開起始幀，四人不會同步呼吸。
+			var frame_count := sprite.sprite_frames.get_frame_count(animation)
+			sprite.set_frame_and_progress(int(data.bob_phase * IDLE_FPS) % maxi(frame_count, 1), 0.0)
 	elif not sprite.is_playing():
 		sprite.play(animation)
+
+
+func _hold_contact_frame(walk_name: StringName) -> void:
+	if sprite.animation == walk_name and not sprite.is_playing() and sprite.frame == 0:
+		return
+	sprite.animation = walk_name
+	sprite.stop()
+	sprite.frame = 0
 
 
 ## 由移動向量決定四方向面向；水平分量較大時取左右，否則取上下。零向量保留原方向。
@@ -208,7 +242,8 @@ static func direction_to_facing(direction: Vector2, previous: Vector2i) -> Vecto
 ## 由 Sprite Sheet 建立 idle/walk × 四方向的 SpriteFrames。
 ## 240×256（5 欄）：第 0 欄站立、第 1～4 欄行走；192×256（4 欄）：第 0 欄同時作為站立。
 ## action_sheet（96×256，可選）：第 0 欄舉物、第 1 欄投擲 → carry_*／throw_* 各 1 幀。
-static func build_sprite_frames(sheet: Texture2D, action_sheet: Texture2D = null) -> SpriteFrames:
+## idle_sheet（192×256，可選）：4 幀待機取代單幀站立，以 IDLE_FPS 循環。
+static func build_sprite_frames(sheet: Texture2D, action_sheet: Texture2D = null, idle_sheet: Texture2D = null) -> SpriteFrames:
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
 	var columns := int(sheet.get_width()) / FRAME_SIZE.x
@@ -221,9 +256,14 @@ static func build_sprite_frames(sheet: Texture2D, action_sheet: Texture2D = null
 		frames.set_animation_speed(walk_name, WALK_FPS)
 		frames.set_animation_loop(walk_name, true)
 		frames.add_animation(idle_name)
-		frames.set_animation_speed(idle_name, 1.0)
 		frames.set_animation_loop(idle_name, true)
-		frames.add_frame(idle_name, _frame_texture(sheet, 0, row))
+		if idle_sheet != null:
+			frames.set_animation_speed(idle_name, IDLE_FPS)
+			for column: int in range(FRAMES_PER_DIRECTION):
+				frames.add_frame(idle_name, _frame_texture(idle_sheet, column, row))
+		else:
+			frames.set_animation_speed(idle_name, 1.0)
+			frames.add_frame(idle_name, _frame_texture(sheet, 0, row))
 		for column: int in range(FRAMES_PER_DIRECTION):
 			frames.add_frame(walk_name, _frame_texture(sheet, walk_start + column, row))
 		if action_sheet != null:

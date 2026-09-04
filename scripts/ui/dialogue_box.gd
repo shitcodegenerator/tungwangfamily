@@ -9,9 +9,13 @@ const CHARS_PER_SECOND := 28.0
 const HINT_BLINK_PERIOD := 0.8
 const CHOICE_COLOR := Color(0.2, 0.12, 0.05)
 const CHOICE_SELECTED_COLOR := Color(0.62, 0.28, 0.08)
+## 內文裡的 💢 改用圖片（不依賴系統 emoji 字型）；圖片高度配合 12px 字級。
+const ANGER_MARK_PATH := "res://assets/ui/anger_mark.png"
+const ANGER_MARK_SIZE := 12
+const ANGER_EMOJI := "💢"
 
 @onready var name_label: Label = %NameLabel
-@onready var text_label: Label = %DialogueLabel
+@onready var text_label: RichTextLabel = %DialogueLabel
 @onready var portrait: TextureRect = %Portrait
 @onready var continue_hint: Label = %ContinueHint
 @onready var choices: VBoxContainer = %Choices
@@ -30,7 +34,7 @@ func _ready() -> void:
 func show_line(speaker: String, text: String) -> void:
 	name_label.text = speaker
 	name_label.visible = not speaker.is_empty()
-	text_label.text = text
+	text_label.text = to_bbcode(text)
 	text_label.visible_characters = 0
 	text_label.visible = true
 	_elapsed = 0.0
@@ -62,7 +66,7 @@ func set_portrait(texture: Texture2D) -> void:
 func show_choices(prompt: String, options: PackedStringArray, selected: int) -> void:
 	for child: Node in choices.get_children():
 		child.queue_free()
-	text_label.text = prompt
+	text_label.text = to_bbcode(prompt)
 	text_label.visible_characters = -1
 	text_label.visible = not prompt.is_empty()
 	_typing = false
@@ -90,7 +94,7 @@ func is_showing_choices() -> bool:
 func _process(delta: float) -> void:
 	if _typing:
 		_elapsed += delta
-		var total := text_label.text.length()
+		var total := text_label.get_total_character_count()
 		var count := visible_count(_elapsed, CHARS_PER_SECOND, total)
 		text_label.visible_characters = count
 		if count >= total:
@@ -103,6 +107,13 @@ func _process(delta: float) -> void:
 ## 純函式：經過 elapsed 秒後應顯示的字數。
 static func visible_count(elapsed: float, chars_per_second: float, total: int) -> int:
 	return clampi(int(floor(elapsed * chars_per_second)), 0, total)
+
+
+## 純函式：純文字 → bbcode。跳脫方括號，💢 換成 anger_mark 圖片。
+static func to_bbcode(text: String) -> String:
+	# 先把左括號換成暫存字元，避免補上的 [rb] 又被第二次取代吃掉。
+	var escaped := text.replace("[", "\u0001").replace("]", "[rb]").replace("\u0001", "[lb]")
+	return escaped.replace(ANGER_EMOJI, "[img=%dx%d]%s[/img]" % [ANGER_MARK_SIZE, ANGER_MARK_SIZE, ANGER_MARK_PATH])
 
 
 ## 純函式：選項那一列的文字。

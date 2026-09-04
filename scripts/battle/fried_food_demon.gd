@@ -67,6 +67,10 @@ func is_alive() -> bool:
 	return hp > 0
 
 
+## 活動上限（世界座標 y）：由 BattleDirector 依場景 battle.min_y 設定，避免 Boss 走到上緣讓頭被裁掉。
+var min_y: float = -INF
+
+
 func _physics_process(delta: float) -> void:
 	if paused and state != State.HIT and state != State.DOWN:
 		velocity = Vector2.ZERO
@@ -103,7 +107,11 @@ func _physics_process(delta: float) -> void:
 				_enter(State.DOWN if hp <= 0 else State.IDLE)
 		State.DOWN:
 			velocity = Vector2.ZERO
+	if velocity.y < 0.0 and global_position.y <= min_y:
+		velocity.y = 0.0
 	move_and_slide()
+	if global_position.y < min_y:
+		global_position.y = min_y
 
 
 func _animate_walk(delta: float) -> void:

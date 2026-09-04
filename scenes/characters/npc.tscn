@@ -1,11 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/characters/npc_character.gd" id="1_npc"]
+[ext_resource type="Texture2D" path="res://assets/effects/character_shadow.png" id="2_shadow"]
 
 [node name="NpcCharacter" type="StaticBody2D"]
 collision_layer = 1
 collision_mask = 0
 script = ExtResource("1_npc")
+
+[node name="Shadow" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_shadow")
 
 [node name="VisualRoot" type="Node2D" parent="."]
 

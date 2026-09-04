@@ -52,6 +52,7 @@ func start(new_world: TownWorld, config: Dictionary) -> void:
 	player_hp = player_max_hp
 	boss = BOSS_SCENE.instantiate()
 	boss.position = Vector2(float(config.get("x", 384.0)), float(config.get("y", 150.0)))
+	boss.min_y = float(config.get("min_y", boss.position.y))
 	world.props.add_child(boss)
 	boss.setup(int(config.get("boss_hp", 5)), _leader_position)
 	boss.hit_taken.connect(_on_boss_hit_taken)

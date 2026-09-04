@@ -51,28 +51,12 @@
     "dialogue": "res://assets/dialogue/fried_food_cave.json",
     "outdoor": false,
     "dark_wall_last_row": -1,
-    "legend_overrides": {
-      "p": [
-        0,
-        5
-      ],
-      "s": [
-        2,
-        5
-      ],
-      "#": [
-        1,
-        5
-      ],
-      "#_face": [
-        3,
-        5
-      ]
-    },
+    "tile_style": "cave",
     "battle": {
       "boss": "fried_food_demon",
       "x": 384,
       "y": 150,
+      "min_y": 128,
       "boss_hp": 5,
       "player_hp": 3
     }

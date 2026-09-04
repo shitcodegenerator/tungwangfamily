@@ -42,7 +42,7 @@ var scene_name: String = "潮根城"
 var map_path: String = MAP_TEXT_PATH
 var props_path: String = PROPS_JSON_PATH
 var dialogue_path: String = DIALOGUE_JSON_PATH
-## 傳給 TileLibrary 的選項：overrides（圖例覆寫）、dark_wall_last_row。
+## 傳給 TileLibrary 的選項：overrides（圖例覆寫）、dark_wall_last_row、tile_style（"cave" 走洞窟正式 tile）。
 var tile_options: Dictionary = {}
 
 var parser: MapParser
@@ -62,6 +62,7 @@ func configure(id: String, info: Dictionary) -> void:
 	tile_options = {
 		"overrides": TileLibrary.overrides_from_json(info.get("legend_overrides", {})),
 		"dark_wall_last_row": int(info.get("dark_wall_last_row", TileLibrary.UPPER_ZONE_LAST_ROW)),
+		TileLibrary.TILE_STYLE_KEY: String(info.get(TileLibrary.TILE_STYLE_KEY, "")),
 	}
 var world_rect: Rect2 = Rect2()
 ## 道具碰撞佔用的格子（key: Vector2i），供路徑規劃與測試使用。

@@ -13,6 +13,9 @@ const DEFAULT_ROSTER_PATHS: Array[String] = [
 	"res://assets/characters/playable/younger_brother.tres",
 ]
 
+## 跟隨者完全重疊時的推開方向，依隊伍序位輪流指派。
+const TIE_BREAKS: Array[Vector2] = [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]
+
 @export var roster: Array[CharacterData] = []
 
 ## 依名冊順序的成員（1～4 鍵對應此順序）。
@@ -167,15 +170,24 @@ func set_input_locked(locked: bool) -> void:
 
 
 func _rebuild_follow_chain() -> void:
+	var everyone: Array[Node2D] = []
+	for member: PlayableCharacter in order:
+		everyone.append(member)
+	if pet != null and is_instance_valid(pet):
+		everyone.append(pet)
 	for index: int in range(order.size()):
 		var member := order[index]
 		member.set_controlled(index == 0)
 		member.input_locked = input_locked
 		member.follower.leader = order[index - 1] if index > 0 else null
+		member.follower.others = everyone
+		member.follower.tie_break = TIE_BREAKS[index % TIE_BREAKS.size()]
 		# 清掉舊軌跡：舊軌跡可能指向與新隊形相反的方向，跟隨者改以直線靠近新目標即可。
 		member.clear_trail()
 	if pet != null and is_instance_valid(pet) and not order.is_empty():
 		pet.follower.leader = order.back()
+		pet.follower.others = everyone
+		pet.follower.tie_break = Vector2.DOWN
 		pet.clear_trail()
 
 

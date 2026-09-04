@@ -5,20 +5,21 @@
 「山海樹港 RPG」：Godot 4.7 2D 原型。Phase 1 完成主城「潮根城」、四位可切換角色與跟隨隊伍；
 Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換；Phase 3 完成 GameState、存檔、場景路由、
 兩個室內場景、兩位 NPC、資料驅動任務與 TEMP_DEMO_CONTENT 測試任務；Phase 4 完成 CC 任務切片：
-香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、對話選項、CC 寵物跟隨。
+香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、對話選項、CC 寵物跟隨；Phase 4.6 完成 4 幀行走表、
+待機表、接地陰影、隊伍分離、洞窟正式 tile、Boss 上緣限制與對話框 💢 圖片。
 規劃文件：`docs/PHASE_1_PROJECT_PLAN.md`、`docs/PHASE_2_PLAN.md`、`docs/PHASE_3_PLAN.md`、`docs/PHASE_3_DECISIONS.md`、
-`docs/PHASE_4_PLAN.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
+`docs/PHASE_4_PLAN.md`、`docs/PHASE_4_6_ANIMATION_AND_CAVE_ASSETS.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
 父親離世演出、乾媽家庭傷痛或真實回憶；測試內容一律標記 `TEMP_DEMO_CONTENT` 或 `demo_` 前綴；
 父親原型是「國王企鵝船長」；媽媽與乾媽共用 `family_home`。炸物魔王只能是純幻想、搞笑的一次性教學 Boss，
 不得加家庭原型或沉重設定；CC 的台詞只用短句、句尾「です」，不要套到其他角色。
 
 ## 不可更動的規格
 
-- 邏輯解析度 640×360，地圖格 32×32，角色單格 48×64（列序 down/left/right/up；精靈表第 0 欄站立、第 1～4 欄行走）。
+- 邏輯解析度 640×360，地圖格 32×32，角色單格 48×64（列序 down/left/right/up）。主角：行走表 192×256（4 幀，腳底 y=61）+ 待機表 192×256（4 幀）；NPC／CC 仍用 240×256（第 0 欄站立、第 1～4 欄行走）。
 - Compatibility renderer、Nearest Neighbor、不使用第三方 addon。
 - 主城是一張連續世界地圖（960×1152），不拆成多個場景；室內是獨立小場景，經 `scenes.json` 的穩定 `scene_id` 切換。
 - 四位角色共用 `scenes/characters/playable_character.tscn` 與同一套腳本，差異只放在 `CharacterData` .tres。
-- 站立微晃動只移動 `VisualRoot`，不移動 CharacterBody2D 與碰撞盒。
+- 站立微晃動只移動 `VisualRoot`，不移動 CharacterBody2D 與碰撞盒；有待機表的角色連 VisualRoot 都不動（呼吸畫在幀裡）。`Shadow` 是每個角色場景的第一個子節點，固定在地面錨點 (0,0)，不得掛在 VisualRoot 下、不得每幀依精靈 bbox 重新置中。
 
 ## 目前明確不做
 
@@ -29,8 +30,9 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 
 | 檔案 | 只負責 |
 |---|---|
-| `scripts/characters/player_character.gd` | 單一角色的輸入、移動、方向、動畫、微晃動 |
-| `scripts/characters/follower_character.gd` | 由前一位隊員的軌跡算出想要的速度 |
+| `scripts/characters/player_character.gd` | 單一角色的輸入、移動、方向、行走／待機動畫切換 |
+| `scripts/characters/follower_character.gd` | 由前一位隊員的軌跡算出想要的速度；停下時與其他隊員分離 |
+| `scripts/world/tile_library.gd` | 圖例 → atlas 座標；`tile_style: "cave"` 時由 `cave_atlas_for` 依鄰居選洞窟 tile |
 | `scripts/characters/party_controller.gd` | 切換、隊伍順序、跟隨鏈 |
 | `scripts/world/town_world.gd` | 由 ASCII 地圖與 JSON 建立世界 |
 | `scripts/camera/camera_rig.gd` | 鏡頭跟隨與邊界 |
@@ -96,5 +98,6 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 
 - 遊戲素材由 `tools/build_assets.py`（依序呼叫 phase2～phase4）從 `assets/reference/` 與 `assets/reference/incoming/` 切割產生，改參考圖後重跑即可；不要手改 `assets/characters`、`assets/props`、`assets/tilesets`、`assets/items`、`assets/effects` 裡的 PNG。
 - 重跑素材後一定要 `godot --headless --path . --import`，執行期不會重新匯入改過的 PNG。
+- 主角行走表 v2、待機表、陰影與洞窟 tile 組（`assets/tiles/fried_food_cave_tiles_32.png`）是遠端直接交付的正式檔，不經切割器；切割器只把洞窟 tile 組複製進 tileset 第 5 列（兩款地面的最右一欄會補平）。新造型行動表由 `ACTION_<id>_v2_carry_throw_reference.png`（4 列 × 3 欄）切成 96×256，存在時優先於舊的 4×4 行動表參考。
 - 收到新參考圖先確認是 PNG（`file` 或前 8 bytes）；Phase 4 分支上有三個檔案內容是亂碼，切割器會略過並印出提示。也要確認參考圖真的是行走表：阿嬤那張四列相同、每列是五種視角，切割器有專門的重組流程。
 - 字型：Fusion Pixel 12px（OFL，`assets/ui/FUSION_PIXEL_OFL.txt`），UI 字級請用 12 的倍數。

@@ -68,13 +68,16 @@ theme_override_colors/font_color = Color(0.45, 0.25, 0.1, 1)
 theme_override_font_sizes/font_size = 12
 text = "名稱"
 
-[node name="DialogueLabel" type="Label" parent="Margin/Row/Column"]
+[node name="DialogueLabel" type="RichTextLabel" parent="Margin/Row/Column"]
 unique_name_in_owner = true
+texture_filter = 1
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.2, 0.12, 0.05, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/default_color = Color(0.2, 0.12, 0.05, 1)
+theme_override_font_sizes/normal_font_size = 12
+bbcode_enabled = true
 text = "對話內容"
+scroll_active = false
 autowrap_mode = 3
 
 [node name="Choices" type="VBoxContainer" parent="Margin/Row/Column"]
