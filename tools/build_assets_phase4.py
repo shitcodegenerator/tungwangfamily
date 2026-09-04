@@ -8,8 +8,8 @@
 - ITEM_throwables_vegetable_tea_water_reference.png：3 列（青菜、綠茶、水）× 4 欄（地面、舉起、飛行、命中）→ 每件 4 幀 28×28
 - FX_cc_battle_reference.png：傳送、投擲軌跡、命中、炸雞翅、消散、勝利 → 個別特效貼圖
 - ACTION_<角色>_carry_throw_reference.png：4 方向 × 4 欄 → 96×256（第 0 欄舉物、第 1 欄投擲）
-  妹妹的參考檔損毀（不是 PNG），沒有行動表：遊戲內以站立幀 + CarryAnchor 代替
-- 阿嬤與洞窟參考檔同樣損毀：阿嬤先用老龜換色當佔位；洞窟以合成的 32×32 tile 重建（tileset 第 5 列）
+  參考檔若不是 PNG（分支上曾有損毀檔）會略過並印出提示：遊戲內以站立幀 + CarryAnchor 代替
+- 阿嬤：正式參考圖存在時走主角切割器，否則用老龜換色當佔位；洞窟參考仍缺，以合成的 32×32 tile 重建（tileset 第 5 列）
 
 由 build_assets.py 自動呼叫，也可單獨執行：python3 tools/build_assets_phase4.py
 """
@@ -53,6 +53,7 @@ ACTION_SOURCES = {
 ACTION_ROW_ORDER = {
     "big_brother": ["down", "right", "left", "up"],
     "calm_brother": ["down", "right", "left", "up"],
+    "sister_sheep": ["down", "right", "left", "up"],
     "younger_brother": ["down", "right", "left", "up"],
 }
 OUTPUT_ROWS = ["down", "left", "right", "up"]
@@ -225,11 +226,35 @@ def build_action_sheets() -> None:
 # ---------------------------------------------------------------------------
 # 阿嬤（佔位）：老龜換色
 # ---------------------------------------------------------------------------
+def build_grandma_from_views(source: Path) -> None:
+    """阿嬤參考圖不是行走表：四列內容相同，每列是「正面、側面、側面提籃、背面、正面微笑」五種視角。
+    她是站立 NPC，只需要四個方向的站立幀；行走幀以兩種正面／側面交替填入（目前不會播放）。
+    組成 5 欄 × 4 列（第 0～3 欄行走、第 4 欄站立；列序 down/left/right/up）再交給主角切割器。"""
+    src = Image.open(source).convert("RGBA")
+    cells = grid_cells_n(src, 5, 4, min_area=200)
+    views = [src.crop(cells[(col, 0)]) for col in range(5)]
+    front, side, side_basket, back, front_smile = views
+    mirror = lambda im: im.transpose(Image.FLIP_LEFT_RIGHT)
+    rows = [
+        [front, front_smile, front, front_smile, front_smile],
+        [mirror(side), mirror(side_basket), mirror(side), mirror(side_basket), mirror(side)],
+        [side, side_basket, side, side_basket, side],
+        [back, back, back, back, back],
+    ]
+    cell_w = max(im.width for im in views) + 16
+    cell_h = max(im.height for im in views) + 16
+    synthetic = Image.new("RGBA", (cell_w * 5, cell_h * 4), (0, 0, 0, 0))
+    for row, images in enumerate(rows):
+        for col, im in enumerate(images):
+            synthetic.paste(im, (col * cell_w + (cell_w - im.width) // 2, row * cell_h + cell_h - 8 - im.height), im)
+    build_character(synthetic, OUT_NPCS / "grandma_turtle_sheet.png")
+
+
 def build_grandma_placeholder() -> None:
     source = INCOMING / "GRANDMA_turtle_breakfast_sheet_reference.png"
     if is_valid_png(source):
-        build_character(source, OUT_NPCS / "grandma_turtle_sheet.png")
-        print("grandma: 使用正式參考圖")
+        build_grandma_from_views(source)
+        print("grandma: 使用正式參考圖（五視角重組為四方向）")
         return
     turtle = Image.open(OUT_NPCS / "old_turtle_sheet.png").convert("RGBA")
     r, g, b, a = turtle.split()

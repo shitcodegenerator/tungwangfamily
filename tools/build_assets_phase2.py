@@ -115,9 +115,9 @@ def grid_cells(src: Image.Image) -> dict[tuple[int, int], tuple[int, int, int, i
     return cells
 
 
-def build_character(source: Path, output: Path, max_height: int = CELL_H - 6) -> None:
-    """max_height：精靈在 48×64 格內的最大高度（主角 58；寵物等小型角色可傳較小值）。"""
-    src = Image.open(source).convert("RGBA")
+def build_character(source: Path | Image.Image, output: Path, max_height: int = CELL_H - 6) -> None:
+    """max_height：精靈在 48×64 格內的最大高度（主角 58；寵物等小型角色可傳較小值）。source 可直接傳 Image。"""
+    src = (source if isinstance(source, Image.Image) else Image.open(source)).convert("RGBA")
     width, height = src.size
     cell_w, cell_h = width / REF_COLUMNS, height / REF_ROWS
     cells = grid_cells(src)

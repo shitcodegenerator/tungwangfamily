@@ -136,7 +136,7 @@ assets/
   dialogue/              對話內容 JSON（主城、共享家庭屋、船長房間）
   quests/                任務定義 JSON
   portraits/             48×48 頭像（四位主角、兩位 NPC）
-  characters/npcs/       NPC 精靈表與 CharacterData（阿嬤為老龜換色佔位）
+  characters/npcs/       NPC 精靈表與 CharacterData
   characters/pets/       CC 精靈表與 CharacterData
   characters/boss/       炸物魔王 6 幀精靈表
   items/                 投擲物精靈表（地面／舉起／飛行／命中）與 throwables.json

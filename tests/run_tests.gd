@@ -524,11 +524,12 @@ func test_phase4_assets() -> void:
 			items += 1
 	_assert(items == 3, "三種投擲物各為 4 幀 × 28×28（實際 %d）" % items)
 	var actions := 0
-	for id: String in ["big_brother", "calm_brother", "younger_brother"]:
+	for id: String in ["big_brother", "calm_brother", "sister_sheep", "younger_brother"]:
 		var texture: Texture2D = load("res://assets/characters/playable/%s_action_sheet.png" % id)
-		if texture != null and texture.get_size() == Vector2(96, 256):
+		var data: CharacterData = load("res://assets/characters/playable/%s.tres" % id)
+		if texture != null and texture.get_size() == Vector2(96, 256) and data.action_sheet == texture:
 			actions += 1
-	_assert(actions == 3, "三張行動表為 96×256（妹妹參考檔損毀，無行動表）")
+	_assert(actions == 4, "四張行動表為 96×256 且 CharacterData 已接上（實際 %d）" % actions)
 	var sheet := ImageTexture.create_from_image(Image.create(240, 256, false, Image.FORMAT_RGBA8))
 	var action_sheet := ImageTexture.create_from_image(Image.create(96, 256, false, Image.FORMAT_RGBA8))
 	var frames: SpriteFrames = PlayerScript.build_sprite_frames(sheet, action_sheet)
@@ -540,4 +541,5 @@ func test_phase4_assets() -> void:
 	_assert(tileset != null and tileset.get_size() == Vector2(576, 192), "tileset 擴充為 6 列")
 	for name: String in ["fx_teleport", "fx_hit_sparkle", "fx_poof", "fx_victory", "fx_chicken_wing"]:
 		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
-	_assert(ResourceLoader.exists("res://assets/characters/npcs/grandma_turtle_sheet.png") and ResourceLoader.exists("res://assets/props/breakfast_stall.png"), "阿嬤佔位精靈表與早餐攤存在")
+	var grandma: Texture2D = load("res://assets/characters/npcs/grandma_turtle_sheet.png")
+	_assert(grandma != null and grandma.get_size() == Vector2(240, 256) and ResourceLoader.exists("res://assets/props/breakfast_stall.png"), "阿嬤精靈表 240×256 與早餐攤存在")

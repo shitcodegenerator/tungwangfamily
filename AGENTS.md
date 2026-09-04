@@ -96,5 +96,5 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 
 - 遊戲素材由 `tools/build_assets.py`（依序呼叫 phase2～phase4）從 `assets/reference/` 與 `assets/reference/incoming/` 切割產生，改參考圖後重跑即可；不要手改 `assets/characters`、`assets/props`、`assets/tilesets`、`assets/items`、`assets/effects` 裡的 PNG。
 - 重跑素材後一定要 `godot --headless --path . --import`，執行期不會重新匯入改過的 PNG。
-- 收到新參考圖先確認是 PNG（`file` 或前 8 bytes）；Phase 4 有三個檔案內容是亂碼，切割器會略過並印出提示。
+- 收到新參考圖先確認是 PNG（`file` 或前 8 bytes）；Phase 4 分支上有三個檔案內容是亂碼，切割器會略過並印出提示。也要確認參考圖真的是行走表：阿嬤那張四列相同、每列是五種視角，切割器有專門的重組流程。
 - 字型：Fusion Pixel 12px（OFL，`assets/ui/FUSION_PIXEL_OFL.txt`），UI 字級請用 12 的倍數。

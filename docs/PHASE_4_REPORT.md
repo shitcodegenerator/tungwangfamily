@@ -24,7 +24,7 @@
 | 只有操控角色可撿 | 完成 | `CarrySystem.pick_up()` 只對 `party.get_leader()` 生效；跟隨者不撿、不丟 |
 | CarryAnchor | 完成 | `playable_character.tscn` 新增 `VisualRoot/CarryAnchor`（0, −60）；物品貼圖掛在此節點，不畫進角色 Sprite |
 | 投擲 | 完成 | 舉著物品時 E → `CarrySystem.throw()` → `ThrownProjectile`（Area2D，只偵測物理層 5 Boss）沿面向飛 150px、視覺拋物線；起飛時以 `landing_point()` 把射程截到牆前，不會飛進牆。命中發 `hit_boss`，落地發 `landed`（物品掉在落點可再撿） |
-| 四位角色共用 | 完成 | 哥哥、冷靜哥、弟弟有 `carry_*`／`throw_*` 幀（行動表 96×256）；妹妹參考檔損毀，退回站立幀 + CarryAnchor，流程相同 |
+| 四位角色共用 | 完成 | 四位都有 `carry_*`／`throw_*` 幀（行動表 96×256）；妹妹的參考檔原本損毀，後由作者從 Downloads 提供原圖補上。沒有行動表的角色會退回站立幀 + CarryAnchor |
 
 ### 4C 炸物魔王
 
@@ -57,8 +57,9 @@
 | Boss 3×2 參考（棋盤格烙在像素裡） | `assets/characters/boss/fried_food_demon_sheet.png` 480×80（6 幀） | 從四邊泛洪去除連到邊緣的近白中性灰，雞身內的白色骨頭保留 |
 | 投擲物 4×3 | `assets/items/{vegetable_bundle,green_tea,water_flask}.png` 112×28（地面／舉起／飛行／命中） | 依格切割 |
 | 特效 3×2 | `assets/effects/fx_teleport／fx_hit_sparkle／fx_poof／fx_victory／fx_chicken_wing.png` | 依格切割；炸雞翅取掉落格中最大的單一元件；投擲軌跡改由程式旋轉與拋物線呈現 |
-| 行動表（哥哥、冷靜哥、弟弟） | `assets/characters/playable/<id>_action_sheet.png` 96×256 | 4×4 參考取第 0 欄（舉物）與第 2 欄（投擲）；列序 down/right/left/up 轉成專案的 down/left/right/up；縮放以既有站立幀寬度對齊，避免撿起時身形跳動 |
-| **妹妹行動表、洞窟參考、阿嬤參考** | — | **三個檔案不是 PNG（開頭為亂碼，遠端分支上就已損毀）**。妹妹以站立幀代替；洞窟依規劃用 32×32 tile 合成重建（tileset 第 5 列：地面、岩壁、油漬地面、受光牆面）；阿嬤以老龜換色 + 格紋頭巾當佔位 |
+| 行動表（四位） | `assets/characters/playable/<id>_action_sheet.png` 96×256 | 4×4 參考取第 0 欄（舉物）與第 2 欄（投擲）；列序 down/right/left/up 轉成專案的 down/left/right/up；縮放以既有站立幀寬度對齊，避免撿起時身形跳動 |
+| 阿嬤參考（原圖由作者補上） | `assets/characters/npcs/grandma_turtle_sheet.png` 240×256 | 參考圖四列相同、每列是五種視角（正面、側面、側面提籃、背面、正面微笑），不是行走表；重組為 down／left（鏡射側面）／right／up 四方向站立幀後交給主角切割器 |
+| **洞窟參考** | — | **分支上的檔案不是 PNG（開頭為亂碼），作者的 Downloads 也沒有這張**。依規劃用 32×32 tile 合成重建（tileset 第 5 列：地面、岩壁、油漬地面、受光牆面） |
 | 早餐攤、香椿乾拌麵圖示、💢、愛心 | `assets/props/breakfast_stall.png`、`assets/ui/*.png` | 程式繪製 |
 
 ## 2. 新增與修改的檔案
@@ -72,7 +73,7 @@ assets/maps/fried_food_cave.txt、fried_food_cave_props.json、assets/dialogue/f
 assets/items/throwables.json + 三張物品精靈表
 assets/quests/phase4_cc_quest.json
 assets/characters/pets/cc_penguin.tres + 精靈表、assets/characters/boss/、assets/characters/npcs/grandma_turtle.tres + 精靈表
-assets/characters/playable/*_action_sheet.png（3 張）、assets/effects/fx_*.png（5 張）、assets/ui/anger_mark／heart_full／heart_empty／item_noodles.png、assets/props/breakfast_stall.png
+assets/characters/playable/*_action_sheet.png（4 張）、assets/effects/fx_*.png（5 張）、assets/ui/anger_mark／heart_full／heart_empty／item_noodles.png、assets/props/breakfast_stall.png
 tools/build_assets_phase4.py
 docs/PHASE_4_REPORT.md、docs/screenshots/12～18
 
@@ -143,13 +144,13 @@ docs/MANUAL_TEST_GUIDE.md、README.md、AGENTS.md、docs/ASSET_REQUEST.md
 ## 5. 暫時內容（正式內容到位後替換）
 
 - `assets/quests/phase4_cc_quest.json` 整個任務；`assets/dialogue/tide_root_town.json` 的 `grandma_turtle`、`cc_penguin` 所有版本（CC 台詞為短句 + です，其餘標 TEMP_DEMO_CONTENT；拒絕分支的 💢 與 OS 為規劃指定內容）。
-- 阿嬤精靈表為老龜換色佔位；洞窟 tile 為程式合成；妹妹沒有舉物／投擲幀。
+- 洞窟 tile 為程式合成；阿嬤的行走幀只是正面／側面交替（她不會走動，目前不播放）。
 - 早餐攤、愛心、💢、香椿乾拌麵圖示為程式繪製。
 - Boss 攻擊只有「衝撞」一種；沒有音效。
 
 ## 6. 未完成／取捨
 
-- **損毀素材**：`ACTION_sister_carry_throw_reference.png`、`CAVE_fried_food_demon_arena_reference.png`、`GRANDMA_turtle_breakfast_sheet_reference.png` 需重新交付（見 `docs/ASSET_REQUEST.md` D 節）。
+- **損毀素材**：分支上妹妹行動表、阿嬤、洞窟三個檔案都不是 PNG；妹妹與阿嬤已由作者提供原圖補上，`CAVE_fried_food_demon_arena_reference.png` 仍需重新交付（見 `docs/ASSET_REQUEST.md` D 節）。
 - 「回到共享家庭屋休息才進入下一個遊戲日」：目前沒有每日系統，本階段未建立，也沒有把 F5 接到任何每日邏輯。
 - 洞窟只有一個房間、沒有小怪；物品命中後在原位重生（2 秒），沒打中則掉在落點——這樣 5 次命中一定可達成。
 - 拒絕分支的旗標命名：接受 → `cc_join_choice`；拒絕 → `cc_rejection_reaction_seen`（規劃的 `cc_join_choice` 解讀為「是否接受」）。
@@ -158,6 +159,6 @@ docs/MANUAL_TEST_GUIDE.md、README.md、AGENTS.md、docs/ASSET_REQUEST.md
 
 ## 7. 建議下一步
 
-1. 請遠端重新交付三個損毀檔；阿嬤與妹妹行動表到位後只要重跑 `tools/build_assets.py` 並 `--import`。
+1. 請遠端重新交付洞窟參考圖（若能附 32×32 tile 組更好）；到位後只要重跑 `tools/build_assets.py` 並 `--import`。
 2. 若要做「休息進入下一天」，建議在 `GameState` 加 `day` 欄位（schema_version 3）並由家庭屋的床互動觸發。
 3. 好感度、CC 小動作種類、Boss 第二種攻擊都可以只改 `PetFollower`／`FriedFoodDemon`，不動其他系統。
