@@ -1,0 +1,36 @@
+{
+  "phase": "5",
+  "title": "daily_loop_and_town_visual_foundation",
+  "tiles": {
+    "file": "assets/tilesets/town_visual_refresh_tiles_32.png",
+    "size": [256, 128],
+    "tile_size": [32, 32],
+    "grid": [8, 4],
+    "rows": {
+      "0": ["grass_a", "grass_b", "grass_sparse_flowers", "earth", "stone_a", "stone_b", "wood_planks", "deep_water"],
+      "1": ["path_edge_n", "path_edge_s", "path_edge_w", "path_edge_e", "path_corner_nw", "path_corner_ne", "path_corner_sw", "path_corner_se"],
+      "2": ["shore_edge_n", "shore_edge_s", "shore_edge_w", "shore_edge_e", "shore_corner_nw", "shore_corner_ne", "shore_corner_sw", "shore_corner_se"],
+      "3": ["grass_cliff", "root_wall", "bridge_planks", "bridge_edge", "water_a", "water_b", "water_c", "water_d"]
+    }
+  },
+  "props": [
+    "breakfast_stall_v2.png",
+    "shared_family_treehouse_v2.png",
+    "lantern_post_v2.png",
+    "harbor_crate_barrel_v2.png",
+    "flower_herb_bed_v2.png",
+    "blank_signpost_v2.png",
+    "root_archway_v2.png",
+    "heart_fountain_v2.png"
+  ],
+  "daily_ui": [
+    "assets/ui/day_phase_icons.png",
+    "assets/ui/rest_prompt.png",
+    "assets/effects/morning_transition_sheet.png"
+  ],
+  "notes": [
+    "All final atlas tiles have no intentional gutters and must be imported with nearest filtering.",
+    "Props use transparent backgrounds and require an explicit bottom-center origin in the game.",
+    "The generated reference sheet is visual guidance; the normalized atlas is the game-facing asset."
+  ]
+}
