@@ -55,11 +55,11 @@
 |---|---|---|
 | CC 5×4 參考 | `assets/characters/pets/cc_penguin_sheet.png` 240×256 | 主角切割器，高度縮到 40px（寵物尺寸） |
 | Boss 3×2 參考（棋盤格烙在像素裡） | `assets/characters/boss/fried_food_demon_sheet.png` 480×80（6 幀） | 從四邊泛洪去除連到邊緣的近白中性灰，雞身內的白色骨頭保留 |
-| 投擲物 4×3 | `assets/items/{vegetable_bundle,green_tea,water_flask}.png` 112×28（地面／舉起／飛行／命中） | 依格切割 |
+| 投擲物 4×3（v2，`ITEM_throwables_vegetable_tea_water_reference_v2.png`） | `assets/items/{vegetable_bundle,green_tea,water_flask}.png` 112×28（地面／舉起／飛行／命中） | 依格切割；視覺修正版將一般幀主體高度由 18px 提高為 23px，拾取碰撞與傷害不變 |
 | 特效 3×2 | `assets/effects/fx_teleport／fx_hit_sparkle／fx_poof／fx_victory／fx_chicken_wing.png` | 依格切割；炸雞翅取掉落格中最大的單一元件；投擲軌跡改由程式旋轉與拋物線呈現 |
 | 行動表（四位） | `assets/characters/playable/<id>_action_sheet.png` 96×256 | 4×4 參考取第 0 欄（舉物）與第 2 欄（投擲）；列序 down/right/left/up 轉成專案的 down/left/right/up；縮放以既有站立幀寬度對齊，避免撿起時身形跳動 |
 | 阿嬤參考（原圖由作者補上） | `assets/characters/npcs/grandma_turtle_sheet.png` 240×256 | 參考圖四列相同、每列是五種視角（正面、側面、側面提籃、背面、正面微笑），不是行走表；重組為 down／left（鏡射側面）／right／up 四方向站立幀後交給主角切割器 |
-| **洞窟參考** | — | **分支上的檔案不是 PNG（開頭為亂碼），作者的 Downloads 也沒有這張**。依規劃用 32×32 tile 合成重建（tileset 第 5 列：地面、岩壁、油漬地面、受光牆面） |
+| 洞窟參考（v2，`CAVE_fried_food_demon_arena_reference_v2.png` 768×512） | — | 首次交付的檔案是亂碼，視覺修正版已補上合法 PNG。目前只作構圖參考，遊戲內仍用 32×32 合成 tile（tileset 第 5 列：地面、岩壁、油漬地面、受光牆面），未拿參考圖當背景，以免破壞碰撞格 |
 | 早餐攤、香椿乾拌麵圖示、💢、愛心 | `assets/props/breakfast_stall.png`、`assets/ui/*.png` | 程式繪製 |
 
 ## 2. 新增與修改的檔案
@@ -159,6 +159,6 @@ docs/MANUAL_TEST_GUIDE.md、README.md、AGENTS.md、docs/ASSET_REQUEST.md
 
 ## 7. 建議下一步
 
-1. 請遠端重新交付洞窟參考圖（若能附 32×32 tile 組更好）；到位後只要重跑 `tools/build_assets.py` 並 `--import`。
+1. 洞窟若要正式化，請遠端另附 32×32 洞窟 tile 組（地面 2 款、岩壁面、岩壁頂、四角、晶簇），再改 `build_cave_tiles` 從 tile 組切割取代合成。
 2. 若要做「休息進入下一天」，建議在 `GameState` 加 `day` 欄位（schema_version 3）並由家庭屋的床互動觸發。
 3. 好感度、CC 小動作種類、Boss 第二種攻擊都可以只改 `PetFollower`／`FriedFoodDemon`，不動其他系統。
