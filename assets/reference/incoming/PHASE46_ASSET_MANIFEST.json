@@ -1,0 +1,33 @@
+{
+  "phase": "4.6",
+  "title": "animation_and_cave_assets",
+  "character_cell": [48, 64],
+  "walk_frame_order": ["contact_a", "passing_a", "contact_b", "passing_b"],
+  "direction_rows": ["down", "left", "right", "up"],
+  "assets": {
+    "walk_sheets": [
+      "big_brother_walk_v2_sheet.png",
+      "calm_brother_walk_v2_sheet.png",
+      "sister_sheep_walk_v2_sheet.png",
+      "younger_brother_walk_v2_sheet.png"
+    ],
+    "idle_sheets": [
+      "big_brother_idle_sheet.png",
+      "calm_brother_idle_sheet.png",
+      "sister_sheep_idle_sheet.png",
+      "younger_brother_idle_sheet.png"
+    ],
+    "shadows": [
+      {"file": "character_shadow.png", "size": [32, 12], "use": "party_and_npc"},
+      {"file": "pet_shadow.png", "size": [24, 9], "use": "cc"}
+    ],
+    "cave_tiles": {
+      "file": "fried_food_cave_tiles_32.png",
+      "size": [128, 64],
+      "tile_size": [32, 32],
+      "grid": [4, 2],
+      "order": ["floor_a", "floor_b", "wall_face", "wall_top", "corner_tl", "corner_tr", "corner_bl", "crystal_overlay"]
+    }
+  },
+  "source_note": "Character sheets were regenerated from the existing character identities and normalized to the project grid. Cave reference is visual guidance; the 128x64 sheet is the exact game atlas."
+}
