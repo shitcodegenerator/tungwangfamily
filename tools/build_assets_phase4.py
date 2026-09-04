@@ -36,7 +36,7 @@ CAVE_ROW = 5
 BOSS_CELL = 80
 BOSS_MAX_HEIGHT = 74
 ITEM_CELL = 28
-ITEM_SPRITE_HEIGHT = 18
+ITEM_SPRITE_HEIGHT = 23  # Phase 4 visual polish: readable pickup/carry silhouette
 ITEM_HIT_HEIGHT = 26
 PET_MAX_HEIGHT = 40
 ACTION_COLUMNS = 2  # 0 舉物、1 投擲
@@ -156,7 +156,7 @@ def build_boss() -> None:
 # ---------------------------------------------------------------------------
 def build_items() -> None:
     OUT_ITEMS.mkdir(parents=True, exist_ok=True)
-    src = Image.open(INCOMING / "ITEM_throwables_vegetable_tea_water_reference.png").convert("RGBA")
+    src = Image.open(INCOMING / "ITEM_throwables_vegetable_tea_water_reference_v2.png").convert("RGBA")
     cells = grid_cells_n(src, 4, 3, min_area=60)
     for row, item_id in enumerate(ITEM_ROWS):
         sheet = Image.new("RGBA", (ITEM_CELL * len(ITEM_FRAMES), ITEM_CELL), (0, 0, 0, 0))
