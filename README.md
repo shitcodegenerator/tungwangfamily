@@ -1,8 +1,10 @@
-# 山海樹港 RPG — Phase 2：潮根城主城（互動與城鎮生命）
+# 山海樹港 RPG — Phase 3：任務引導、NPC、室內與存檔
 
 Godot 4.7 / GDScript / Compatibility renderer 的 2D 原型。
 Phase 1：可以走、可以切換角色、其他人會跟隨、可以在一張連續的巨大樹洞城裡上下探索。
 Phase 2：靠近物件按 E 互動、木框羊皮紙對話框、燈籠／水面／旗幟／雲霧動畫與粒子、F5 日夜切換。
+Phase 3：集中式 GameState、JSON 存檔（F6／F7）、場景路由（主城 ⇄ 共享家庭屋 ⇄ 船長房間）、
+國王企鵝船長與市集老龜 NPC、資料驅動任務與任務日誌（J）、TEMP_DEMO_CONTENT 測試任務。
 
 ## 執行
 
@@ -21,15 +23,18 @@ godot --path .
 | 按鍵 | 動作 |
 |---|---|
 | WASD／方向鍵 | 移動 |
-| E | 與面前的物件互動；對話中推進（打字中先補完整句） |
-| 1／2／3／4 | 切換哥哥／冷靜哥／妹妹／弟弟（對話中無效） |
+| E | 與面前的物件或 NPC 互動；對話中推進（打字中先補完整句） |
+| J | 開關任務日誌 |
+| 1／2／3／4 | 切換哥哥／冷靜哥／妹妹／弟弟（對話、轉場中無效） |
 | Tab | 循環切換操控角色 |
 | F5 | 日夜切換：白天 → 黃昏 → 夜晚 → 白天 |
+| F6／F7 | 存檔／讀檔（`user://save_01.json`） |
 | Esc | 開關測試資訊面板 |
 | Q（面板開啟時） | 離開遊戲 |
 | F1 | 顯示／隱藏碰撞格 |
 
-可互動物件：公告欄、樹心、左側橋頭、右側船港、上方樹冠門（後三者顯示「尚未開放」）。
+可互動物件：公告欄（接測試任務）、樹心、三個封鎖出口、市集老龜（廣場木箱旁）；
+走進中層左下樹門房屋＝共享家庭屋，右下陽台房屋＝船長房間（內有國王企鵝船長）。
 
 ## 驗證
 
@@ -44,7 +49,7 @@ godot --headless --path . -s res://tests/run_tests.gd
 caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
 ```
 
-驗證報告見 `docs/PHASE_1_REPORT.md`、`docs/PHASE_2_REPORT.md`。
+驗證報告見 `docs/PHASE_1_REPORT.md`、`docs/PHASE_2_REPORT.md`、`docs/PHASE_3_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
 
 ## 匯出
 
@@ -70,6 +75,23 @@ DialogueManager.dialogue_started / dialogue_finished ─► Main ─► PartyCon
   Portrait（預留、預設隱藏）、ContinueHint。`DialogueBox.set_portrait()` 為未來頭像接口。
 - 對話中領頭者不讀移動輸入、不能切換角色；隊伍、鏡頭、位置都不變。
 
+## 場景、任務與存檔的資料流
+
+```text
+assets/maps/scenes.json（scene_id → 地圖／道具／對話檔、outdoor、圖例覆寫）
+SceneRouter.load_scene(scene_id) ─► 同一個 TownWorld 場景以不同資料建立 ─► PartyController.place()
+道具 JSON 的 portals ─► ScenePortal（領頭者走入）─► SceneRouter.enter_portal（"return" 回到記住的位置）
+道具 JSON 的 npcs ─► NpcCharacter（站立、碰撞、轉向）＋ Interactable
+對話 JSON 的版本陣列 ─► DialogueResolver 依 GameState／QuestManager 的 requires 挑版本 ─► on_complete 動作
+QuestManager（assets/quests/*.json）：目標依序完成；interact 目標由對話結束後的 notify_interact 推進
+GameState.to_dict() ─► SaveManager（user://save_01.json，schema_version）─► Main.apply_state() 還原
+```
+
+- 對話版本條件：`flags`、`not_flags`、`quest {id: 狀態}`、`quest_objective {id: 目前目標}`；
+  動作：`quest_start`、`set_flag`、`clear_flag`、`unlock_scene`、`quest_objective`。
+- 所有測試任務與測試對話都以 `TEMP_DEMO_CONTENT` 標記，正式內容由作者提供後直接替換 JSON。
+- 家庭記憶物件（家庭屋毛線籃）與船長重要物件（船長房間小箱子）只是插槽，內容留白。
+
 ## 城鎮生命與日夜
 
 - 道具 JSON 可加 `frames`/`fps`（橫向多幀循環：燈籠、旗幟）、`drift: [振幅, 週期]`（雲霧水平飄移）、
@@ -87,14 +109,25 @@ assets/
   maps/                  ASCII 地圖 + 道具／出生點／出口 JSON
   props/                 房屋、燈、木箱、路牌、柵欄、雲、樹心等道具
   ui/                    Fusion Pixel 12px 字型（OFL）、Theme、對話框九宮格、互動提示圖示
-  dialogue/              對話內容 JSON
+  dialogue/              對話內容 JSON（主城、共享家庭屋、船長房間）
+  quests/                任務定義 JSON
+  portraits/             48×48 頭像（四位主角、兩位 NPC）
+  characters/npcs/       NPC 精靈表與 CharacterData
   effects/               光暈與粒子貼圖
   reference/             原始 AI 生成參考圖（不直接用於遊戲）；incoming/ 為 A 級補件
 scenes/                  main / world / characters / props / ui（debug_hud、dialogue_box）
 scripts/
   main.gd                組合主城、隊伍、鏡頭、互動、對話、日夜、HUD
   world/town_world.gd    由 ASCII 地圖建立 TileMapLayer、碰撞、裝飾、道具、標記、可互動物件
+  world/scene_router.gd  場景登錄表、轉場淡入淡出、傳送門處理、讀檔還原
+  world/portal.gd        傳送門 Area2D
   world/day_night.gd     CanvasModulate 日夜狀態（F5）
+  state/game_state.gd    集中式狀態與序列化
+  save/save_manager.gd   JSON 存檔／讀檔
+  quest/quest_manager.gd 任務定義、進度、動作
+  dialogue/dialogue_resolver.gd 依狀態挑對話版本
+  characters/npc_character.gd   站立 NPC
+  ui/quest_hud.gd        目標摘要、任務日誌、提示
   world/ambient_effects.gd 落葉／蝴蝶／螢火蟲粒子
   interaction/interactable.gd           可互動 Area2D（物理層 3）＋ interacted signal
   interaction/interaction_controller.gd 最近目標選擇、提示圖示、E 鍵分派
@@ -117,11 +150,12 @@ docs/                    規劃、提示詞、驗證報告、截圖
 ## 重建素材
 
 Phase 1 參考圖在 `assets/reference/`，Phase 2 A 級補件在 `assets/reference/incoming/`。
-`build_assets.py` 會先切 Phase 1 素材，再呼叫 `build_assets_phase2.py` 以正式素材覆蓋角色精靈表與主要道具、
-產生燈籠／旗幟／水面動畫幀、補充 tile 與 UI 貼圖：
+`build_assets.py` 會先切 Phase 1 素材，再呼叫 `build_assets_phase2.py`（正式角色表、主要道具、動畫幀、補充 tile、UI）
+與 `build_assets_phase3.py`（NPC 行走表、頭像、室內家具、室內地板 tile）：
 
 ```bash
 python3 tools/build_assets.py
+godot --headless --path . --import   # 重建後必跑：執行期不會自動重新匯入改過的 PNG
 ```
 
 角色精靈表為 240×256：第 0 欄站立、第 1～4 欄行走（48×64，列序 down/left/right/up）。
@@ -136,4 +170,5 @@ python3 tools/build_assets.py
 ```
 
 道具、出生點、出口與區段定義在 `assets/maps/tide_root_town_props.json`。
-改完後先跑 `python3 tools/validate_map.py` 確認主要路線仍可走通。
+室內場景同樣是 ASCII 地圖＋道具 JSON（`family_home.*`、`captain_room.*`），在 `scenes.json` 登錄。
+改完後先跑 `python3 tools/validate_map.py` 確認每個場景的入口、傳送門與互動點都可走到。

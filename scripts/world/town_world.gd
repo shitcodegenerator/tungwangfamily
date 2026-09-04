@@ -1,6 +1,7 @@
 class_name TownWorld
 extends Node2D
-## 潮根城主城：由 ASCII 地圖與道具 JSON 在執行期建立 TileMapLayer、碰撞、裝飾、道具、標記與可互動物件。
+## 一個「世界場景」：由 ASCII 地圖與道具 JSON 在執行期建立 TileMapLayer、碰撞、裝飾、道具、標記、
+## 可互動物件、NPC 與傳送門。主城與室內場景共用此腳本，只有資料檔不同（見 assets/maps/scenes.json）。
 ## 日夜只透過 apply_daytime 調整燈籠光暈，地圖與碰撞不會重建。
 
 const TILE_SIZE := TileLibrary.TILE_SIZE
@@ -8,6 +9,9 @@ const MAP_TEXT_PATH := "res://assets/maps/tide_root_town.txt"
 const PROPS_JSON_PATH := "res://assets/maps/tide_root_town_props.json"
 const DIALOGUE_JSON_PATH := "res://assets/dialogue/tide_root_town.json"
 const INTERACTABLE_SCRIPT := preload("res://scripts/interaction/interactable.gd")
+const PORTAL_SCRIPT := preload("res://scripts/world/portal.gd")
+const NPC_SCENE := preload("res://scenes/characters/npc.tscn")
+const DIALOGUE_RESOLVER := preload("res://scripts/dialogue/dialogue_resolver.gd")
 ## 沒有指定 interact_size 時，互動偵測矩形 = 碰撞盒往外擴的量。
 const INTERACT_PADDING := Vector2(24.0, 28.0)
 const PROP_TEXTURE_DIR := "res://assets/props/"
@@ -24,10 +28,35 @@ const HINT_FONT := preload("res://assets/ui/fusion_pixel_12px_zh_hant.ttf")
 @onready var spawn_points: Node2D = $SpawnPoints
 @onready var interactables: Node2D = $Interactables
 
+## 領頭角色走進傳送門時發出；由 SceneRouter 處理。
+signal portal_entered(portal: ScenePortal)
+
+var scene_id: String = "tide_root_town"
+var scene_name: String = "潮根城"
+var map_path: String = MAP_TEXT_PATH
+var props_path: String = PROPS_JSON_PATH
+var dialogue_path: String = DIALOGUE_JSON_PATH
+## 傳給 TileLibrary 的選項：overrides（圖例覆寫）、dark_wall_last_row。
+var tile_options: Dictionary = {}
+
 var parser: MapParser
 var map_data: Dictionary = {}
 var dialogue_data: Dictionary = {}
 var lamp_props: Array[TownProp] = []
+var npcs: Array[NpcCharacter] = []
+
+
+## 在 add_child 之前呼叫：依場景登錄表設定資料檔路徑與 tile 選項。
+func configure(id: String, info: Dictionary) -> void:
+	scene_id = id
+	scene_name = String(info.get("name", id))
+	map_path = String(info.get("map", MAP_TEXT_PATH))
+	props_path = String(info.get("props", PROPS_JSON_PATH))
+	dialogue_path = String(info.get("dialogue", DIALOGUE_JSON_PATH))
+	tile_options = {
+		"overrides": TileLibrary.overrides_from_json(info.get("legend_overrides", {})),
+		"dark_wall_last_row": int(info.get("dark_wall_last_row", TileLibrary.UPPER_ZONE_LAST_ROW)),
+	}
 var world_rect: Rect2 = Rect2()
 ## 道具碰撞佔用的格子（key: Vector2i），供路徑規劃與測試使用。
 var prop_blocked_tiles: Dictionary = {}
@@ -41,24 +70,26 @@ func _ready() -> void:
 	_build_props()
 	_build_spawn_points()
 	_build_exits()
+	_build_npcs()
+	_build_portals()
 	collision.visible = false
 
 
 func _load_data() -> void:
-	parser = MapParser.load_from_file(MAP_TEXT_PATH)
+	parser = MapParser.load_from_file(map_path)
 	var errors := parser.validate()
 	for message: String in errors:
 		push_error("地圖錯誤：%s" % message)
-	var json_text := FileAccess.get_file_as_string(PROPS_JSON_PATH)
+	var json_text := FileAccess.get_file_as_string(props_path)
 	var parsed: Variant = JSON.parse_string(json_text)
 	if typeof(parsed) != TYPE_DICTIONARY:
-		push_error("道具設定 JSON 解析失敗：%s" % PROPS_JSON_PATH)
+		push_error("道具設定 JSON 解析失敗：%s" % props_path)
 		parsed = {"props": [], "spawn_points": [], "exits": [], "zones": [], "connectors": []}
 	map_data = parsed
 	world_rect = Rect2(Vector2.ZERO, Vector2(parser.width, parser.height) * TILE_SIZE)
-	var dialogue_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DIALOGUE_JSON_PATH))
+	var dialogue_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(dialogue_path))
 	if typeof(dialogue_parsed) != TYPE_DICTIONARY:
-		push_error("對話 JSON 解析失敗：%s" % DIALOGUE_JSON_PATH)
+		push_error("對話 JSON 解析失敗：%s" % dialogue_path)
 		dialogue_parsed = {}
 	dialogue_data = dialogue_parsed
 
@@ -67,7 +98,7 @@ func _build_ground() -> void:
 	ground.tile_set = TileLibrary.build_ground_tileset(TILESET_TEXTURE)
 	for y: int in range(parser.height):
 		for x: int in range(parser.width):
-			ground.set_cell(Vector2i(x, y), 0, TileLibrary.ground_atlas_for(parser, x, y))
+			ground.set_cell(Vector2i(x, y), 0, TileLibrary.ground_atlas_for(parser, x, y, tile_options))
 
 
 func _build_collision() -> void:
@@ -84,7 +115,7 @@ func _build_decoration() -> void:
 	rng.seed = DECORATION_SEED
 	for y: int in range(parser.height):
 		for x: int in range(parser.width):
-			var atlas := TileLibrary.decoration_atlas_for(parser, x, y, rng)
+			var atlas := TileLibrary.decoration_atlas_for(parser, x, y, rng, tile_options)
 			if atlas.x >= 0:
 				decoration.set_cell(Vector2i(x, y), 0, atlas)
 
@@ -114,26 +145,102 @@ func _build_props() -> void:
 			_add_interactable(StringName(String(entry["interact"])), center, size, entry)
 
 
-## 建立可互動 Area2D（物理層 3）；對話內容從 dialogue JSON 依 id 取得。
+## 建立可互動 Area2D（物理層 3）；對話內容從 dialogue JSON 依 id 取得（可為版本陣列）。
+## speaker/lines 保存「無狀態時」的預設版本，實際播放的版本由 Main 透過 DialogueResolver 決定。
 func _add_interactable(id: StringName, center: Vector2, size: Vector2, entry: Dictionary) -> Interactable:
 	var node: Interactable = INTERACTABLE_SCRIPT.new()
-	var speaker := ""
-	var lines := PackedStringArray()
 	var dialogue: Variant = dialogue_data.get(String(id))
-	if typeof(dialogue) == TYPE_DICTIONARY:
-		speaker = String(dialogue.get("speaker", ""))
-		for line: Variant in dialogue.get("lines", []):
-			lines.append(String(line))
-	else:
-		push_error("對話 JSON 缺少 id：%s" % id)
-		lines.append("……")
+	if dialogue == null:
+		push_error("對話 JSON 缺少 id：%s（%s）" % [id, dialogue_path])
+		dialogue = {"speaker": "", "lines": ["……"]}
+	var resolved: Dictionary = DIALOGUE_RESOLVER.resolve(dialogue, null, null)
 	node.position = center
 	var prompt := Vector2.INF
 	if entry.has("prompt_offset"):
 		prompt = _vector_from(entry.get("prompt_offset"), Vector2.INF)
-	node.setup(id, speaker, lines, size, prompt)
+	node.setup(id, resolved["speaker"], resolved["lines"], size, prompt)
+	node.dialogue_entry = dialogue
+	node.portrait_id = String(entry.get("portrait", resolved.get("portrait", "")))
 	interactables.add_child(node)
 	return node
+
+
+func _build_npcs() -> void:
+	for entry: Dictionary in map_data.get("npcs", []):
+		var data: CharacterData = load(String(entry.get("data", "")))
+		if data == null:
+			push_error("找不到 NPC 資料：%s" % entry.get("data", ""))
+			continue
+		var npc: NpcCharacter = NPC_SCENE.instantiate()
+		npc.position = Vector2(float(entry.get("x", 0.0)), float(entry.get("y", 0.0)))
+		props.add_child(npc)
+		npc.setup(data, String(entry.get("facing", "down")))
+		_register_prop_blocking(npc.position, data.collision_size)
+		npcs.append(npc)
+		if entry.has("interact"):
+			var size := _vector_from(entry.get("interact_size"), data.collision_size + INTERACT_PADDING)
+			var center := npc.position + Vector2(0.0, -size.y / 2.0 + 4.0)
+			var interactable := _add_interactable(StringName(String(entry["interact"])), center, size, entry)
+			interactable.owner_node = npc
+			if interactable.speaker_name.is_empty():
+				interactable.speaker_name = data.display_name
+
+
+func _build_portals() -> void:
+	for entry: Dictionary in map_data.get("portals", []):
+		var portal: ScenePortal = PORTAL_SCRIPT.new()
+		portal.position = Vector2(float(entry.get("x", 0.0)), float(entry.get("y", 0.0)))
+		portal.setup(
+			String(entry.get("id", "portal")),
+			String(entry.get("target", "return")),
+			String(entry.get("entry", "default")),
+			_vector_from(entry.get("size"), Vector2(24.0, 12.0)),
+			_vector_from(entry.get("return_position"), portal.position + Vector2(0.0, 24.0)),
+		)
+		portal.entered.connect(func(node: ScenePortal) -> void: portal_entered.emit(node))
+		exits.add_child(portal)
+
+
+func get_portals() -> Array[ScenePortal]:
+	var result: Array[ScenePortal] = []
+	for child: Node in exits.get_children():
+		if child is ScenePortal:
+			result.append(child as ScenePortal)
+	return result
+
+
+## 返回點周圍可站的落點（領頭者在中心）：依偏移順序挑出可走且未被道具佔用的格子，不足時重複最後一個。
+const ARRIVAL_OFFSETS: Array[Vector2] = [
+	Vector2(0, 0), Vector2(-22, -4), Vector2(22, -4), Vector2(0, -24), Vector2(-44, -4), Vector2(44, -4),
+	Vector2(0, 24), Vector2(-22, 20), Vector2(22, 20), Vector2(0, -48),
+]
+
+
+func arrival_positions(center: Vector2, count: int = 4) -> Array[Vector2]:
+	var result: Array[Vector2] = [center]
+	for offset: Vector2 in ARRIVAL_OFFSETS.slice(1):
+		if result.size() >= count:
+			break
+		var candidate := center + offset
+		if is_tile_walkable(world_to_tile(candidate)):
+			result.append(candidate)
+	while result.size() < count:
+		result.append(result.back())
+	return result
+
+
+## 入口名稱 → 四個世界座標（領頭者在前）；找不到時退回 spawn_points。
+func get_entry_positions(entry_name: String) -> Array[Vector2]:
+	var entries: Dictionary = map_data.get("entries", {})
+	var raw: Variant = entries.get(entry_name, entries.get("default", map_data.get("spawn_points", [])))
+	var result: Array[Vector2] = []
+	if typeof(raw) == TYPE_ARRAY:
+		for tile: Variant in raw:
+			if typeof(tile) == TYPE_ARRAY and tile.size() == 2:
+				result.append(tile_to_world(Vector2i(int(tile[0]), int(tile[1]))))
+	if result.is_empty():
+		result = get_spawn_positions()
+	return result
 
 
 static func _vector_from(raw: Variant, fallback: Vector2) -> Vector2:

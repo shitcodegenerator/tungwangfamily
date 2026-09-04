@@ -19,10 +19,11 @@ func _ready() -> void:
 	box.visible = false
 
 
-func start(speaker: String, lines: PackedStringArray) -> void:
+func start(speaker: String, lines: PackedStringArray, portrait: Texture2D = null) -> void:
 	if lines.is_empty():
 		push_warning("對話沒有任何句子：%s" % speaker)
 		return
+	box.set_portrait(portrait)
 	is_active = true
 	current_speaker = speaker
 	_lines = lines

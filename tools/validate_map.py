@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""驗證主城 ASCII 地圖：尺寸、圖例、道具落點，以及主要路線是否可走通（BFS）。
+"""驗證所有場景（assets/maps/scenes.json）的 ASCII 地圖：尺寸、圖例、道具落點、入口可站、
+主要路線可走通（BFS）、傳送門與互動點可達、互動 id 都有對話、任務目標都指向存在的互動 id。
 
 執行：python3 tools/validate_map.py
 """
@@ -11,35 +12,43 @@ from collections import deque
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MAP_PATH = ROOT / "assets" / "maps" / "tide_root_town.txt"
-PROPS_PATH = ROOT / "assets" / "maps" / "tide_root_town_props.json"
-DIALOGUE_PATH = ROOT / "assets" / "dialogue" / "tide_root_town.json"
+SCENES_PATH = ROOT / "assets" / "maps" / "scenes.json"
+QUEST_PATH = ROOT / "assets" / "quests" / "phase3_demo_quest.json"
 TILE = 32
 
 WALKABLE = set("gdrpbsm=|w")
 SOLID = set("#.c~,T")
 
 
-def load_map() -> list[str]:
-    rows = [line.rstrip("\n") for line in MAP_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return rows
+def res_path(path: str) -> Path:
+    return ROOT / path.replace("res://", "")
 
 
-def blocked_by_props(props: list[dict], width: int, height: int) -> set[tuple[int, int]]:
+def load_rows(path: Path) -> list[str]:
+    return [line.rstrip("\n") for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def blocked_rect(x: float, y: float, w: float, h: float, width: int, height: int) -> set[tuple[int, int]]:
+    """與 town_world.gd 相同規則：碰撞盒（底部中央原點）內縮 1px 後，任何相交的格子都視為不可規劃。"""
     blocked: set[tuple[int, int]] = set()
-    for prop in props:
+    x0, x1 = x - w / 2 + 1, x + w / 2 - 1
+    y0, y1 = y - h + 1, y - 1
+    for ty in range(height):
+        for tx in range(width):
+            tx0, ty0 = tx * TILE, ty * TILE
+            if x0 < tx0 + TILE and x1 > tx0 and y0 < ty0 + TILE and y1 > ty0:
+                blocked.add((tx, ty))
+    return blocked
+
+
+def blocked_by_props(data: dict, width: int, height: int) -> set[tuple[int, int]]:
+    blocked: set[tuple[int, int]] = set()
+    for prop in data.get("props", []):
         col = prop.get("collision")
-        if not col:
-            continue
-        w, h = col
-        # 與 town_world.gd 相同規則：碰撞盒內縮 1px 後，任何相交的格子都視為不可規劃
-        x0, x1 = prop["x"] - w / 2 + 1, prop["x"] + w / 2 - 1
-        y0, y1 = prop["y"] - h + 1, prop["y"] - 1
-        for ty in range(height):
-            for tx in range(width):
-                tx0, ty0 = tx * TILE, ty * TILE
-                if x0 < tx0 + TILE and x1 > tx0 and y0 < ty0 + TILE and y1 > ty0:
-                    blocked.add((tx, ty))
+        if col:
+            blocked |= blocked_rect(prop["x"], prop["y"], col[0], col[1], width, height)
+    for npc in data.get("npcs", []):
+        blocked |= blocked_rect(npc["x"], npc["y"], 20, 10, width, height)
     return blocked
 
 
@@ -71,63 +80,123 @@ def bfs(rows: list[str], blocked: set[tuple[int, int]], start: tuple[int, int], 
     return None
 
 
-def main() -> int:
-    rows = load_map()
-    data = json.loads(PROPS_PATH.read_text(encoding="utf-8"))
-    width, height = data["world_size"]
+def world_to_tile(x: float, y: float) -> tuple[int, int]:
+    return int(x // TILE), int(y // TILE)
+
+
+def nearest_walkable(rows: list[str], blocked: set[tuple[int, int]], tile: tuple[int, int]) -> tuple[int, int] | None:
+    """互動點與傳送門本身可能落在道具格上；找相鄰（含自身）的可站格。"""
+    x, y = tile
+    for cand in ((x, y), (x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y), (x, y + 2)):
+        cx, cy = cand
+        if 0 <= cy < len(rows) and 0 <= cx < len(rows[0]) and rows[cy][cx] in WALKABLE and cand not in blocked:
+            return cand
+    return None
+
+
+def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[list[str], set[str]]:
     errors: list[str] = []
+    rows = load_rows(res_path(info["map"]))
+    data = json.loads(res_path(info["props"]).read_text(encoding="utf-8"))
+    dialogue = json.loads(res_path(info["dialogue"]).read_text(encoding="utf-8"))
+    width, height = data["world_size"]
     if len(rows) != height:
-        errors.append(f"地圖列數 {len(rows)} ≠ {height}")
+        errors.append(f"[{scene_id}] 地圖列數 {len(rows)} ≠ {height}")
     for i, row in enumerate(rows):
         if len(row) != width:
-            errors.append(f"第 {i} 列寬度 {len(row)} ≠ {width}")
+            errors.append(f"[{scene_id}] 第 {i} 列寬度 {len(row)} ≠ {width}")
         for ch in row:
             if ch not in WALKABLE | SOLID:
-                errors.append(f"第 {i} 列有未知圖例 '{ch}'")
+                errors.append(f"[{scene_id}] 第 {i} 列有未知圖例 '{ch}'")
     if errors:
-        print("\n".join(errors))
-        return 1
+        return errors, set()
 
-    blocked = blocked_by_props(data["props"], width, height)
-    for prop in data["props"]:
+    blocked = blocked_by_props(data, width, height)
+    for prop in data.get("props", []):
         tx, ty = int(prop["x"] // TILE), int((prop["y"] - 1) // TILE)
         if prop.get("collision") and rows[ty][tx] not in WALKABLE:
-            print(f"注意：{prop['texture']} 的底部落在非行走格 ({tx},{ty}) '{rows[ty][tx]}'")
+            print(f"注意：[{scene_id}] {prop['texture']} 的底部落在非行走格 ({tx},{ty}) '{rows[ty][tx]}'")
 
     spawn = tuple(data["spawn_points"][0])
-    for sp in data["spawn_points"]:
-        p = tuple(sp)
-        if rows[p[1]][p[0]] not in WALKABLE or p in blocked:
-            errors.append(f"出生點 {p} 不可站立")
+    for name, tiles in {"spawn_points": data["spawn_points"], **data.get("entries", {})}.items():
+        for sp in tiles:
+            p = tuple(sp)
+            if rows[p[1]][p[0]] not in WALKABLE or p in blocked:
+                errors.append(f"[{scene_id}] 入口 {name} 的格 {p} 不可站立")
 
-    checkpoints = {c["name"]: tuple(c["tile"]) for c in data["connectors"]}
-    checkpoints.update({e["name"]: tuple(e["tile"]) for e in data["exits"]})
-    checkpoints["top_center"] = (14, 2)
+    checkpoints: dict[str, tuple[int, int]] = {}
+    for c in data.get("connectors", []):
+        checkpoints[c["name"]] = tuple(c["tile"])
+    for e in data.get("exits", []):
+        checkpoints[e["name"]] = tuple(e["tile"])
+    if scene_id == "tide_root_town":
+        checkpoints["top_center"] = (14, 2)
+    for portal in data.get("portals", []):
+        tile = nearest_walkable(rows, blocked, world_to_tile(portal["x"], portal["y"]))
+        if tile is None:
+            errors.append(f"[{scene_id}] 傳送門 {portal['id']} 周圍沒有可站格")
+        else:
+            checkpoints[f"portal:{portal['id']}"] = tile
+
+    interact_ids: set[str] = set()
+    for entry in data.get("props", []) + data.get("exits", []) + data.get("npcs", []):
+        if not entry.get("interact"):
+            continue
+        interact_ids.add(entry["interact"])
+        if "x" in entry:
+            tile = nearest_walkable(rows, blocked, world_to_tile(entry["x"], entry["y"] + 4))
+            if tile is None:
+                errors.append(f"[{scene_id}] 互動點 {entry['interact']} 周圍沒有可站格")
+            else:
+                checkpoints[f"interact:{entry['interact']}"] = tile
+
     for name, goal in checkpoints.items():
         path = bfs(rows, blocked, spawn, goal)
         if path is None:
-            errors.append(f"從出生點無法走到 {name} {goal}")
+            errors.append(f"[{scene_id}] 從出生點無法走到 {name} {goal}")
         else:
-            print(f"OK  {name:16s} {goal}  路徑長度 {len(path) - 1}")
+            print(f"OK  [{scene_id}] {name:32s} {goal}  路徑長度 {len(path) - 1}")
 
-    # 出口外側必須被封鎖：地圖最外圈的可走格都要被道具擋住
     for ty in range(height):
         for tx in (0, width - 1):
             if rows[ty][tx] in WALKABLE and (tx, ty) not in blocked:
-                errors.append(f"邊界格 ({tx},{ty}) 可走且未封鎖")
+                errors.append(f"[{scene_id}] 邊界格 ({tx},{ty}) 可走且未封鎖")
     for tx in range(width):
         for ty in (0, height - 1):
             if rows[ty][tx] in WALKABLE and (tx, ty) not in blocked:
-                errors.append(f"邊界格 ({tx},{ty}) 可走且未封鎖")
+                errors.append(f"[{scene_id}] 邊界格 ({tx},{ty}) 可走且未封鎖")
 
-    # 互動物件：每個 interact id 都要有對話內容
-    dialogue = json.loads(DIALOGUE_PATH.read_text(encoding="utf-8"))
-    interact_ids = [e["interact"] for e in data["props"] + data["exits"] if e.get("interact")]
-    for interact_id in interact_ids:
+    for interact_id in sorted(interact_ids):
         entry = dialogue.get(interact_id)
-        if not entry or not entry.get("lines"):
-            errors.append(f"對話 JSON 缺少 {interact_id} 或沒有句子")
-    print(f"OK  互動物件 {len(interact_ids)} 個，對話內容齊全" if not errors else "")
+        variants = entry if isinstance(entry, list) else [entry]
+        if not entry or any(not v or not v.get("lines") for v in variants):
+            errors.append(f"[{scene_id}] 對話 JSON 缺少 {interact_id} 或沒有句子")
+    print(f"OK  [{scene_id}] 互動物件 {len(interact_ids)} 個，對話內容齊全")
+    return errors, interact_ids
+
+
+def main() -> int:
+    scenes = json.loads(SCENES_PATH.read_text(encoding="utf-8"))
+    quests = json.loads(QUEST_PATH.read_text(encoding="utf-8"))
+    quest_targets = {o["target"] for q in quests["quests"] for o in q["objectives"] if o.get("kind") == "interact"}
+    errors: list[str] = []
+    all_interacts: set[str] = set()
+    for scene_id, info in scenes.items():
+        missing_files = [key for key in ("map", "props", "dialogue") if not res_path(info[key]).exists()]
+        if missing_files:
+            errors += [f"[{scene_id}] 找不到 {key}：{info[key]}" for key in missing_files]
+            continue
+        scene_errors, interacts = validate_scene(scene_id, info, quest_targets)
+        errors += scene_errors
+        all_interacts |= interacts
+        for portal in json.loads(res_path(info["props"]).read_text(encoding="utf-8")).get("portals", []):
+            target = portal.get("target")
+            if target != "return" and target not in scenes:
+                errors.append(f"[{scene_id}] 傳送門 {portal['id']} 指向未知場景 {target}")
+    for target in sorted(quest_targets):
+        if target not in all_interacts:
+            errors.append(f"任務目標 {target} 不是任何場景的互動 id")
+    print(f"OK  任務目標 {len(quest_targets)} 個皆對應互動物件")
 
     if errors:
         print("\n".join(errors))

@@ -50,6 +50,56 @@ func spawn_party(positions: Array[Vector2]) -> void:
 	leader_changed.emit(get_leader(), 0)
 
 
+## 第一次呼叫生成隊伍，之後改為瞬移（換場景、讀檔用）；順序依 order。
+func place(positions: Array[Vector2]) -> void:
+	if members.is_empty():
+		spawn_party(positions)
+	else:
+		teleport_to(positions)
+
+
+func teleport_to(positions: Array[Vector2]) -> void:
+	if positions.is_empty():
+		push_error("沒有落點，無法放置隊伍")
+		return
+	for index: int in range(order.size()):
+		var target := positions[mini(index, positions.size() - 1)]
+		order[index].global_position = target
+		order[index].velocity = Vector2.ZERO
+		order[index].clear_trail()
+
+
+func order_ids() -> PackedStringArray:
+	var ids := PackedStringArray()
+	for member: PlayableCharacter in order:
+		ids.append(String(member.data.id))
+	return ids
+
+
+func member_by_id(id: String) -> PlayableCharacter:
+	for member: PlayableCharacter in members:
+		if String(member.data.id) == id:
+			return member
+	return null
+
+
+## 依角色 id 重排隊伍（讀檔用）；未列出的成員排在後面。
+func set_order_by_ids(ids: PackedStringArray) -> void:
+	var new_order: Array[PlayableCharacter] = []
+	for id: String in ids:
+		var member := member_by_id(id)
+		if member != null and not new_order.has(member):
+			new_order.append(member)
+	for member: PlayableCharacter in members:
+		if not new_order.has(member):
+			new_order.append(member)
+	if new_order.is_empty():
+		return
+	order = new_order
+	_rebuild_follow_chain()
+	leader_changed.emit(get_leader(), get_roster_index(get_leader()))
+
+
 func get_leader() -> PlayableCharacter:
 	return order[0] if not order.is_empty() else null
 

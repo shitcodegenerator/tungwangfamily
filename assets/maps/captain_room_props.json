@@ -1,0 +1,38 @@
+{
+  "world_size": [20, 12],
+  "spawn_points": [[9, 8], [8, 8], [10, 8], [9, 7]],
+  "entries": {
+    "front_door": [[9, 8], [8, 8], [10, 8], [9, 7]]
+  },
+  "zones": [{"name": "船長房間", "rows": [0, 11]}],
+  "exits": [],
+  "connectors": [],
+  "portals": [
+    {"id": "captain_room_exit", "x": 320, "y": 344, "size": [96, 12], "target": "return", "entry": "default"}
+  ],
+  "npcs": [
+    {"id": "king_penguin_captain", "data": "res://assets/characters/npcs/king_penguin_captain.tres",
+     "x": 400, "y": 250, "facing": "down", "interact": "king_penguin_captain", "portrait": "king_penguin_captain"}
+  ],
+  "props": [
+    {"texture": "cap_wall_map", "x": 150, "y": 70, "collision": null, "z_bias": -1},
+    {"texture": "cap_hanging_lantern", "x": 300, "y": 78, "collision": null, "z_bias": -1, "glow": true, "glow_y": 18},
+    {"texture": "cap_painting", "x": 352, "y": 76, "collision": null, "z_bias": -1},
+    {"texture": "cap_porthole", "x": 432, "y": 80, "collision": null, "z_bias": -1,
+     "interact": "captain_porthole", "interact_size": [72, 48], "prompt_offset": [0, -50]},
+    {"texture": "cap_coat_rack", "x": 522, "y": 128, "collision": [40, 20]},
+    {"texture": "cap_rod_rack", "x": 566, "y": 196, "collision": [72, 40],
+     "interact": "captain_rod_rack"},
+    {"texture": "cap_bookshelf", "x": 100, "y": 160, "collision": [66, 30]},
+    {"texture": "cap_chart_desk", "x": 300, "y": 208, "collision": [150, 50],
+     "interact": "captain_chart_table", "interact_size": [176, 84]},
+    {"texture": "cap_chest_bench", "x": 452, "y": 148, "collision": [44, 24],
+     "interact": "captain_keepsake_slot"},
+    {"texture": "cap_barrel", "x": 84, "y": 240, "collision": [30, 16]},
+    {"texture": "cap_rope_coil", "x": 118, "y": 262, "collision": null, "z_bias": -1},
+    {"texture": "cap_rug", "x": 330, "y": 302, "collision": null, "z_bias": -1},
+    {"texture": "cap_side_table", "x": 124, "y": 322, "collision": [110, 50], "glow": true, "glow_y": 40},
+    {"texture": "cap_chest_stack", "x": 548, "y": 312, "collision": [80, 40]},
+    {"texture": "cap_fish_crate", "x": 470, "y": 336, "collision": [80, 36]}
+  ]
+}

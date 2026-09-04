@@ -1,0 +1,18 @@
+{
+  "quests": [
+    {
+      "id": "demo_town_orientation",
+      "title": "TEMP_DEMO_CONTENT：城鎮導覽測試",
+      "description": "技術測試任務：依序查看三個地點後向市集老龜回報。正式任務內容將由作者提供。",
+      "state": "available",
+      "visibility": "main",
+      "objectives": [
+        {"id": "read_notice", "kind": "interact", "target": "bulletin_board", "count": 1, "text": "閱讀公告欄"},
+        {"id": "visit_family_table", "kind": "interact", "target": "family_table", "count": 1, "text": "查看共享家庭屋的餐桌"},
+        {"id": "visit_chart_table", "kind": "interact", "target": "captain_chart_table", "count": 1, "text": "查看船長房間的航海圖桌"},
+        {"id": "report", "kind": "interact", "target": "old_turtle", "count": 1, "text": "向市集老龜回報"}
+      ],
+      "rewards": {"flags": ["demo_orientation_complete"]}
+    }
+  ]
+}

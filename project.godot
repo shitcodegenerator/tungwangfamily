@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="山海樹港 RPG"
-config/description="Phase 2：潮根城主城（移動、隊伍切換、跟隨、互動、對話、城鎮生命動畫、日夜切換）"
+config/description="Phase 3：潮根城、共享家庭屋、船長房間（隊伍、互動、對話、任務、存檔、日夜）"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -106,11 +106,26 @@ debug_cycle_daytime={"deadzone": 0.5,
 ]
 }
 
+quest_log={"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":74,"key_label":0,"unicode":106,"location":0,"echo":false,"script":null)
+]
+}
+debug_save={"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194337,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+debug_load={"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194338,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+
 [physics]
 
 common/physics_ticks_per_second=60
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.05, 0.035, 0.02, 1)
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"

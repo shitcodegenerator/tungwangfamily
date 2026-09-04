@@ -21,6 +21,26 @@
       31
     ]
   ],
+  "entries": {
+    "default": [
+      [
+        14,
+        29
+      ],
+      [
+        12,
+        29
+      ],
+      [
+        16,
+        29
+      ],
+      [
+        14,
+        31
+      ]
+    ]
+  },
   "zones": [
     {
       "name": "上層樹冠平台",
@@ -135,6 +155,49 @@
         23,
         11
       ]
+    }
+  ],
+  "portals": [
+    {
+      "id": "family_home_door",
+      "x": 144,
+      "y": 674,
+      "size": [
+        22,
+        6
+      ],
+      "target": "family_home",
+      "entry": "front_door",
+      "return_position": [
+        144,
+        702
+      ]
+    },
+    {
+      "id": "captain_room_door",
+      "x": 816,
+      "y": 674,
+      "size": [
+        22,
+        6
+      ],
+      "target": "captain_room",
+      "entry": "front_door",
+      "return_position": [
+        816,
+        702
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "old_turtle",
+      "data": "res://assets/characters/npcs/old_turtle.tres",
+      "x": 656,
+      "y": 864,
+      "facing": "down",
+      "interact": "old_turtle",
+      "portrait": "old_turtle"
     }
   ],
   "props": [

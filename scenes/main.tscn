@@ -1,7 +1,6 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/world/tide_root_town.tscn" id="2_town"]
 [ext_resource type="Script" path="res://scripts/characters/party_controller.gd" id="3_party"]
 [ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="4_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/debug_hud.tscn" id="5_hud"]
@@ -10,6 +9,9 @@
 [ext_resource type="Script" path="res://scripts/interaction/interaction_controller.gd" id="8_interaction"]
 [ext_resource type="Script" path="res://scripts/ui/dialogue_manager.gd" id="9_dialogue"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_box.tscn" id="10_box"]
+[ext_resource type="Script" path="res://scripts/quest/quest_manager.gd" id="11_quests"]
+[ext_resource type="Script" path="res://scripts/world/scene_router.gd" id="12_router"]
+[ext_resource type="PackedScene" path="res://scenes/ui/quest_hud.tscn" id="13_quest_hud"]
 
 [node name="Main" type="Node2D"]
 y_sort_enabled = true
@@ -17,8 +19,6 @@ script = ExtResource("1_main")
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true
-
-[node name="TideRootTown" parent="World" instance=ExtResource("2_town")]
 
 [node name="DayNight" type="CanvasModulate" parent="World"]
 script = ExtResource("6_daynight")
@@ -37,10 +37,18 @@ script = ExtResource("4_camera")
 [node name="InteractionController" type="Node2D" parent="."]
 script = ExtResource("8_interaction")
 
+[node name="QuestManager" type="Node" parent="."]
+script = ExtResource("11_quests")
+
+[node name="SceneRouter" type="Node" parent="."]
+script = ExtResource("12_router")
+
 [node name="DialogueManager" type="CanvasLayer" parent="."]
 layer = 20
 script = ExtResource("9_dialogue")
 
 [node name="DialogueBox" parent="DialogueManager" instance=ExtResource("10_box")]
+
+[node name="QuestHud" parent="." instance=ExtResource("13_quest_hud")]
 
 [node name="DebugHUD" parent="." instance=ExtResource("5_hud")]

@@ -1,0 +1,50 @@
+{
+  "king_penguin_captain": [
+    {
+      "requires": {"quest": {"demo_town_orientation": "completed"}},
+      "speaker": "國王企鵝船長",
+      "portrait": "king_penguin_captain",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】聽老龜說你把城裡走了一遍？很好，船上的人都該先認得路。",
+        "潮位還沒到出航的時候。有事再來找我。"
+      ]
+    },
+    {
+      "speaker": "國王企鵝船長",
+      "portrait": "king_penguin_captain",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】我是這艘船的船長。船還沒回港，這幾天我都在看潮汐圖。",
+        "航海圖桌上的東西別亂動，那是明年航線的草稿。",
+        "（日常對話插槽：正式台詞待作者提供）"
+      ]
+    }
+  ],
+  "captain_chart_table": {
+    "speaker": "航海圖桌",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】攤開的海圖上用炭筆畫了幾條航線，最外側那條被反覆擦掉又畫上。",
+      "（測試互動點：正式描述待作者提供）"
+    ]
+  },
+  "captain_rod_rack": {
+    "speaker": "船具架",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】四支釣竿依長短排好，最舊的那支竿身纏著褪色的藍線。",
+      "（測試互動點：正式描述待作者提供）"
+    ]
+  },
+  "captain_porthole": {
+    "speaker": "舷窗",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】圓窗外是港口的水面。潮線比昨天低了一點。",
+      "（潮汐觀測點：正式內容與潮汐系統尚未開放）"
+    ]
+  },
+  "captain_keepsake_slot": {
+    "speaker": "船長重要物件",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】一個上了鎖的小箱子。",
+      "（系統插槽：內容、圖片與觸發條件待作者提供；請勿自行填入）"
+    ]
+  }
+}

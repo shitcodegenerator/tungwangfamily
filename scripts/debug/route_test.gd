@@ -21,6 +21,9 @@ var party: PartyController
 var interaction: InteractionController
 var dialogue: DialogueManager
 var day_night: DayNightController
+var main_node: Node
+var quests: QuestManager
+var router: SceneRouter
 var shots_dir: String = "user://screenshots"
 var failures: PackedStringArray = PackedStringArray()
 var passes: PackedStringArray = PackedStringArray()
@@ -36,6 +39,11 @@ func _ready() -> void:
 	interaction = main.get("interaction")
 	dialogue = main.get("dialogue")
 	day_night = main.get("day_night")
+	main_node = main
+	quests = main.get("quests")
+	router = main.get("router")
+	# 每次執行從乾淨狀態開始：移除舊存檔，避免上次測試殘留
+	SaveManager.delete_save()
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--shots="):
 			shots_dir = arg.trim_prefix("--shots=")
@@ -87,6 +95,7 @@ func _run() -> void:
 	_check(await _followers_catch_up(2.5, 110.0), "快速反覆移動後跟隨者 2.5 秒內追上")
 	_check(await _walk_to(Vector2i(14, 29)), "再次回到出生點")
 	await _phase2_checks()
+	await _phase3_checks()
 	while switches_done < SWITCH_TARGET:
 		party.cycle_leader()
 		switches_done += 1
@@ -174,6 +183,130 @@ func _phase2_checks() -> void:
 	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
 
 
+## Phase 3：公告欄接任務 → 家庭屋餐桌 → 船長房間航海圖桌 → 老龜回報；存檔／讀檔／損毀存檔。
+func _phase3_checks() -> void:
+	var quest_id := "demo_town_orientation"
+	# Phase 2 已經與公告欄互動過一次：那次對話是「可接取」版本，結束時啟動任務並完成第一個目標
+	_check(quests.quest_state(quest_id) == "active" and quests.is_objective_current(quest_id, "visit_family_table"), "公告欄對話啟動任務並完成第一個目標")
+	_check(await _walk_to(Vector2i(20, 15)), "走回公告欄")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"bulletin_board"), "公告欄對話（進行中版本）")
+	_check(quests.quest_state(quest_id) == "active" and quests.is_objective_current(quest_id, "visit_family_table"), "再次互動不會重複接任務")
+	_check(quests.active_summary() == "查看共享家庭屋的餐桌", "任務 HUD 摘要更新為目前目標")
+	await _tap_action("quest_log")
+	_check(main_node.get("quest_hud").is_log_open(), "J 開啟任務日誌")
+	await _screenshot("11_quest_log")
+	await _tap_action("quest_log")
+
+	# 共享家庭屋
+	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口")
+	_check(await _enter_portal(Vector2i.UP, "family_home"), "走進門口轉場到共享家庭屋")
+	_check(party.order.size() == 4 and _all_members_in_world(), "進入家庭屋後四人都在室內")
+	await _screenshot("09_family_home")
+	_check(await _walk_to(Vector2i(6, 9)), "走到餐桌旁")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"family_table"), "餐桌互動（TEMP_DEMO_CONTENT）")
+	_check(quests.is_objective_current(quest_id, "visit_chart_table"), "餐桌完成後目標更新為航海圖桌")
+	_check(await _walk_to(Vector2i(9, 9)), "走到家庭屋出口上方")
+	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "走出家庭屋回到主城")
+	var leader_position := party.get_leader().global_position
+	_check(leader_position.distance_to(Vector2(144, 702)) < 12.0, "返回位置在家庭屋門前（%s）" % leader_position)
+	_check(_all_members_in_world(), "返回後隊伍完整")
+
+	# 船長房間
+	_check(await _walk_to(Vector2i(25, 21)), "走到船長房間門口")
+	_check(await _enter_portal(Vector2i.UP, "captain_room"), "走進門口轉場到船長房間")
+	await _screenshot("10_captain_room")
+	_check(await _walk_to(Vector2i(12, 8)), "走到國王企鵝船長面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"king_penguin_captain"), "國王企鵝船長可互動")
+	_check(await _walk_to(Vector2i(9, 7)), "走到航海圖桌下方")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"captain_chart_table"), "航海圖桌互動")
+	_check(quests.is_objective_current(quest_id, "report"), "航海圖桌完成後目標更新為回報")
+	_check(await _walk_to(Vector2i(9, 9)), "走到船長房間出口上方")
+	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "走出船長房間回到主城")
+
+	# 存檔：任務進行中、位置在船長房間門前
+	_check(main_node.save_game() == "", "F6 存檔成功")
+	var saved_position := party.get_leader().global_position
+	var saved_day := day_night.index
+
+	# 回報
+	_check(await _walk_to(Vector2i(20, 27)), "走到市集老龜面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"old_turtle"), "市集老龜回報對話")
+	_check(quests.quest_state(quest_id) == "completed" and main_node.state.has_flag("demo_orientation_complete"), "任務完成並取得旗標")
+
+	# 讀檔：回到存檔時（任務進行中、船長房間門前）
+	await _tap_action("debug_cycle_daytime")
+	_check(main_node.load_game() == "", "F7 讀檔成功")
+	await _wait_transition()
+	quests = main_node.get("quests")
+	_check(quests.quest_state(quest_id) == "active" and quests.is_objective_current(quest_id, "report"), "讀檔後任務回到進行中、目標為回報")
+	_check(party.get_leader().global_position.distance_to(saved_position) < 2.0 and day_night.index == saved_day, "讀檔後位置與時段還原")
+	_check(main_node.state.current_scene_id == "tide_root_town" and _all_members_in_world(), "讀檔後場景正確且隊伍完整")
+
+	# 完成後再存檔、再讀檔：完成狀態持久
+	_check(await _walk_to(Vector2i(20, 27)), "再次走到市集老龜面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"old_turtle"), "再次回報")
+	_check(main_node.save_game() == "", "完成任務後存檔")
+	main_node.state.set_flag("demo_orientation_complete", false)
+	_check(main_node.load_game() == "", "再次讀檔")
+	await _wait_transition()
+	_check(main_node.state.has_flag("demo_orientation_complete") and main_node.get("quests").quest_state(quest_id) == "completed", "讀檔後完成旗標與任務狀態仍在")
+
+	# 損毀存檔：讀檔失敗但保留目前狀態
+	var file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	file.store_string("{ broken")
+	file.close()
+	var before_scene: String = main_node.state.current_scene_id
+	_check(main_node.load_game() != "", "損毀存檔讀檔回傳錯誤")
+	_check(main_node.state.current_scene_id == before_scene and main_node.state.has_flag("demo_orientation_complete"), "損毀存檔不影響目前狀態")
+	SaveManager.delete_save()
+	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+
+
+func _enter_portal(direction: Vector2i, expected_scene: String) -> bool:
+	var started := false
+	var elapsed := 0.0
+	while elapsed < 2.0 and not started:
+		_press_only(direction)
+		await get_tree().physics_frame
+		elapsed += get_physics_process_delta_time()
+		started = router.is_transitioning
+	_release_all()
+	if not started:
+		failures.append("走向 %s 沒有觸發轉場" % direction)
+		return false
+	await _wait_transition()
+	world = main_node.get("world")
+	if main_node.state.current_scene_id != expected_scene:
+		failures.append("轉場後場景為 %s，預期 %s" % [main_node.state.current_scene_id, expected_scene])
+		return false
+	return true
+
+
+func _wait_transition() -> void:
+	var elapsed := 0.0
+	while elapsed < 5.0:
+		await get_tree().physics_frame
+		elapsed += get_physics_process_delta_time()
+		if not router.is_transitioning and elapsed > 0.05:
+			break
+	world = main_node.get("world")
+	await _wait_frames(2)
+
+
+func _all_members_in_world() -> bool:
+	world = main_node.get("world")
+	for member: PlayableCharacter in party.members:
+		if not world.world_rect.has_point(member.global_position):
+			return false
+	return true
+
+
 ## 對目前目標互動：確認目標 id、對話開啟，然後一路按 E 關閉。
 func _interact_and_close(expected_id: StringName) -> bool:
 	await _wait_frames(3)
@@ -233,7 +366,11 @@ func _wait_frames(count: int) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if not _running or party == null or party.order.size() < 2:
+	if not _running or party == null or party.order.size() < 2 or router == null or router.is_transitioning:
+		return
+	if main_node != null:
+		world = main_node.get("world")
+	if world == null or not is_instance_valid(world):
 		return
 	for index: int in range(1, party.order.size()):
 		var member: PlayableCharacter = party.order[index]
@@ -247,6 +384,12 @@ func _physics_process(_delta: float) -> void:
 func _walk_to(goal: Vector2i) -> bool:
 	var tiles_since_switch := 0
 	while true:
+		if router != null and router.is_transitioning:
+			_release_all()
+			failures.append("走向 %s 途中發生轉場" % goal)
+			return false
+		if main_node != null:
+			world = main_node.get("world")
 		var leader := party.get_leader()
 		var start := world.world_to_tile(leader.global_position)
 		if start == goal and leader.global_position.distance_to(world.tile_to_world(goal)) < 6.0:

@@ -1,13 +1,44 @@
 {
-  "bulletin_board": {
-    "speaker": "潮根城公告欄",
-    "lines": [
-      "【潮根城公告】今日潮位平穩，碼頭船隻仍在整備，暫無出航。",
-      "樹洞街的燈籠由守燈人每日黃昏點亮，請勿自行攀爬燈柱。",
-      "廣場水池的荷葉是大家的，禁止撈取。有意加入採集隊者，請在公告欄下留下名字。",
-      "——潮根城自治會"
-    ]
-  },
+  "bulletin_board": [
+    {
+      "requires": {
+        "quest": {
+          "demo_town_orientation": "available"
+        }
+      },
+      "speaker": "潮根城公告欄",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】測試任務：城鎮導覽。",
+        "請依序前往共享家庭屋的餐桌、船長房間的航海圖桌，最後向市集老龜回報。",
+        "（此為技術測試內容，正式文字將由作者提供。按 J 可開啟任務日誌）"
+      ],
+      "on_complete": [
+        {
+          "quest_start": "demo_town_orientation"
+        }
+      ]
+    },
+    {
+      "requires": {
+        "quest": {
+          "demo_town_orientation": "active"
+        }
+      },
+      "speaker": "潮根城公告欄",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】任務進行中。按 J 查看任務日誌與目前目標。"
+      ]
+    },
+    {
+      "speaker": "潮根城公告欄",
+      "lines": [
+        "【潮根城公告】今日潮位平穩，碼頭船隻仍在整備，暫無出航。",
+        "樹洞街的燈籠由守燈人每日黃昏點亮，請勿自行攀爬燈柱。",
+        "廣場水池的荷葉是大家的，禁止撈取。有意加入採集隊者，請在公告欄下留下名字。",
+        "——潮根城自治會"
+      ]
+    }
+  ],
   "tree_heart": {
     "speaker": "樹心",
     "lines": [
@@ -41,5 +72,53 @@
       "從門縫吹下來的風，帶著雲的味道。",
       "（雲端樹冠尚未開放）"
     ]
-  }
+  },
+  "old_turtle": [
+    {
+      "requires": {
+        "quest": {
+          "demo_town_orientation": "completed"
+        }
+      },
+      "speaker": "市集老龜",
+      "portrait": "old_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】路都認熟了吧？下次市集開張，記得來幫我搬蘿蔔。"
+      ]
+    },
+    {
+      "requires": {
+        "quest_objective": {
+          "demo_town_orientation": "report"
+        }
+      },
+      "speaker": "市集老龜",
+      "portrait": "old_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】家庭屋和船長房間都看過了？很好，很好。",
+        "這樣一來，城裡的路你都認得了。任務到此完成。"
+      ]
+    },
+    {
+      "requires": {
+        "quest": {
+          "demo_town_orientation": "active"
+        }
+      },
+      "speaker": "市集老龜",
+      "portrait": "old_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】公告欄上的事還沒辦完吧？先去家庭屋和船長房間看看，回來再說。"
+      ]
+    },
+    {
+      "speaker": "市集老龜",
+      "portrait": "old_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】市集在廣場這一側，我賣蔬菜，也認得城裡每一條路。",
+        "想知道去哪裡，看看公告欄，或者來問我。",
+        "（日常對話插槽：正式台詞待作者提供）"
+      ]
+    }
+  ]
 }

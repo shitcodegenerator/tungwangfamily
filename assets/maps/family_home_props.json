@@ -1,0 +1,195 @@
+{
+  "world_size": [
+    20,
+    12
+  ],
+  "spawn_points": [
+    [
+      9,
+      8
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      10,
+      8
+    ],
+    [
+      9,
+      7
+    ]
+  ],
+  "entries": {
+    "front_door": [
+      [
+        9,
+        8
+      ],
+      [
+        8,
+        8
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        9,
+        7
+      ]
+    ]
+  },
+  "zones": [
+    {
+      "name": "共享家庭屋",
+      "rows": [
+        0,
+        11
+      ]
+    }
+  ],
+  "exits": [],
+  "connectors": [],
+  "portals": [
+    {
+      "id": "family_home_exit",
+      "x": 320,
+      "y": 344,
+      "size": [
+        96,
+        12
+      ],
+      "target": "return",
+      "entry": "default"
+    }
+  ],
+  "npcs": [],
+  "props": [
+    {
+      "texture": "int_kitchen_window",
+      "x": 118,
+      "y": 62,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "int_stove",
+      "x": 66,
+      "y": 114,
+      "collision": [
+        46,
+        30
+      ]
+    },
+    {
+      "texture": "int_kitchen_counter",
+      "x": 152,
+      "y": 110,
+      "collision": [
+        108,
+        26
+      ],
+      "interact": "kitchen_counter"
+    },
+    {
+      "texture": "int_back_door",
+      "x": 320,
+      "y": 96,
+      "collision": [
+        48,
+        20
+      ]
+    },
+    {
+      "texture": "int_yarn_cabinet",
+      "x": 430,
+      "y": 112,
+      "collision": [
+        50,
+        26
+      ]
+    },
+    {
+      "texture": "int_yarn_basket",
+      "x": 470,
+      "y": 112,
+      "collision": [
+        34,
+        16
+      ],
+      "interact": "family_memory_slot",
+      "interact_size": [
+        56,
+        40
+      ]
+    },
+    {
+      "texture": "int_sewing_table",
+      "x": 548,
+      "y": 176,
+      "collision": [
+        76,
+        40
+      ],
+      "interact": "sewing_table"
+    },
+    {
+      "texture": "int_fabric_shelf",
+      "x": 556,
+      "y": 112,
+      "collision": [
+        40,
+        24
+      ]
+    },
+    {
+      "texture": "int_plant",
+      "x": 500,
+      "y": 172,
+      "collision": [
+        20,
+        12
+      ]
+    },
+    {
+      "texture": "int_side_door",
+      "x": 40,
+      "y": 212,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "int_side_door",
+      "x": 600,
+      "y": 212,
+      "collision": null,
+      "z_bias": -1
+    },
+    {
+      "texture": "int_dining_table",
+      "x": 200,
+      "y": 262,
+      "collision": [
+        112,
+        46
+      ],
+      "interact": "family_table",
+      "interact_size": [
+        150,
+        80
+      ]
+    },
+    {
+      "texture": "int_kids_corner",
+      "x": 500,
+      "y": 282,
+      "collision": [
+        112,
+        50
+      ],
+      "interact": "kids_corner"
+    }
+  ]
+}

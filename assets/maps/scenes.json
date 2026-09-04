@@ -1,0 +1,29 @@
+{
+  "tide_root_town": {
+    "name": "潮根城",
+    "map": "res://assets/maps/tide_root_town.txt",
+    "props": "res://assets/maps/tide_root_town_props.json",
+    "dialogue": "res://assets/dialogue/tide_root_town.json",
+    "outdoor": true,
+    "dark_wall_last_row": 11,
+    "legend_overrides": {}
+  },
+  "family_home": {
+    "name": "共享家庭屋",
+    "map": "res://assets/maps/family_home.txt",
+    "props": "res://assets/maps/family_home_props.json",
+    "dialogue": "res://assets/dialogue/family_home.json",
+    "outdoor": false,
+    "dark_wall_last_row": -1,
+    "legend_overrides": {"p": [15, 4], "#": [4, 0]}
+  },
+  "captain_room": {
+    "name": "船長房間",
+    "map": "res://assets/maps/captain_room.txt",
+    "props": "res://assets/maps/captain_room_props.json",
+    "dialogue": "res://assets/dialogue/captain_room.json",
+    "outdoor": false,
+    "dark_wall_last_row": -1,
+    "legend_overrides": {"p": [16, 4], "#": [4, 0]}
+  }
+}

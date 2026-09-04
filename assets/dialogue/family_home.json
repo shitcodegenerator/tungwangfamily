@@ -1,0 +1,37 @@
+{
+  "family_table": {
+    "speaker": "共用餐桌",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】長桌上擺著六份餐具，桌布邊緣有被反覆洗過的柔軟摺痕。",
+      "（測試互動點：正式描述待作者提供）"
+    ]
+  },
+  "kitchen_counter": {
+    "speaker": "廚房流理台",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】爐火溫著一鍋東西，架上的罐子貼著手寫標籤。",
+      "（測試互動點：食材與料理系統尚未開放）"
+    ]
+  },
+  "sewing_table": {
+    "speaker": "縫紉工作區",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】縫紉機旁堆著幾捲毛線，針插上插滿了不同顏色的線。",
+      "（測試互動點：正式描述待作者提供）"
+    ]
+  },
+  "kids_corner": {
+    "speaker": "孩子們的角落",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】圓地毯上散著積木、一本翻開的圖畫書和一隻小熊。",
+      "（測試互動點：正式描述待作者提供）"
+    ]
+  },
+  "family_memory_slot": {
+    "speaker": "家庭記憶物件",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】這裡預留給一件重要的家庭物件。",
+      "（系統插槽：內容、圖片與觸發條件待作者提供；請勿自行填入）"
+    ]
+  }
+}

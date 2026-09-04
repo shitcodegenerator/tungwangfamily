@@ -12,6 +12,12 @@ const InteractionControllerScript := preload("res://scripts/interaction/interact
 const DialogueBoxScript := preload("res://scripts/ui/dialogue_box.gd")
 const DayNightScript := preload("res://scripts/world/day_night.gd")
 const TownPropScript := preload("res://scripts/props/town_prop.gd")
+const GameStateScript := preload("res://scripts/state/game_state.gd")
+const SaveManagerScript := preload("res://scripts/save/save_manager.gd")
+const QuestManagerScript := preload("res://scripts/quest/quest_manager.gd")
+const DialogueResolverScript := preload("res://scripts/dialogue/dialogue_resolver.gd")
+const SceneRouterScript := preload("res://scripts/world/scene_router.gd")
+const QuestHudScript := preload("res://scripts/ui/quest_hud.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -31,6 +37,12 @@ func _initialize() -> void:
 	test_dialogue_logic()
 	test_day_night()
 	test_dialogue_json()
+	test_game_state_roundtrip()
+	test_save_manager()
+	test_quest_flow()
+	test_dialogue_resolver()
+	test_scene_registry()
+	test_phase3_assets()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -213,8 +225,127 @@ func test_dialogue_json() -> void:
 	for entry: Dictionary in props["exits"]:
 		if entry.has("interact"):
 			ids.append(String(entry["interact"]))
+	for entry: Dictionary in props.get("npcs", []):
+		if entry.has("interact"):
+			ids.append(String(entry["interact"]))
 	var missing := PackedStringArray()
 	for id: String in ids:
-		if not dialogue.has(id) or (dialogue[id] as Dictionary).get("lines", []).is_empty():
-			missing.append(id)
-	_assert(ids.size() == 5 and missing.is_empty(), "五個互動物件都有對話內容（缺少 %d 個）" % missing.size())
+		var entry: Variant = dialogue.get(id)
+		var variants: Array = entry if typeof(entry) == TYPE_ARRAY else [entry]
+		for variant: Variant in variants:
+			if typeof(variant) != TYPE_DICTIONARY or (variant as Dictionary).get("lines", []).is_empty():
+				missing.append(id)
+	_assert(ids.size() == 6 and missing.is_empty(), "主城六個互動物件都有對話內容（缺少 %d 個）" % missing.size())
+
+
+func test_game_state_roundtrip() -> void:
+	var state: GameState = GameStateScript.new()
+	state.current_scene_id = "captain_room"
+	state.return_scene_id = "tide_root_town"
+	state.return_position = Vector2(816, 702)
+	state.party_order = PackedStringArray(["sister_sheep", "big_brother"])
+	state.party_positions = {"sister_sheep": Vector2(1, 2), "big_brother": Vector2(3, 4)}
+	state.time_of_day = 2
+	state.set_flag("demo_flag")
+	state.quests = {"q": {"state": "active", "progress": {"a": 1}}}
+	var restored: Dictionary = GameStateScript.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))
+	var copy: GameState = restored["state"]
+	_assert(copy != null and restored["error"] == "", "GameState 可序列化再還原")
+	_assert(copy.current_scene_id == "captain_room" and copy.return_position == Vector2(816, 702), "場景與返回位置保留")
+	_assert(copy.party_order == PackedStringArray(["sister_sheep", "big_brother"]) and copy.party_positions["big_brother"] == Vector2(3, 4), "隊伍順序與位置保留")
+	_assert(copy.time_of_day == 2 and copy.has_flag("demo_flag") and copy.quests["q"]["progress"]["a"] == 1, "日夜、旗標與任務進度保留")
+	_assert(GameStateScript.from_dict({"schema_version": 99, "current_scene_id": "x", "flags": {}, "quests": {}})["state"] == null, "版本過新的存檔被拒絕")
+	_assert(GameStateScript.from_dict({"schema_version": 1})["state"] == null, "缺欄位的存檔被拒絕")
+
+
+func test_save_manager() -> void:
+	var path := "user://test_save.json"
+	var state: GameState = GameStateScript.new()
+	state.set_flag("saved_flag")
+	_assert(SaveManagerScript.save_state(state, path) == "", "存檔寫入成功")
+	var loaded: Dictionary = SaveManagerScript.load_state(path)
+	_assert(loaded["state"] != null and (loaded["state"] as GameState).has_flag("saved_flag"), "存檔讀回並保留旗標")
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("{ this is not json")
+	file.close()
+	var broken: Dictionary = SaveManagerScript.load_state(path)
+	_assert(broken["state"] == null and not String(broken["error"]).is_empty(), "損毀存檔回傳錯誤而非崩潰")
+	SaveManagerScript.delete_save(path)
+	_assert(SaveManagerScript.load_state(path)["state"] == null, "不存在的存檔回傳錯誤")
+
+
+func test_quest_flow() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_definitions("res://assets/quests/phase3_demo_quest.json")
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	_assert(quests.quest_state("demo_town_orientation") == "available", "任務初始為可接取")
+	_assert(quests.active_summary().is_empty(), "未接取時 HUD 摘要為空")
+	quests.notify_interact("bulletin_board")
+	_assert(quests.objective_progress("demo_town_orientation", "read_notice") == 0, "未接取時互動不會推進")
+	quests.apply_actions([{"quest_start": "demo_town_orientation"}])
+	_assert(quests.quest_state("demo_town_orientation") == "active", "對話動作可啟動任務")
+	quests.notify_interact("family_table")
+	_assert(quests.objective_progress("demo_town_orientation", "visit_family_table") == 0, "目標依序完成，跳過的目標不推進")
+	quests.notify_interact("bulletin_board")
+	quests.notify_interact("family_table")
+	quests.notify_interact("captain_chart_table")
+	_assert(quests.is_objective_current("demo_town_orientation", "report"), "三個地點完成後目前目標為回報")
+	_assert(quests.active_summary() == "向市集老龜回報", "HUD 摘要顯示目前目標")
+	quests.notify_interact("old_turtle")
+	_assert(quests.quest_state("demo_town_orientation") == "completed" and state.has_flag("demo_orientation_complete"), "回報後任務完成並發放旗標")
+	_assert(QuestHudScript.build_log_text(quests.list_quests()).contains("✔ 閱讀公告欄"), "任務日誌文字標記已完成目標")
+	quests.free()
+
+
+func test_dialogue_resolver() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_definitions("res://assets/quests/phase3_demo_quest.json")
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	var entry: Array = [
+		{"requires": {"quest": {"demo_town_orientation": "completed"}}, "speaker": "A", "lines": ["done"]},
+		{"requires": {"flags": ["seen"]}, "speaker": "B", "lines": ["seen"]},
+		{"speaker": "C", "lines": ["default"], "on_complete": [{"set_flag": "seen"}]},
+	]
+	var first: Dictionary = DialogueResolverScript.resolve(entry, state, quests)
+	_assert(first["speaker"] == "C" and first["lines"][0] == "default", "沒有條件成立時使用最後一個預設版本")
+	quests.apply_actions(first["on_complete"])
+	_assert(DialogueResolverScript.resolve(entry, state, quests)["speaker"] == "B", "旗標條件成立時選到對應版本")
+	_assert(DialogueResolverScript.resolve(entry, null, null)["speaker"] == "C", "沒有狀態時退回預設版本")
+	_assert(DialogueResolverScript.resolve({"lines": ["x"]}, state, quests)["lines"][0] == "x", "單一字典直接使用")
+	_assert(DialogueResolverScript.resolve(null, state, quests)["lines"][0] == "……", "空資料退回省略號")
+	_assert(not DialogueResolverScript.requires_met({"not_flags": ["seen"]}, state, quests), "not_flags 條件")
+	quests.free()
+
+
+func test_scene_registry() -> void:
+	var registry: Dictionary = SceneRouterScript.parse_registry(FileAccess.get_file_as_string("res://assets/maps/scenes.json"))
+	_assert(registry.has("tide_root_town") and registry.has("family_home") and registry.has("captain_room"), "場景登錄表含主城與兩個室內")
+	var missing := PackedStringArray()
+	for scene_id: String in registry:
+		for key: String in ["map", "props", "dialogue"]:
+			if not FileAccess.file_exists(String(registry[scene_id][key])):
+				missing.append(String(registry[scene_id][key]))
+		var parser: MapParser = MapParserScript.load_from_file(String(registry[scene_id]["map"]))
+		_assert(parser.validate().is_empty(), "%s 地圖圖例合法" % scene_id)
+		var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(String(registry[scene_id]["props"])))
+		for entry_name: String in props.get("entries", {}):
+			for tile: Array in props["entries"][entry_name]:
+				if not parser.is_walkable(int(tile[0]), int(tile[1])):
+					missing.append("%s entry %s" % [scene_id, entry_name])
+	_assert(missing.is_empty(), "所有場景資料檔存在且入口可站（缺 %d）" % missing.size())
+
+
+func test_phase3_assets() -> void:
+	for npc: String in ["king_penguin_captain", "old_turtle"]:
+		var sheet: Texture2D = load("res://assets/characters/npcs/%s_sheet.png" % npc)
+		_assert(sheet != null and sheet.get_size() == Vector2(240, 256), "%s 精靈表為 240×256" % npc)
+		var data: CharacterData = load("res://assets/characters/npcs/%s.tres" % npc)
+		_assert(data != null and data.sprite_sheet == sheet, "%s CharacterData 指向精靈表" % npc)
+	var portraits := 0
+	for id: String in ["big_brother", "calm_brother", "sister_sheep", "younger_brother", "king_penguin_captain", "old_turtle"]:
+		var portrait: Texture2D = load("res://assets/portraits/%s.png" % id)
+		if portrait != null and portrait.get_size() == Vector2(48, 48):
+			portraits += 1
+	_assert(portraits == 6, "六張 48×48 頭像（實際 %d）" % portraits)

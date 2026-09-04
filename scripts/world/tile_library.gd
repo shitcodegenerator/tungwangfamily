@@ -87,8 +87,12 @@ const SIMPLE_LEGEND := {
 
 
 ## 依圖例字元與鄰居決定地形 atlas 座標。
-static func ground_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
+## options：overrides（圖例字元 → Vector2i，室內場景用來換地板／牆面）、dark_wall_last_row（此列以上的牆用深色樹皮）。
+static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Dictionary = {}) -> Vector2i:
 	var ch := parser.char_at(x, y)
+	var overrides: Dictionary = options.get("overrides", {})
+	if overrides.has(ch):
+		return overrides[ch]
 	if SIMPLE_LEGEND.has(ch):
 		return SIMPLE_LEGEND[ch]
 	match ch:
@@ -97,7 +101,7 @@ static func ground_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
 		"=":
 			return BRIDGE_RAIL_TOP if parser.char_at(x, y + 1) == "=" else BRIDGE_RAIL_BOTTOM
 		"#":
-			if y <= UPPER_ZONE_LAST_ROW:
+			if y <= int(options.get("dark_wall_last_row", UPPER_ZONE_LAST_ROW)):
 				return BARK_DARK
 			if parser.is_walkable(x, y + 1):
 				return GRASS_CLIFF
@@ -113,9 +117,10 @@ static func void_atlas_for(x: int, y: int) -> Vector2i:
 
 
 ## 依圖例與亂數決定裝飾層 atlas 座標；回傳 Vector2i(-1, -1) 代表不放裝飾。
-static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomNumberGenerator) -> Vector2i:
+static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomNumberGenerator, options: Dictionary = {}) -> Vector2i:
 	var ch := parser.char_at(x, y)
 	var roll := rng.randf()
+	var dark_wall_last_row := int(options.get("dark_wall_last_row", UPPER_ZONE_LAST_ROW))
 	match ch:
 		"g":
 			if roll < 0.14:
@@ -128,7 +133,7 @@ static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomN
 			if beside_land and roll < 0.18:
 				return DECO_REEDS
 		"#":
-			if y > UPPER_ZONE_LAST_ROW and parser.is_walkable(x, y + 1) and roll < 0.35:
+			if y > dark_wall_last_row and parser.is_walkable(x, y + 1) and roll < 0.35:
 				return DECO_VINES if roll < 0.25 else DECO_VINES_FLOWERS
 			if roll > 0.92:
 				return DECO_MOSS
@@ -186,3 +191,15 @@ static func build_collision_tileset() -> TileSet:
 		Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half),
 	]))
 	return tile_set
+
+
+## 場景登錄表的 legend_overrides（字元 → [col, row]）轉成 Vector2i 對照表。
+static func overrides_from_json(raw: Variant) -> Dictionary:
+	var result := {}
+	if typeof(raw) != TYPE_DICTIONARY:
+		return result
+	for ch: String in raw:
+		var coords: Variant = raw[ch]
+		if typeof(coords) == TYPE_ARRAY and coords.size() == 2:
+			result[ch] = Vector2i(int(coords[0]), int(coords[1]))
+	return result

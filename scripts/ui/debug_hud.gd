@@ -3,15 +3,15 @@ extends CanvasLayer
 ## 除錯 HUD：顯示目前操控角色、座標、所在區段、隊伍順序、日夜狀態與測試提示。
 ## Esc 切換測試資訊面板；面板開啟時按 Q 離開遊戲；F1 切換碰撞格顯示。
 
-const HELP_TEXT := """[Phase 2 測試資訊]
-WASD／方向鍵：移動　　E：互動／推進對話
+const HELP_TEXT := """[Phase 3 測試資訊]
+WASD／方向鍵：移動　　E：互動／推進對話　　J：任務日誌
 1／2／3／4：切換哥哥／冷靜哥／妹妹／弟弟　　Tab：循環切換
-F5：切換 白天 → 黃昏 → 夜晚　　F1：顯示碰撞格
+F5：日夜切換　　F6：存檔　　F7：讀檔　　F1：碰撞格
 Esc：關閉此面板　　Q（面板開啟時）：離開遊戲
 
-可互動：公告欄、樹心、左側橋頭、右側船港、上方樹冠門。
-靠近時會出現「E」提示，按 E 開啟對話；對話中無法移動與切換角色。
-左橋頭、右船港、上樹冠皆為封鎖出口，可走到但不可離開。"""
+公告欄可接測試任務（TEMP_DEMO_CONTENT）。
+走進中層左下的樹門房屋＝共享家庭屋；右下陽台房屋＝船長房間。
+廣場木箱旁的市集老龜負責回報任務。"""
 
 @onready var status_label: Label = $Margin/Status
 @onready var status_panel: PanelContainer = $Margin
@@ -49,9 +49,13 @@ func _process(_delta: float) -> void:
 	status_label.text = "操控：%s [%d]   座標 (%d, %d)   格 (%d, %d)   %s\n隊伍：%s   切換：%d   時段：%s   Esc：測試資訊" % [
 		leader.data.display_name, party.get_roster_index(leader) + 1,
 		int(leader.global_position.x), int(leader.global_position.y),
-		tile.x, tile.y, world.get_zone_name(leader.global_position),
+		tile.x, tile.y, "%s／%s" % [world.scene_name, world.get_zone_name(leader.global_position)],
 		party.describe_order(), party.switch_count, daytime_text,
 	]
+
+
+func is_help_open() -> bool:
+	return help_panel.visible
 
 
 func _unhandled_input(event: InputEvent) -> void:

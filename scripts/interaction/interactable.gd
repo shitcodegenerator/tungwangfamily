@@ -11,6 +11,11 @@ const INTERACTABLE_LAYER_BIT := 4
 var interactable_id: StringName = &""
 var speaker_name: String = ""
 var lines: PackedStringArray = PackedStringArray()
+## 原始對話資料（單一字典或版本陣列），由 DialogueResolver 依遊戲狀態挑選版本。
+var dialogue_entry: Variant = null
+var portrait_id: String = ""
+## 擁有此互動點的節點（例如 NPC），互動時可轉向面對玩家。
+var owner_node: Node2D
 ## 互動提示圖示相對於 Area2D 原點的位置。
 var prompt_offset: Vector2 = Vector2(0.0, -28.0)
 

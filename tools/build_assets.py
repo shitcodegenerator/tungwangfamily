@@ -371,6 +371,10 @@ def main() -> None:
     import build_assets_phase2
 
     build_assets_phase2.main()
+    # Phase 3：NPC 行走表、頭像、室內家具與地板
+    import build_assets_phase3
+
+    build_assets_phase3.main()
 
 
 if __name__ == "__main__":
