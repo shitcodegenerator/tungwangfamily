@@ -11,6 +11,7 @@ const DIALOGUE_JSON_PATH := "res://assets/dialogue/tide_root_town.json"
 const INTERACTABLE_SCRIPT := preload("res://scripts/interaction/interactable.gd")
 const PORTAL_SCRIPT := preload("res://scripts/world/portal.gd")
 const NPC_SCENE := preload("res://scenes/characters/npc.tscn")
+const CARRYABLE_ITEM_SCRIPT := preload("res://scripts/battle/carryable_item.gd")
 const DIALOGUE_RESOLVER := preload("res://scripts/dialogue/dialogue_resolver.gd")
 ## 沒有指定 interact_size 時，互動偵測矩形 = 碰撞盒往外擴的量。
 const INTERACT_PADDING := Vector2(24.0, 28.0)
@@ -30,6 +31,11 @@ const HINT_FONT := preload("res://assets/ui/fusion_pixel_12px_zh_hant.ttf")
 
 ## 領頭角色走進傳送門時發出；由 SceneRouter 處理。
 signal portal_entered(portal: ScenePortal)
+## 執行期新增可互動物件（例如投擲物落地重新生成）時發出，讓 Main 接上 interacted。
+signal interactable_added(interactable: Interactable)
+
+## 由 SceneRouter 在 add_child 前設定：NPC 的 requires（例如 CC 加入後不再站在早餐攤旁）需要讀旗標。
+var state: GameState
 
 var scene_id: String = "tide_root_town"
 var scene_name: String = "潮根城"
@@ -72,6 +78,7 @@ func _ready() -> void:
 	_build_exits()
 	_build_npcs()
 	_build_portals()
+	_build_items()
 	collision.visible = false
 
 
@@ -167,6 +174,8 @@ func _add_interactable(id: StringName, center: Vector2, size: Vector2, entry: Di
 
 func _build_npcs() -> void:
 	for entry: Dictionary in map_data.get("npcs", []):
+		if not DIALOGUE_RESOLVER.requires_met(entry.get("requires", {}), state, null):
+			continue
 		var data: CharacterData = load(String(entry.get("data", "")))
 		if data == null:
 			push_error("找不到 NPC 資料：%s" % entry.get("data", ""))
@@ -184,6 +193,43 @@ func _build_npcs() -> void:
 			interactable.owner_node = npc
 			if interactable.speaker_name.is_empty():
 				interactable.speaker_name = data.display_name
+
+
+func get_npc(npc_id: String) -> NpcCharacter:
+	for npc: NpcCharacter in npcs:
+		if is_instance_valid(npc) and String(npc.data.id) == npc_id:
+			return npc
+	return null
+
+
+## 移除 NPC 與其互動點（例如 CC 加入隊伍後從早餐攤旁消失）；回傳原本的位置。
+func remove_npc(npc_id: String) -> Vector2:
+	var npc := get_npc(npc_id)
+	if npc == null:
+		return Vector2.INF
+	var at := npc.global_position
+	for interactable: Interactable in get_interactables():
+		if interactable.owner_node == npc:
+			interactable.queue_free()
+	npcs.erase(npc)
+	npc.queue_free()
+	return at
+
+
+## 地上的投擲物：props JSON 的 items [{item, x, y}]。
+func _build_items() -> void:
+	for entry: Dictionary in map_data.get("items", []):
+		var at := Vector2(float(entry.get("x", 0.0)), float(entry.get("y", 0.0)))
+		spawn_item(String(entry.get("item", "")), at, at)
+
+
+## 在指定位置生成可撿取的投擲物；home 為命中消耗後重新生成的位置。
+func spawn_item(item_id: String, at: Vector2, home: Vector2) -> CarryableItem:
+	var item: CarryableItem = CARRYABLE_ITEM_SCRIPT.new()
+	item.setup_item(item_id, at, home)
+	interactables.add_child(item)
+	interactable_added.emit(item)
+	return item
 
 
 func _build_portals() -> void:

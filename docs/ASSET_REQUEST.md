@@ -13,7 +13,8 @@
 
 > **2026-09-04 進度**：A1～A10 已交付並套用（見 `docs/PHASE_2_REPORT.md` 第 2 節）。
 > A11～A19 以合成參考表交付，已切割使用其中的虛空、雲霧、深色樹皮、樓梯；**過渡組（A11、A12）需重產**，規格見下方更新。
-> B1、B2、B4、B5、B6 目前以程式合成 placeholder 運作中；B3、B7、B8、B9、B10 尚未交付。
+> B1、B2、B4、B5、B6 目前以程式合成 placeholder 運作中；B3、B10 已交付並套用；B7、B8、B9 尚未交付。
+> **Phase 4（2026-09-04）**：CC、炸物魔王、投擲物、特效、三張行動表已切割套用；**D1～D3 三個檔案損毀需重傳**（見下方 D 節）。
 
 ---
 
@@ -95,3 +96,14 @@
 - 每個編號一張 PNG，檔名用編號＋英文，例如 `A1_big_brother_sheet.png`、`A11_grass_edges.png`。
 - 放到 `assets/reference/incoming/`，我會用 `tools/build_assets.py` 切割並驗證尺寸。
 - 角色表與 tileset 若能提供「格線版」與「無格線版」各一張最好，格線版只用來對位。
+
+## D. Phase 4：需重新交付（檔案損毀）
+
+以下三個檔案在分支 `codex/phase-4-cc-fried-food-battle` 上的內容不是 PNG（前 8 bytes 為 `59 aa e7 8a 78 2d ae e9`，
+三個檔案大小都是 90059～90060 bytes，疑似同一次上傳出錯）。請重新輸出並確認能用一般看圖軟體開啟。
+
+| 編號 | 檔案 | 目前處理 | 規格 |
+|---|---|---|---|
+| D1 | `ACTION_sister_carry_throw_reference.png` | 妹妹以站立幀舉物、投擲（物品仍掛在頭頂） | 與其他三張行動表相同：4 方向（下、右、左、上）× 4 欄（舉物、舉物、投擲、舉物），透明背景 |
+| D2 | `GRANDMA_turtle_breakfast_sheet_reference.png` | 老龜換色 + 格紋頭巾佔位 | 5 欄 × 4 列（4 行走幀 + 1 站立），圍裙、格紋頭巾、念珠、早餐籃 |
+| D3 | `CAVE_fried_food_demon_arena_reference.png` | 以程式合成的 32×32 洞窟 tile 重建（地面、岩壁、油漬地面、受光牆面） | 只作構圖參考即可；若能另附 32×32 洞窟 tile 組（地面 2 款、岩壁面、岩壁頂、四角）更好 |

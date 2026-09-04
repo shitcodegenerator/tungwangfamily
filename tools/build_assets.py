@@ -375,6 +375,10 @@ def main() -> None:
     import build_assets_phase3
 
     build_assets_phase3.main()
+    # Phase 4：CC、炸物魔王、投擲物、行動表、特效、洞窟 tile、早餐攤
+    import build_assets_phase4
+
+    build_assets_phase4.main()
 
 
 if __name__ == "__main__":

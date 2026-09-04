@@ -21,6 +21,7 @@ z_index = 10
 y_sort_enabled = true
 
 [node name="Interactables" type="Node2D" parent="."]
+y_sort_enabled = true
 
 [node name="Exits" type="Node2D" parent="."]
 

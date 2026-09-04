@@ -18,6 +18,12 @@ const QuestManagerScript := preload("res://scripts/quest/quest_manager.gd")
 const DialogueResolverScript := preload("res://scripts/dialogue/dialogue_resolver.gd")
 const SceneRouterScript := preload("res://scripts/world/scene_router.gd")
 const QuestHudScript := preload("res://scripts/ui/quest_hud.gd")
+const ProjectileScript := preload("res://scripts/battle/thrown_projectile.gd")
+const WingScript := preload("res://scripts/battle/chicken_wing.gd")
+const BossScript := preload("res://scripts/battle/fried_food_demon.gd")
+const CarryableItemScript := preload("res://scripts/battle/carryable_item.gd")
+const DialogueManagerScript := preload("res://scripts/ui/dialogue_manager.gd")
+const BattleHudScript := preload("res://scripts/ui/battle_hud.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -43,6 +49,13 @@ func _initialize() -> void:
 	test_dialogue_resolver()
 	test_scene_registry()
 	test_phase3_assets()
+	test_game_state_v2()
+	test_inventory_and_events()
+	test_phase4_dialogue()
+	test_projectile_math()
+	test_wing_and_boss_math()
+	test_phase4_data()
+	test_phase4_assets()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -235,7 +248,7 @@ func test_dialogue_json() -> void:
 		for variant: Variant in variants:
 			if typeof(variant) != TYPE_DICTIONARY or (variant as Dictionary).get("lines", []).is_empty():
 				missing.append(id)
-	_assert(ids.size() == 6 and missing.is_empty(), "主城六個互動物件都有對話內容（缺少 %d 個）" % missing.size())
+	_assert(ids.size() == 8 and missing.is_empty(), "主城八個互動物件都有對話內容（缺少 %d 個）" % missing.size())
 
 
 func test_game_state_roundtrip() -> void:
@@ -349,3 +362,182 @@ func test_phase3_assets() -> void:
 		if portrait != null and portrait.get_size() == Vector2(48, 48):
 			portraits += 1
 	_assert(portraits == 6, "六張 48×48 頭像（實際 %d）" % portraits)
+
+
+func test_game_state_v2() -> void:
+	var state: GameState = GameStateScript.new()
+	state.add_item("chunhsiang_noodles")
+	state.pet_id = "cc_penguin"
+	_assert(state.has_item("chunhsiang_noodles") and state.item_count("chunhsiang_noodles") == 1, "背包加入物品")
+	var restored: GameState = GameStateScript.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))["state"]
+	_assert(restored != null and restored.has_item("chunhsiang_noodles") and restored.pet_id == "cc_penguin", "v2 存檔保留物品與寵物")
+	_assert(restored.schema_version == 2 and state.to_dict()["schema_version"] == 2, "schema_version 為 2")
+	var legacy := {"schema_version": 1, "current_scene_id": "tide_root_town", "flags": {"demo": true}, "quests": {}}
+	var migrated: Dictionary = GameStateScript.from_dict(legacy)
+	var old: GameState = migrated["state"]
+	_assert(old != null and old.inventory.is_empty() and old.pet_id == "" and old.has_flag("demo"), "v1 存檔以空背包與無寵物補齊")
+	_assert(not state.remove_item("chunhsiang_noodles", 2) and state.remove_item("chunhsiang_noodles") and not state.has_item("chunhsiang_noodles"), "扣除物品：不足時拒絕，足夠時移除")
+	_assert(GameStateScript.from_dict({"schema_version": 3, "current_scene_id": "x", "flags": {}, "quests": {}})["state"] == null, "版本 3 存檔被拒絕")
+
+
+func test_inventory_and_events() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	_assert(quests.definitions.has("cc_fried_food_battle") and quests.definitions.has("demo_town_orientation"), "同時載入 Phase 3 與 Phase 4 任務")
+	quests.apply_actions([{"quest_start": "cc_fried_food_battle"}, {"set_flag": "cc_found"}])
+	_assert(quests.is_objective_current("cc_fried_food_battle", "get_noodles"), "CC 任務啟動後第一個目標是取麵")
+	quests.notify_event("cc_noodle_delivered")
+	_assert(quests.is_objective_current("cc_fried_food_battle", "get_noodles"), "還沒取麵時交付事件不推進（依序完成）")
+	quests.apply_actions([{"give_item": "chunhsiang_noodles"}])
+	quests.notify_interact("grandma_turtle")
+	_assert(state.has_item("chunhsiang_noodles") and quests.is_objective_current("cc_fried_food_battle", "deliver_noodles"), "阿嬤互動給麵並推進到交付")
+	quests.apply_actions([{"take_item": "chunhsiang_noodles"}, {"quest_event": "cc_noodle_delivered"}])
+	_assert(not state.has_item("chunhsiang_noodles") and quests.is_objective_current("cc_fried_food_battle", "defeat_demon"), "交付後扣麵並推進到擊倒 Boss")
+	quests.notify_event("fried_food_demon_defeated")
+	quests.notify_event("cc_joined")
+	_assert(quests.quest_state("cc_fried_food_battle") == "completed" and state.has_flag("cc_quest_complete"), "Boss 倒下與 CC 加入事件後任務完成")
+	quests.free()
+
+
+func test_phase4_dialogue() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	var dialogue: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/dialogue/tide_root_town.json"))
+	var cc: Array = dialogue["cc_penguin"]
+	var first: Dictionary = DialogueResolverScript.resolve(cc, state, quests)
+	_assert(first["on_complete"].size() == 2 and first["on_complete"][0].has("quest_start"), "初次見 CC：啟動任務")
+	quests.apply_actions(first["on_complete"])
+	var no_noodles: Dictionary = DialogueResolverScript.resolve(cc, state, quests)
+	_assert(no_noodles["on_complete"].is_empty() and not _has_action(no_noodles["on_complete"], "teleport"), "沒有麵時 CC 不傳送")
+	state.add_item("chunhsiang_noodles")
+	var deliver: Dictionary = DialogueResolverScript.resolve(cc, state, quests)
+	_assert(_has_action(deliver["on_complete"], "teleport") and _has_action(deliver["on_complete"], "take_item"), "有麵時 CC 收麵並傳送")
+	quests.apply_actions(deliver["on_complete"])
+	var retry: Dictionary = DialogueResolverScript.resolve(cc, state, quests)
+	_assert(_has_action(retry["on_complete"], "teleport") and not _has_action(retry["on_complete"], "take_item"), "失敗後再談 CC：重新傳送、不再收麵")
+	state.set_flag("cc_fried_food_demon_defeated")
+	var join: Dictionary = DialogueResolverScript.resolve(cc, state, quests)
+	_assert(DialogueManagerScript.has_valid_options(join["choice"]) and join["choice"]["options"].size() == 2, "擊倒後 CC 對話帶接受／拒絕兩個選項")
+	var reject: Dictionary = join["choice"]["options"][1]
+	_assert(String(reject["lines"][0]).contains("💢") and String(reject["lines"][1]).contains("你怎麼忍心!!!"), "拒絕分支含 💢 與指定 OS")
+	var both_join := true
+	for option: Dictionary in join["choice"]["options"]:
+		if not _has_action(option["on_complete"], "set_flag") or String(option["on_complete"][0]["set_flag"]) != "cc_joined":
+			both_join = false
+	_assert(both_join, "接受與拒絕最後都設定 cc_joined")
+	var ends_with_desu := true
+	for variant: Dictionary in cc:
+		for line: Variant in variant.get("lines", []):
+			var trimmed := String(line).rstrip("。！!")
+			if not trimmed.ends_with("です") and not String(line).contains("💢") and not String(line).contains("OS"):
+				ends_with_desu = false
+	_assert(ends_with_desu, "CC 台詞句尾皆為「です」")
+	_assert(not DialogueManagerScript.has_valid_options({}) and not DialogueManagerScript.has_valid_options({"options": [{"x": 1}]}), "無效的 choice 被忽略")
+	_assert(DialogueBoxScript.choice_line("接受", true) == "▶ 接受" and DialogueBoxScript.choice_line("拒絕", false).ends_with("拒絕"), "選項列文字帶選取標記")
+	var grandma: Array = dialogue["grandma_turtle"]
+	var fresh_state: GameState = GameStateScript.new()
+	var fresh: QuestManager = QuestManagerScript.new()
+	fresh.load_all_definitions()
+	fresh.bind(fresh_state)
+	_assert(not _has_action(DialogueResolverScript.resolve(grandma, fresh_state, fresh)["on_complete"], "give_item"), "任務未啟動時阿嬤不給麵")
+	fresh.apply_actions([{"quest_start": "cc_fried_food_battle"}])
+	_assert(_has_action(DialogueResolverScript.resolve(grandma, fresh_state, fresh)["on_complete"], "give_item"), "目標為取麵時阿嬤給麵")
+	fresh.apply_actions([{"give_item": "chunhsiang_noodles"}])
+	fresh.notify_interact("grandma_turtle")
+	_assert(not _has_action(DialogueResolverScript.resolve(grandma, fresh_state, fresh)["on_complete"], "give_item"), "拿到麵後阿嬤不再給麵")
+	fresh.free()
+	quests.free()
+
+
+func _has_action(actions: Array, key: String) -> bool:
+	for action: Variant in actions:
+		if typeof(action) == TYPE_DICTIONARY and action.has(key):
+			return true
+	return false
+
+
+func test_projectile_math() -> void:
+	_assert(is_equal_approx(ProjectileScript.arc_height(0.5, 26.0), 26.0) and ProjectileScript.arc_height(0.0, 26.0) == 0.0 and ProjectileScript.arc_height(1.0, 26.0) == 0.0, "拋物線中點最高、兩端為 0")
+	var open_field := func(_p: Vector2) -> bool: return true
+	var landing: Vector2 = ProjectileScript.landing_point(Vector2(100, 100), Vector2.UP, 150.0, 8.0, open_field)
+	_assert(landing.distance_to(Vector2(100, 100 - 144)) < 0.01, "空曠時落點在射程盡頭（8px 步進）")
+	var wall_at_40 := func(p: Vector2) -> bool: return p.y > 60.0
+	var short: Vector2 = ProjectileScript.landing_point(Vector2(100, 100), Vector2.UP, 150.0, 8.0, wall_at_40)
+	_assert(short.y == 68.0, "面對牆時射程截短到牆前")
+	var blocked := func(_p: Vector2) -> bool: return false
+	_assert(ProjectileScript.landing_point(Vector2(5, 5), Vector2.RIGHT, 100.0, 8.0, blocked) == Vector2(5, 5), "第一步就是牆時落在原地")
+
+
+func test_wing_and_boss_math() -> void:
+	var step: Dictionary = WingScript.simulate_step(0.0, -170.0, 1.0 / 60.0)
+	_assert(step["height"] > 0.0 and not step["bounced"], "炸雞翅起跳後高度上升")
+	var falling: Dictionary = WingScript.simulate_step(0.5, 120.0, 1.0 / 60.0)
+	_assert(falling["height"] == 0.0 and falling["bounced"] and falling["speed"] < 0.0, "落地時反彈一次")
+	var resting: Dictionary = WingScript.simulate_step(0.1, 10.0, 1.0 / 60.0)
+	_assert(resting["height"] == 0.0 and resting["speed"] == 0.0 and not resting["bounced"], "速度太慢時停在地面")
+	_assert(BossScript.hp_after_hit(5, 1) == 4 and BossScript.hp_after_hit(1, 1) == 0 and BossScript.hp_after_hit(0, 1) == 0, "Boss 生命扣到 0 為止")
+	_assert(BattleHudScript.summary(3, 5) == "♥×3　炸物魔王 5", "戰鬥 HUD 摘要")
+
+
+func test_phase4_data() -> void:
+	var catalog: Dictionary = CarryableItemScript.catalog()
+	var same_damage := true
+	for id: String in ["vegetable_bundle", "green_tea", "water_flask"]:
+		if not catalog.has(id) or CarryableItemScript.damage_for(id) != 1 or String(catalog[id]["effect_type"]) != "plain_damage":
+			same_damage = false
+	_assert(same_damage, "三種投擲物皆為 plain_damage、傷害 1")
+	var registry: Dictionary = SceneRouterScript.parse_registry(FileAccess.get_file_as_string("res://assets/maps/scenes.json"))
+	_assert(registry.has("fried_food_cave") and int(registry["fried_food_cave"]["battle"]["boss_hp"]) == 5, "洞窟場景登錄且 Boss 生命 5")
+	var parser: MapParser = MapParserScript.load_from_file("res://assets/maps/fried_food_cave.txt")
+	var overrides: Dictionary = TileLibraryScript.overrides_from_json(registry["fried_food_cave"]["legend_overrides"])
+	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 1, {"overrides": overrides}) == TileLibraryScript.CAVE_WALL_FACE, "地面上方的牆使用受光牆面")
+	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 0, {"overrides": overrides}) == TileLibraryScript.CAVE_WALL, "第二層牆使用一般岩壁")
+	_assert(TileLibraryScript.ground_atlas_for(parser, 5, 3, {"overrides": overrides}) == TileLibraryScript.CAVE_FLOOR, "洞窟地面使用第 5 列地面")
+	var younger: CharacterData = load("res://assets/characters/playable/younger_brother.tres")
+	var big: CharacterData = load("res://assets/characters/playable/big_brother.tres")
+	_assert(younger.controlled_speed > younger.walk_speed and big.controlled_speed == 0.0, "弟弟被操控時速度較快，其他角色不變")
+	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/tide_root_town_props.json"))
+	var cc_entry := {}
+	for npc: Dictionary in props["npcs"]:
+		if npc["id"] == "cc_penguin":
+			cc_entry = npc
+	_assert(cc_entry.has("requires") and cc_entry["requires"]["not_flags"] == ["cc_joined"], "CC NPC 只在未加入時出現在早餐攤旁")
+	var state: GameState = GameStateScript.new()
+	_assert(DialogueResolverScript.requires_met(cc_entry["requires"], state, null), "未加入時 CC 出現")
+	state.set_flag("cc_joined")
+	_assert(not DialogueResolverScript.requires_met(cc_entry["requires"], state, null), "加入後 CC 不再出現")
+
+
+func test_phase4_assets() -> void:
+	var cc: Texture2D = load("res://assets/characters/pets/cc_penguin_sheet.png")
+	_assert(cc != null and cc.get_size() == Vector2(240, 256), "CC 精靈表為 240×256")
+	var boss: Texture2D = load("res://assets/characters/boss/fried_food_demon_sheet.png")
+	_assert(boss != null and boss.get_size() == Vector2(480, 80), "炸物魔王精靈表為 6 幀 × 80×80")
+	var items := 0
+	for id: String in ["vegetable_bundle", "green_tea", "water_flask"]:
+		var texture: Texture2D = CarryableItemScript.texture_for(id)
+		if texture != null and texture.get_size() == Vector2(112, 28):
+			items += 1
+	_assert(items == 3, "三種投擲物各為 4 幀 × 28×28（實際 %d）" % items)
+	var actions := 0
+	for id: String in ["big_brother", "calm_brother", "younger_brother"]:
+		var texture: Texture2D = load("res://assets/characters/playable/%s_action_sheet.png" % id)
+		if texture != null and texture.get_size() == Vector2(96, 256):
+			actions += 1
+	_assert(actions == 3, "三張行動表為 96×256（妹妹參考檔損毀，無行動表）")
+	var sheet := ImageTexture.create_from_image(Image.create(240, 256, false, Image.FORMAT_RGBA8))
+	var action_sheet := ImageTexture.create_from_image(Image.create(96, 256, false, Image.FORMAT_RGBA8))
+	var frames: SpriteFrames = PlayerScript.build_sprite_frames(sheet, action_sheet)
+	_assert(frames.has_animation(&"carry_left") and frames.has_animation(&"throw_up") and frames.get_animation_names().size() == 16, "行動表加入 carry／throw 各四方向")
+	var throw_frame: AtlasTexture = frames.get_frame_texture(&"throw_right", 0)
+	_assert(throw_frame.region == Rect2(48, 128, 48, 64), "throw_right 取自行動表第 1 欄第 2 列")
+	_assert(PlayerScript.build_sprite_frames(sheet).get_animation_names().size() == 8, "沒有行動表時只有 8 個動畫")
+	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
+	_assert(tileset != null and tileset.get_size() == Vector2(576, 192), "tileset 擴充為 6 列")
+	for name: String in ["fx_teleport", "fx_hit_sparkle", "fx_poof", "fx_victory", "fx_chicken_wing"]:
+		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
+	_assert(ResourceLoader.exists("res://assets/characters/npcs/grandma_turtle_sheet.png") and ResourceLoader.exists("res://assets/props/breakfast_stall.png"), "阿嬤佔位精靈表與早餐攤存在")

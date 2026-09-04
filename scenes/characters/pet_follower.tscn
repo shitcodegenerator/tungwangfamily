@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/pet_follower.gd" id="1_pet"]
+[ext_resource type="Script" path="res://scripts/characters/follower_character.gd" id="2_follower"]
+
+[node name="PetFollower" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+motion_mode = 1
+script = ExtResource("1_pet")
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualRoot"]
+texture_filter = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="Follower" type="Node" parent="."]
+script = ExtResource("2_follower")

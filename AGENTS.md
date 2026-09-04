@@ -4,11 +4,13 @@
 
 「山海樹港 RPG」：Godot 4.7 2D 原型。Phase 1 完成主城「潮根城」、四位可切換角色與跟隨隊伍；
 Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換；Phase 3 完成 GameState、存檔、場景路由、
-兩個室內場景、兩位 NPC、資料驅動任務與 TEMP_DEMO_CONTENT 測試任務。
+兩個室內場景、兩位 NPC、資料驅動任務與 TEMP_DEMO_CONTENT 測試任務；Phase 4 完成 CC 任務切片：
+香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、對話選項、CC 寵物跟隨。
 規劃文件：`docs/PHASE_1_PROJECT_PLAN.md`、`docs/PHASE_2_PLAN.md`、`docs/PHASE_3_PLAN.md`、`docs/PHASE_3_DECISIONS.md`、
-`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
+`docs/PHASE_4_PLAN.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
 父親離世演出、乾媽家庭傷痛或真實回憶；測試內容一律標記 `TEMP_DEMO_CONTENT` 或 `demo_` 前綴；
-父親原型是「國王企鵝船長」；媽媽與乾媽共用 `family_home`。
+父親原型是「國王企鵝船長」；媽媽與乾媽共用 `family_home`。炸物魔王只能是純幻想、搞笑的一次性教學 Boss，
+不得加家庭原型或沉重設定；CC 的台詞只用短句、句尾「です」，不要套到其他角色。
 
 ## 不可更動的規格
 
@@ -20,7 +22,8 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 
 ## 目前明確不做
 
-戰鬥、小怪、經驗值、等級、裝備、技能、任務、分支對話、存檔條件、背包、寵物、送禮、房屋內部、場景轉場。
+小怪、經驗值、等級、裝備、技能樹、複雜屬性、完整 RPG 戰鬥框架、好感度、送禮、每日系統。
+（戰鬥只有炸物魔王這一場，邏輯只能放在 `scripts/battle/`；背包只有任務物品；分支對話只有 `choice` 選項。）
 
 ## 責任分工
 
@@ -46,8 +49,16 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 | `scripts/world/scene_router.gd` | 場景建立、轉場、傳送門、讀檔還原 |
 | `scripts/characters/npc_character.gd` | 站立 NPC 外觀與轉向 |
 | `scripts/ui/quest_hud.gd` | 任務摘要、日誌、提示 |
+| `scripts/battle/carryable_item.gd` | 地上的投擲物（Interactable 子類），只帶 item_id 與原位 |
+| `scripts/battle/carry_system.gd` | 領頭者撿起／舉著／投擲；換場景清空 |
+| `scripts/battle/thrown_projectile.gd` | 飛行、拋物線、落點截短、命中／落地 signal |
+| `scripts/battle/fried_food_demon.gd` | Boss 狀態機，只發 signal |
+| `scripts/battle/battle_director.gd` | 這一場戰鬥的接線：命中、炸雞翅、玩家生命、勝負 |
+| `scripts/characters/pet_follower.gd` | 寵物跟隨與小動作，不在 party order |
+| `scripts/ui/battle_hud.gd` | 愛心與 Boss 生命 |
 
 不要把劇情、戰鬥與移動耦合進同一支腳本；不要為了「泛用」建立難以除錯的框架。
+Boss 戰邏輯只能在 `scripts/battle/`；主城、CC、物品、角色腳本不得知道戰鬥存在。戰鬥暫態不進 `GameState`。
 對話內容一律放 `assets/dialogue/*.json`、任務放 `assets/quests/*.json`；旗標與任務進度只存在 `GameState`，
 不要在公告欄、NPC 或場景腳本裡各自保存變數。`PlayableCharacter` 不得知道對話、任務或互動物件的存在。
 存檔 ID 用 `scene_id` 與角色 `id`，不要用節點路徑。
@@ -78,9 +89,12 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 |---|---|
 | 1 World | TileMap 碰撞、道具 StaticBody2D |
 | 2 Characters | 角色本體（彼此不碰撞） |
-| 3 Interactable | 可互動物件（Interactable Area2D）；角色的 InteractionArea 只偵測此層 |
+| 3 Interactable | 可互動物件（Interactable Area2D，含地上的投擲物）；角色的 InteractionArea 只偵測此層 |
+| 5 Boss | Boss 受擊區（Hurtbox）；ThrownProjectile 只偵測此層 |
 
 ## 素材
 
-- 遊戲素材由 `tools/build_assets.py`（含 `build_assets_phase2.py`）從 `assets/reference/` 與 `assets/reference/incoming/` 切割產生，改參考圖後重跑即可；不要手改 `assets/characters`、`assets/props`、`assets/tilesets` 裡的 PNG。
+- 遊戲素材由 `tools/build_assets.py`（依序呼叫 phase2～phase4）從 `assets/reference/` 與 `assets/reference/incoming/` 切割產生，改參考圖後重跑即可；不要手改 `assets/characters`、`assets/props`、`assets/tilesets`、`assets/items`、`assets/effects` 裡的 PNG。
+- 重跑素材後一定要 `godot --headless --path . --import`，執行期不會重新匯入改過的 PNG。
+- 收到新參考圖先確認是 PNG（`file` 或前 8 bytes）；Phase 4 有三個檔案內容是亂碼，切割器會略過並印出提示。
 - 字型：Fusion Pixel 12px（OFL，`assets/ui/FUSION_PIXEL_OFL.txt`），UI 字級請用 12 的倍數。

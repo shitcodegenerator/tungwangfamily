@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="山海樹港 RPG"
-config/description="Phase 3：潮根城、共享家庭屋、船長房間（隊伍、互動、對話、任務、存檔、日夜）"
+config/description="Phase 4：CC 與炸物魔王戰鬥切片（撿取、舉物、投擲、寵物跟隨），含 Phase 1～3 全部內容"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -34,6 +34,7 @@ theme/custom="res://assets/ui/theme.tres"
 2d_physics/layer_1="World"
 2d_physics/layer_2="Characters"
 2d_physics/layer_3="Interactable"
+2d_physics/layer_5="Boss"
 
 [input]
 

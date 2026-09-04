@@ -24,6 +24,8 @@ var day_night: DayNightController
 var main_node: Node
 var quests: QuestManager
 var router: SceneRouter
+var carry: CarrySystem
+var battle: BattleDirector
 var shots_dir: String = "user://screenshots"
 var failures: PackedStringArray = PackedStringArray()
 var passes: PackedStringArray = PackedStringArray()
@@ -42,6 +44,8 @@ func _ready() -> void:
 	main_node = main
 	quests = main.get("quests")
 	router = main.get("router")
+	carry = main.get("carry")
+	battle = main.get("battle")
 	# 每次執行從乾淨狀態開始：移除舊存檔，避免上次測試殘留
 	SaveManager.delete_save()
 	for arg: String in OS.get_cmdline_user_args():
@@ -96,6 +100,7 @@ func _run() -> void:
 	_check(await _walk_to(Vector2i(14, 29)), "再次回到出生點")
 	await _phase2_checks()
 	await _phase3_checks()
+	await _phase4_checks()
 	while switches_done < SWITCH_TARGET:
 		party.cycle_leader()
 		switches_done += 1
@@ -266,6 +271,217 @@ func _phase3_checks() -> void:
 	_check(main_node.state.current_scene_id == before_scene and main_node.state.has_flag("demo_orientation_complete"), "損毀存檔不影響目前狀態")
 	SaveManager.delete_save()
 	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+
+
+## Phase 4：CC 任務 → 阿嬤取麵 → 交付傳送 → 受傷／戰敗返回 → 再傳送 → 四人各投擲一次（4 次不勝）→ 第 5 次勝利返回
+## → 拒絕 CC 加入（💢 + OS）但仍加入 → 寵物跟隨 → 存讀檔保留寵物與旗標 → 弟弟速度。
+func _phase4_checks() -> void:
+	var quest_id := "cc_fried_food_battle"
+	var state: GameState = main_node.state
+	_check(await _walk_to(Vector2i(10, 30)), "走到早餐攤旁的 CC 面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"cc_penguin"), "初次與 CC 對話")
+	_check(quests.quest_state(quest_id) == "active" and state.has_flag("cc_found") and quests.is_objective_current(quest_id, "get_noodles"), "CC 對話啟動任務，目標為取麵")
+	await _screenshot("12_breakfast_stall")
+	_check(await _interact_and_close(&"cc_penguin"), "沒有麵時再次與 CC 對話")
+	await get_tree().create_timer(0.9).timeout
+	_check(state.current_scene_id == "tide_root_town" and not router.is_transitioning and not state.has_item("chunhsiang_noodles"), "香椿乾拌麵未取得時 CC 不傳送")
+	_check(await _walk_to(Vector2i(9, 30)), "走到阿嬤面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"grandma_turtle"), "阿嬤對話")
+	_check(state.has_item("chunhsiang_noodles") and quests.is_objective_current(quest_id, "deliver_noodles"), "取得香椿乾拌麵，目標更新為交付")
+	_check(await _walk_to(Vector2i(10, 30)), "拿著麵走回 CC 面前")
+	await _face(Vector2i.UP)
+	var cc_spot: Vector2 = party.get_leader().global_position
+	_check(await _interact_and_close(&"cc_penguin"), "把麵交給 CC")
+	_check(await _wait_transition_start(3.0), "交付後 CC 傳送（轉場開始）")
+	await _wait_transition()
+	_check(state.current_scene_id == "fried_food_cave" and _all_members_in_world(), "四人抵達炸物魔王洞窟")
+	_check(state.return_scene_id == "tide_root_town" and state.return_position.distance_to(cc_spot) < 4.0, "返回點記在 CC 身旁")
+	_check(not state.has_item("chunhsiang_noodles") and state.has_flag("cc_noodle_delivered") and quests.is_objective_current(quest_id, "defeat_demon"), "麵已交付、旗標與目標更新")
+	_check(battle.active and battle.boss != null and battle.boss_hp() == 5, "戰鬥開始，Boss 生命 5")
+	_check(main_node.save_game() == "", "洞窟內 F6 存檔（任務與傳送狀態）")
+	await _screenshot("13_cave_arrival")
+
+	# 受傷：Boss 衝撞 → 變色閃爍與無敵時間；生命 3 → 2
+	battle.set_boss_paused(true)
+	_check(await _walk_to(Vector2i(12, 7)), "走到 Boss 下方")
+	await _face(Vector2i.UP)
+	battle.set_boss_paused(false)
+	battle.force_boss_attack()
+	_check(await _wait_until(func() -> bool: return party.get_leader().is_invincible(), 2.5), "Boss 攻擊命中，領頭者變色閃爍並進入無敵時間")
+	_check(battle.player_hp == 2, "受傷後生命 3 → 2")
+	battle.set_boss_paused(true)
+	await get_tree().create_timer(1.2).timeout
+
+	# 戰敗：生命 1 再被打 → 回到 CC 身邊；麵的旗標不變
+	_check(await _walk_to(Vector2i(12, 7)), "再次走到 Boss 下方")
+	battle.set_player_hp(1)
+	battle.set_boss_paused(false)
+	battle.force_boss_attack()
+	_check(await _wait_until(func() -> bool: return battle.player_hp == 0, 2.5), "生命歸零")
+	_check(await _wait_transition_start(3.0), "戰敗後自動返回（轉場開始）")
+	await _wait_transition()
+	_check(state.current_scene_id == "tide_root_town" and party.get_leader().global_position.distance_to(cc_spot) < 48.0, "戰敗回到 CC 身旁")
+	_check(state.has_flag("cc_noodle_delivered") and not state.has_flag("cc_fried_food_demon_defeated") and not battle.active, "戰敗不清除麵已交付旗標，Boss 未被擊倒")
+	_check(await _walk_to(Vector2i(10, 30)), "走回 CC 面前")
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"cc_penguin"), "再次與 CC 對話")
+	_check(await _wait_transition_start(3.0), "CC 再次傳送（重新開始）")
+	await _wait_transition()
+	_check(state.current_scene_id == "fried_food_cave" and battle.boss_hp() == 5 and battle.player_hp == 3, "重新進入洞窟，Boss 與生命重置")
+
+	# 四位角色各撿一次、投一次：命中 4 次不勝利
+	battle.set_boss_paused(true)
+	var pickups: Array = [
+		[0, &"vegetable_bundle", Vector2i(4, 8)],
+		[1, &"green_tea", Vector2i(19, 8)],
+		[2, &"water_flask", Vector2i(12, 12)],
+		[3, &"vegetable_bundle", Vector2i(4, 8)],
+	]
+	for pickup: Array in pickups:
+		var index: int = pickup[0]
+		party.set_leader_by_index(index)
+		switches_done += 1
+		var leader := party.get_leader()
+		_check(await _walk_to(pickup[2]), "%s 走到 %s 旁" % [leader.data.display_name, pickup[1]])
+		await _face(Vector2i.UP)
+		await _wait_frames(3)
+		var target := interaction.current_target
+		_check(target is CarryableItem and target.interactable_id == pickup[1] and interaction.prompt_visible(), "%s 靠近物品出現提示" % leader.data.display_name)
+		await _tap_action("interact")
+		_check(carry.is_leader_carrying() and carry.carried_item_id(leader) == String(pickup[1]), "%s 撿起並舉起 %s" % [leader.data.display_name, pickup[1]])
+		if index == 0:
+			await _screenshot("14_carry_item")
+		_check(await _walk_to(Vector2i(12, 8)), "%s 舉著物品走到 Boss 下方" % leader.data.display_name)
+		await _face(Vector2i.UP)
+		var hp_before := battle.boss_hp()
+		await _tap_action("interact")
+		_check(not carry.is_leader_carrying(), "%s 按 E 投擲" % leader.data.display_name)
+		_check(await _wait_until(func() -> bool: return battle.boss_hp() == hp_before - 1, 2.0), "%s 的投擲命中 Boss（生命 %d → %d）" % [leader.data.display_name, hp_before, hp_before - 1])
+		if index == 1:
+			await _screenshot_quick("15_boss_hit")
+		await get_tree().create_timer(0.5).timeout
+	_check(battle.boss_hp() == 1 and battle.hits_landed == 4 and battle.wings_spawned == 4, "命中 4 次：Boss 生命 1、掉落 4 隻炸雞翅")
+	_check(not state.has_flag("cc_fried_food_demon_defeated") and state.current_scene_id == "fried_food_cave", "命中 4 次不會提前勝利")
+	_check(await _wait_until(func() -> bool: return _item_count_in_world() == 3, 3.0), "命中消耗的物品在原位重新生成（地上共 3 件）")
+
+	# 第 5 次命中 → 倒地 → 勝利 → 返回 CC
+	party.set_leader_by_index(0)
+	switches_done += 1
+	_check(await _walk_to(Vector2i(12, 12)), "走到水旁")
+	await _face(Vector2i.UP)
+	await _wait_frames(3)
+	await _tap_action("interact")
+	_check(carry.is_leader_carrying(), "撿起水")
+	_check(await _walk_to(Vector2i(12, 8)), "舉著水走到 Boss 下方")
+	await _face(Vector2i.UP)
+	await _tap_action("interact")
+	_check(await _wait_until(func() -> bool: return battle.boss_hp() == 0, 2.0), "第 5 次命中，Boss 生命歸零")
+	_check(battle.wings_spawned == 5 and not state.has_flag("cc_fried_food_demon_defeated"), "第 5 隻炸雞翅掉落；倒地演出結束前旗標未設定")
+	_check(await _wait_transition_start(4.0), "倒地演出後返回（轉場開始）")
+	_check(state.has_flag("cc_fried_food_demon_defeated") and quests.is_objective_current(quest_id, "return_to_cc"), "勝利旗標與任務事件在倒地後設定")
+	await _wait_transition()
+	_check(state.current_scene_id == "tide_root_town" and party.get_leader().global_position.distance_to(cc_spot) < 48.0 and _all_members_in_world(), "勝利回到 CC 身旁")
+	_check(await _wait_until(func() -> bool: return _item_count_in_world() == 0, 0.5), "主城沒有投擲物")
+
+	# CC 加入：拒絕分支
+	_check(await _walk_to(Vector2i(10, 30)), "走到 CC 面前")
+	await _face(Vector2i.UP)
+	await _wait_frames(3)
+	_check(interaction.current_target != null and interaction.current_target.interactable_id == &"cc_penguin", "CC 仍在早餐攤旁")
+	await _tap_action("interact")
+	var guard := 0
+	while dialogue.is_active and not dialogue.is_choosing() and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	_check(dialogue.is_active and dialogue.is_choosing(), "對話最後出現接受／拒絕選項")
+	await _screenshot("16_cc_join_choice")
+	await _tap_action("move_down")
+	_check(dialogue.choice_index() == 1, "方向鍵下選到「拒絕」")
+	await _tap_action("interact")
+	_check(dialogue.is_active and not dialogue.is_choosing() and state.has_flag("cc_rejection_reaction_seen"), "確認拒絕後接續 💢 台詞")
+	await _screenshot_quick("17_cc_rejected")
+	guard = 0
+	while dialogue.is_active and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	_check(not dialogue.is_active and state.has_flag("cc_joined") and not state.has_flag("cc_join_choice"), "拒絕後 CC 仍然加入")
+	_check(quests.quest_state(quest_id) == "completed" and state.has_flag("cc_quest_complete"), "CC 任務完成")
+	world = main_node.get("world")
+	_check(party.has_pet() and world.get_npc("cc_penguin") == null, "CC 從早餐攤旁消失、成為隊伍寵物")
+	_check(await _walk_to(Vector2i(14, 27)), "帶著 CC 走一段路")
+	_check(await _wait_until(func() -> bool: return party.pet.global_position.distance_to(party.order.back().global_position) < 90.0, 3.0), "CC 跟在隊伍最後一位後面")
+	_check(not party.order_ids().has("cc_penguin") and party.members.size() == 4, "CC 不在可切換的四人名單裡")
+	await _screenshot("18_pet_follow")
+
+	# 存讀檔：寵物與旗標保留；讀到未加入的存檔則寵物消失、CC 回到攤旁
+	_check(main_node.save_game() == "", "加入後存檔")
+	var joined_text := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
+	var before: Dictionary = JSON.parse_string(joined_text)
+	before["pet_id"] = ""
+	before["flags"].erase("cc_joined")
+	var file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(before))
+	file.close()
+	_check(main_node.load_game() == "", "讀取未加入 CC 的存檔")
+	await _wait_transition()
+	world = main_node.get("world")
+	_check(not party.has_pet() and world.get_npc("cc_penguin") != null, "讀檔後寵物消失、CC 回到早餐攤旁")
+	file = FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	file.store_string(joined_text)
+	file.close()
+	_check(main_node.load_game() == "", "讀回加入後的存檔")
+	await _wait_transition()
+	world = main_node.get("world")
+	state = main_node.state
+	_check(party.has_pet() and world.get_npc("cc_penguin") == null and state.has_flag("cc_joined") and state.has_flag("cc_fried_food_demon_defeated"), "讀檔後寵物、CC 加入與擊倒旗標保留")
+	SaveManager.delete_save()
+
+	# 弟弟速度
+	party.set_leader_by_index(3)
+	switches_done += 1
+	var younger := party.get_leader()
+	_check(is_equal_approx(younger.controlled_speed(), 124.0) and is_equal_approx(party.members[0].controlled_speed(), 96.0), "弟弟被操控時速度 124，哥哥 96")
+	await _push_for(Vector2i.RIGHT, 0.3)
+	party.set_leader_by_index(0)
+	switches_done += 1
+	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+
+
+func _item_count_in_world() -> int:
+	world = main_node.get("world")
+	var count := 0
+	for interactable: Interactable in world.get_interactables():
+		if interactable is CarryableItem:
+			count += 1
+	return count
+
+
+func _wait_until(predicate: Callable, seconds: float) -> bool:
+	var elapsed := 0.0
+	while elapsed < seconds:
+		if bool(predicate.call()):
+			return true
+		await get_tree().physics_frame
+		elapsed += get_physics_process_delta_time()
+	return bool(predicate.call())
+
+
+func _wait_transition_start(seconds: float) -> bool:
+	return await _wait_until(func() -> bool: return router.is_transitioning, seconds)
+
+
+func _screenshot_quick(file_name: String) -> void:
+	await get_tree().create_timer(0.12).timeout
+	await get_tree().process_frame
+	RenderingServer.force_draw(true)
+	var image := get_viewport().get_texture().get_image()
+	var path := shots_dir.path_join(file_name + ".png")
+	if image.save_png(path) != OK:
+		failures.append("截圖失敗：%s" % path)
+	else:
+		passes.append("截圖：%s" % path)
 
 
 func _enter_portal(direction: Vector2i, expected_scene: String) -> bool:

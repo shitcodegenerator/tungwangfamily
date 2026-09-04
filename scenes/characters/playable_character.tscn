@@ -17,6 +17,9 @@ script = ExtResource("1_player")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualRoot"]
 texture_filter = 1
 
+[node name="CarryAnchor" type="Marker2D" parent="VisualRoot"]
+position = Vector2(0, -60)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 
 [node name="InteractionOrigin" type="Marker2D" parent="."]

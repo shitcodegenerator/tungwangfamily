@@ -68,6 +68,12 @@ func is_outdoor(scene_id: String) -> bool:
 	return bool(scene_info(scene_id).get("outdoor", false))
 
 
+## 戰鬥場景的設定（boss、座標、生命）；非戰鬥場景回傳空字典。
+func battle_config(scene_id: String) -> Dictionary:
+	var config: Variant = scene_info(scene_id).get("battle", {})
+	return config if typeof(config) == TYPE_DICTIONARY else {}
+
+
 func scene_name(scene_id: String) -> String:
 	return String(scene_info(scene_id).get("name", scene_id))
 
@@ -83,6 +89,7 @@ func load_scene(scene_id: String, entry_name: String = "default", positions: Arr
 		current_world.queue_free()
 	var world: TownWorld = WORLD_SCENE.instantiate()
 	world.configure(scene_id, scene_info(scene_id))
+	world.state = state
 	world_parent.add_child(world)
 	current_world = world
 	var spawn := positions

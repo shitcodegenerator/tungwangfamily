@@ -1,11 +1,14 @@
 class_name GameState
 extends RefCounted
-## 集中式遊戲狀態：場景、隊伍、日夜、旗標、任務。所有系統讀寫這一份，不各自保存變數。
-## 可序列化為 Dictionary（供 SaveManager 存成 JSON），並帶 schema_version 供日後欄位遷移。
+## 集中式遊戲狀態：場景、隊伍、日夜、旗標、任務、物品、寵物。所有系統讀寫這一份，不各自保存變數。
+## 可序列化為 Dictionary（供 SaveManager 存成 JSON），並帶 schema_version 供欄位遷移：
+##   v1（Phase 3）：場景、隊伍、日夜、旗標、任務、已開放場景
+##   v2（Phase 4）：新增 inventory（物品 id → 數量）與 pet_id（跟隨中的寵物）；讀到 v1 存檔時以空值補齊
 
 signal flag_changed(flag_name: String, value: bool)
+signal inventory_changed(item_id: String, count: int)
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const DEFAULT_SCENE := "tide_root_town"
 const REQUIRED_KEYS: Array[String] = ["schema_version", "current_scene_id", "flags", "quests"]
 
@@ -22,6 +25,10 @@ var flags: Dictionary = {}
 ## quest_id → {"state": String, "progress": {objective_id: int}}
 var quests: Dictionary = {}
 var unlocked_scenes: PackedStringArray = PackedStringArray([DEFAULT_SCENE])
+## item_id → 數量（任務物品，例如香椿乾拌麵）。
+var inventory: Dictionary = {}
+## 跟隨中的寵物 id（空字串代表沒有）。
+var pet_id: String = ""
 
 
 func set_flag(flag_name: String, value: bool = true) -> void:
@@ -41,6 +48,32 @@ func unlock_scene(scene_id: String) -> void:
 		unlocked_scenes.append(scene_id)
 
 
+func add_item(item_id: String, amount: int = 1) -> void:
+	var count := item_count(item_id) + amount
+	if count <= 0:
+		inventory.erase(item_id)
+		count = 0
+	else:
+		inventory[item_id] = count
+	inventory_changed.emit(item_id, count)
+
+
+## 數量不足時回傳 false 且不扣除。
+func remove_item(item_id: String, amount: int = 1) -> bool:
+	if item_count(item_id) < amount:
+		return false
+	add_item(item_id, -amount)
+	return true
+
+
+func item_count(item_id: String) -> int:
+	return int(inventory.get(item_id, 0))
+
+
+func has_item(item_id: String) -> bool:
+	return item_count(item_id) > 0
+
+
 func to_dict() -> Dictionary:
 	var positions := {}
 	for id: String in party_positions:
@@ -57,10 +90,13 @@ func to_dict() -> Dictionary:
 		"flags": flags.duplicate(true),
 		"quests": quests.duplicate(true),
 		"unlocked_scenes": Array(unlocked_scenes),
+		"inventory": inventory.duplicate(true),
+		"pet_id": pet_id,
 	}
 
 
-## 回傳 {"state": GameState 或 null, "error": String}。缺欄位、型別不對或版本過新都視為錯誤。
+## 回傳 {"state": GameState 或 null, "error": String}。缺欄位、型別不對或版本過新都視為錯誤；
+## 舊版（v1）存檔缺少的欄位以預設值補齊。
 static func from_dict(data: Dictionary) -> Dictionary:
 	for key: String in REQUIRED_KEYS:
 		if not data.has(key):
@@ -75,7 +111,7 @@ static func from_dict(data: Dictionary) -> Dictionary:
 	if typeof(data["current_scene_id"]) != TYPE_STRING or String(data["current_scene_id"]).is_empty():
 		return {"state": null, "error": "current_scene_id 格式錯誤"}
 	var state := GameState.new()
-	state.schema_version = int(version)
+	state.schema_version = SCHEMA_VERSION
 	state.current_scene_id = String(data["current_scene_id"])
 	state.return_scene_id = String(data.get("return_scene_id", ""))
 	state.return_position = _vector_from(data.get("return_position"), Vector2.ZERO)
@@ -95,6 +131,15 @@ static func from_dict(data: Dictionary) -> Dictionary:
 		state.unlocked_scenes.append(String(id))
 	if not state.unlocked_scenes.has(DEFAULT_SCENE):
 		state.unlocked_scenes.append(DEFAULT_SCENE)
+	# v2 欄位：v1 存檔沒有，補空值
+	state.inventory = {}
+	var raw_inventory: Variant = data.get("inventory", {})
+	if typeof(raw_inventory) == TYPE_DICTIONARY:
+		for item_id: String in raw_inventory:
+			var count := int(raw_inventory[item_id])
+			if count > 0:
+				state.inventory[item_id] = count
+	state.pet_id = String(data.get("pet_id", ""))
 	return {"state": state, "error": ""}
 
 

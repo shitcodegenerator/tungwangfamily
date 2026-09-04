@@ -1,0 +1,46 @@
+{
+  "quests": [
+    {
+      "id": "cc_fried_food_battle",
+      "title": "TEMP_DEMO_CONTENT：CC 與炸物魔王",
+      "description": "技術測試切片：向阿嬤取得香椿乾拌麵交給 CC，被傳送到洞窟擊倒炸物魔王，回到 CC 身邊。正式文字將由作者提供。",
+      "state": "available",
+      "visibility": "main",
+      "objectives": [
+        {
+          "id": "get_noodles",
+          "kind": "interact",
+          "target": "grandma_turtle",
+          "count": 1,
+          "text": "向阿嬤取得香椿乾拌麵"
+        },
+        {
+          "id": "deliver_noodles",
+          "kind": "event",
+          "target": "cc_noodle_delivered",
+          "count": 1,
+          "text": "把香椿乾拌麵交給早餐攤旁的 CC"
+        },
+        {
+          "id": "defeat_demon",
+          "kind": "event",
+          "target": "fried_food_demon_defeated",
+          "count": 1,
+          "text": "在洞窟擊倒炸物魔王（命中 5 次）"
+        },
+        {
+          "id": "return_to_cc",
+          "kind": "event",
+          "target": "cc_joined",
+          "count": 1,
+          "text": "回到 CC 身邊"
+        }
+      ],
+      "rewards": {
+        "flags": [
+          "cc_quest_complete"
+        ]
+      }
+    }
+  ]
+}

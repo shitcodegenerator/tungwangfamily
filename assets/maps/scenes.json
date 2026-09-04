@@ -15,7 +15,16 @@
     "dialogue": "res://assets/dialogue/family_home.json",
     "outdoor": false,
     "dark_wall_last_row": -1,
-    "legend_overrides": {"p": [15, 4], "#": [4, 0]}
+    "legend_overrides": {
+      "p": [
+        15,
+        4
+      ],
+      "#": [
+        4,
+        0
+      ]
+    }
   },
   "captain_room": {
     "name": "船長房間",
@@ -24,6 +33,48 @@
     "dialogue": "res://assets/dialogue/captain_room.json",
     "outdoor": false,
     "dark_wall_last_row": -1,
-    "legend_overrides": {"p": [16, 4], "#": [4, 0]}
+    "legend_overrides": {
+      "p": [
+        16,
+        4
+      ],
+      "#": [
+        4,
+        0
+      ]
+    }
+  },
+  "fried_food_cave": {
+    "name": "炸物魔王洞窟",
+    "map": "res://assets/maps/fried_food_cave.txt",
+    "props": "res://assets/maps/fried_food_cave_props.json",
+    "dialogue": "res://assets/dialogue/fried_food_cave.json",
+    "outdoor": false,
+    "dark_wall_last_row": -1,
+    "legend_overrides": {
+      "p": [
+        0,
+        5
+      ],
+      "s": [
+        2,
+        5
+      ],
+      "#": [
+        1,
+        5
+      ],
+      "#_face": [
+        3,
+        5
+      ]
+    },
+    "battle": {
+      "boss": "fried_food_demon",
+      "x": 384,
+      "y": 150,
+      "boss_hp": 5,
+      "player_hp": 3
+    }
   }
 }

@@ -23,7 +23,7 @@ var _stuck_time: float = 0.0
 var _recover_time: float = 0.0
 var _last_position: Vector2 = Vector2.INF
 
-@onready var body: PlayableCharacter = get_parent() as PlayableCharacter
+@onready var body: Node2D = get_parent() as Node2D
 
 
 func compute_velocity(base_speed: float, delta: float) -> Vector2:

@@ -8,12 +8,13 @@ extends RefCounted
 ##   第 1 列：裝飾（花草、苜蓿、灌木、藤蔓 ×2、苔蘚、岩石 ×2、樹樁、蘑菇 ×2、花 ×5、荷葉、蘆葦）
 ##   第 2 列：Phase 1 合成（虛空、雲霧、樓梯、橋上欄、橋下欄、深色樹皮、深色木板）
 ##   第 3 列：水面動畫（淺水 0～3、深水 4～7、中水 8～11，各 4 幀，由 TileSet 動畫播放）
-##   第 4 列：A11～A19 補件（虛空 ×9、雲霧、深色樹皮、樓梯、花草草地、綠色樹幹、木板）
+##   第 4 列：A11～A19 補件（虛空 ×9、雲霧、深色樹皮、樓梯、花草草地、綠色樹幹、木板、家庭屋地板、船長房地板）
+##   第 5 列：Phase 4 洞窟（地面、岩壁、油漬地面、受光岩壁）
 
 const TILE_SIZE := 32
 const TILE_VECTOR := Vector2i(TILE_SIZE, TILE_SIZE)
 const ATLAS_COLUMNS := 18
-const ATLAS_ROWS := 5
+const ATLAS_ROWS := 6
 const UPPER_ZONE_LAST_ROW := 11
 const WATER_FRAMES := 4
 const WATER_FRAME_SECONDS := 0.28
@@ -48,6 +49,13 @@ const MIST := Vector2i(9, 4)
 const BARK_DARK := Vector2i(10, 4)
 const STAIRS := Vector2i(11, 4)
 const GRASS_FLOWERS := Vector2i(12, 4)
+## 第 5 列：洞窟
+const CAVE_FLOOR := Vector2i(0, 5)
+const CAVE_WALL := Vector2i(1, 5)
+const CAVE_FLOOR_GREASY := Vector2i(2, 5)
+const CAVE_WALL_FACE := Vector2i(3, 5)
+## legend_overrides 的特殊鍵：牆（#）下方為可走格時改用此 tile（牆面受光）。
+const WALL_FACE_KEY := "#_face"
 
 const DECO_FLOWERS := Vector2i(0, 1)
 const DECO_CLOVER := Vector2i(1, 1)
@@ -91,6 +99,8 @@ const SIMPLE_LEGEND := {
 static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Dictionary = {}) -> Vector2i:
 	var ch := parser.char_at(x, y)
 	var overrides: Dictionary = options.get("overrides", {})
+	if ch == "#" and overrides.has(WALL_FACE_KEY) and parser.is_walkable(x, y + 1):
+		return overrides[WALL_FACE_KEY]
 	if overrides.has(ch):
 		return overrides[ch]
 	if SIMPLE_LEGEND.has(ch):

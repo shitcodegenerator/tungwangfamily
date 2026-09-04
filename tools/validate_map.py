@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCENES_PATH = ROOT / "assets" / "maps" / "scenes.json"
-QUEST_PATH = ROOT / "assets" / "quests" / "phase3_demo_quest.json"
+QUEST_DIR = ROOT / "assets" / "quests"
 TILE = 32
 
 WALKABLE = set("gdrpbsm=|w")
@@ -49,7 +49,14 @@ def blocked_by_props(data: dict, width: int, height: int) -> set[tuple[int, int]
             blocked |= blocked_rect(prop["x"], prop["y"], col[0], col[1], width, height)
     for npc in data.get("npcs", []):
         blocked |= blocked_rect(npc["x"], npc["y"], 20, 10, width, height)
+    battle = info_battle(data)
+    if battle:
+        blocked |= blocked_rect(battle["x"], battle["y"], 40, 16, width, height)
     return blocked
+
+
+def info_battle(data: dict) -> dict:
+    return data.get("_battle") or {}
 
 
 def bfs(rows: list[str], blocked: set[tuple[int, int]], start: tuple[int, int], goal: tuple[int, int]) -> list[tuple[int, int]] | None:
@@ -98,6 +105,7 @@ def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[
     errors: list[str] = []
     rows = load_rows(res_path(info["map"]))
     data = json.loads(res_path(info["props"]).read_text(encoding="utf-8"))
+    data["_battle"] = info.get("battle", {})
     dialogue = json.loads(res_path(info["dialogue"]).read_text(encoding="utf-8"))
     width, height = data["world_size"]
     if len(rows) != height:
@@ -138,6 +146,20 @@ def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[
         else:
             checkpoints[f"portal:{portal['id']}"] = tile
 
+    for item in data.get("items", []):
+        tile = world_to_tile(item["x"], item["y"] - 1)
+        if rows[tile[1]][tile[0]] not in WALKABLE or tile in blocked:
+            errors.append(f"[{scene_id}] 投擲物 {item['item']} 落在不可站格 {tile}")
+        else:
+            checkpoints[f"item:{item['item']}"] = tile
+    battle = info_battle(data)
+    if battle:
+        tile = nearest_walkable(rows, blocked, world_to_tile(battle["x"], battle["y"] + 4))
+        if tile is None:
+            errors.append(f"[{scene_id}] Boss 周圍沒有可站格")
+        else:
+            checkpoints["boss"] = tile
+
     interact_ids: set[str] = set()
     for entry in data.get("props", []) + data.get("exits", []) + data.get("npcs", []):
         if not entry.get("interact"):
@@ -177,8 +199,10 @@ def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[
 
 def main() -> int:
     scenes = json.loads(SCENES_PATH.read_text(encoding="utf-8"))
-    quests = json.loads(QUEST_PATH.read_text(encoding="utf-8"))
-    quest_targets = {o["target"] for q in quests["quests"] for o in q["objectives"] if o.get("kind") == "interact"}
+    quest_targets: set[str] = set()
+    for quest_path in sorted(QUEST_DIR.glob("*.json")):
+        quests = json.loads(quest_path.read_text(encoding="utf-8"))
+        quest_targets |= {o["target"] for q in quests["quests"] for o in q["objectives"] if o.get("kind") == "interact"}
     errors: list[str] = []
     all_interacts: set[str] = set()
     for scene_id, info in scenes.items():

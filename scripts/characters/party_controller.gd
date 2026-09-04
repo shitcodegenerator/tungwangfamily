@@ -22,6 +22,8 @@ var order: Array[PlayableCharacter] = []
 var switch_count: int = 0
 ## 對話中鎖定：領頭者不讀移動輸入、也不能切換角色；隊伍位置與跟隨鏈完全不變。
 var input_locked: bool = false
+## 非戰鬥型寵物：跟在隊伍最後一位後面，不在 order／members 裡，不能被切換。
+var pet: PetFollower
 
 
 func _ready() -> void:
@@ -67,6 +69,30 @@ func teleport_to(positions: Array[Vector2]) -> void:
 		order[index].global_position = target
 		order[index].velocity = Vector2.ZERO
 		order[index].clear_trail()
+	if pet != null:
+		pet.global_position = positions[positions.size() - 1] + Vector2(0.0, 14.0)
+		pet.velocity = Vector2.ZERO
+		pet.clear_trail()
+
+
+## 設定寵物（null 移除）；寵物跟在目前隊伍最後一位後面。
+func set_pet(new_pet: PetFollower, world_position: Vector2 = Vector2.INF) -> void:
+	if pet != null and pet != new_pet:
+		pet.queue_free()
+	pet = new_pet
+	if pet == null:
+		return
+	if pet.get_parent() != self:
+		add_child(pet)
+	if world_position != Vector2.INF:
+		pet.global_position = world_position
+	elif not order.is_empty():
+		pet.global_position = order.back().global_position + Vector2(0.0, 14.0)
+	_rebuild_follow_chain()
+
+
+func has_pet() -> bool:
+	return pet != null and is_instance_valid(pet)
 
 
 func order_ids() -> PackedStringArray:
@@ -148,6 +174,9 @@ func _rebuild_follow_chain() -> void:
 		member.follower.leader = order[index - 1] if index > 0 else null
 		# 清掉舊軌跡：舊軌跡可能指向與新隊形相反的方向，跟隨者改以直線靠近新目標即可。
 		member.clear_trail()
+	if pet != null and is_instance_valid(pet) and not order.is_empty():
+		pet.follower.leader = order.back()
+		pet.clear_trail()
 
 
 func _unhandled_input(event: InputEvent) -> void:

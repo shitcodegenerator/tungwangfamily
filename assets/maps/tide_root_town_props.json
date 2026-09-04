@@ -198,6 +198,29 @@
       "facing": "down",
       "interact": "old_turtle",
       "portrait": "old_turtle"
+    },
+    {
+      "id": "grandma_turtle",
+      "data": "res://assets/characters/npcs/grandma_turtle.tres",
+      "x": 288,
+      "y": 938,
+      "facing": "down",
+      "interact": "grandma_turtle",
+      "portrait": "grandma_turtle"
+    },
+    {
+      "id": "cc_penguin",
+      "data": "res://assets/characters/pets/cc_penguin.tres",
+      "x": 336,
+      "y": 938,
+      "facing": "down",
+      "interact": "cc_penguin",
+      "portrait": "cc_penguin",
+      "requires": {
+        "not_flags": [
+          "cc_joined"
+        ]
+      }
     }
   ],
   "props": [
@@ -692,6 +715,15 @@
       ],
       "frames": 4,
       "fps": 4
+    },
+    {
+      "texture": "breakfast_stall",
+      "x": 240,
+      "y": 948,
+      "collision": [
+        48,
+        18
+      ]
     }
   ]
 }

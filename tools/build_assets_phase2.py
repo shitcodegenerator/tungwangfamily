@@ -115,7 +115,8 @@ def grid_cells(src: Image.Image) -> dict[tuple[int, int], tuple[int, int, int, i
     return cells
 
 
-def build_character(source: Path, output: Path) -> None:
+def build_character(source: Path, output: Path, max_height: int = CELL_H - 6) -> None:
+    """max_height：精靈在 48×64 格內的最大高度（主角 58；寵物等小型角色可傳較小值）。"""
     src = Image.open(source).convert("RGBA")
     width, height = src.size
     cell_w, cell_h = width / REF_COLUMNS, height / REF_ROWS
@@ -123,7 +124,7 @@ def build_character(source: Path, output: Path) -> None:
     max_w = max(b[2] - b[0] for b in cells.values())
     max_h = max(b[3] - b[1] for b in cells.values())
     # 同一角色 20 個幀共用同一縮放比例；允許少量超寬（跨步幀）後裁掉邊緣
-    scale = min((CELL_H - 6) / max_h, (CELL_W / max_w) * 1.25)
+    scale = min(max_height / max_h, (CELL_W / max_w) * 1.25)
     sheet = Image.new("RGBA", (CELL_W * SHEET_COLUMNS, CELL_H * REF_ROWS), (0, 0, 0, 0))
     for row in range(REF_ROWS):
         # 精靈表欄序：第 0 欄＝參考圖第 4 欄（站立），第 1～4 欄＝參考圖第 0～3 欄（行走）

@@ -120,5 +120,226 @@
         "（日常對話插槽：正式台詞待作者提供）"
       ]
     }
+  ],
+  "grandma_turtle": [
+    {
+      "requires": {
+        "quest_objective": {
+          "cc_fried_food_battle": "get_noodles"
+        }
+      },
+      "speaker": "阿嬤",
+      "portrait": "grandma_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】要拿給 CC 的？香椿乾拌麵一份，剛拌好的。",
+        "端穩一點，別灑了。"
+      ],
+      "on_complete": [
+        {
+          "give_item": "chunhsiang_noodles"
+        }
+      ]
+    },
+    {
+      "requires": {
+        "items": [
+          "chunhsiang_noodles"
+        ]
+      },
+      "speaker": "阿嬤",
+      "portrait": "grandma_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】麵在你手上，CC 就在旁邊，快拿去。"
+      ]
+    },
+    {
+      "requires": {
+        "flags": [
+          "cc_noodle_delivered"
+        ]
+      },
+      "speaker": "阿嬤",
+      "portrait": "grandma_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】麵送到了？那就好。（早餐攤日常對話插槽：正式台詞待作者提供）"
+      ]
+    },
+    {
+      "speaker": "阿嬤",
+      "portrait": "grandma_turtle",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】早餐攤開著呢。旁邊那隻藍色的小傢伙一直在等人。",
+        "（阿嬤日常對話插槽：正式台詞待作者提供）"
+      ]
+    }
+  ],
+  "cc_penguin": [
+    {
+      "requires": {
+        "flags": [
+          "cc_joined"
+        ]
+      },
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "一緒、です。"
+      ]
+    },
+    {
+      "requires": {
+        "flags": [
+          "cc_fried_food_demon_defeated"
+        ],
+        "not_flags": [
+          "cc_joined"
+        ]
+      },
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】おかえり、です。",
+        "炸物魔王、倒した、です。",
+        "……一緒に行きたい、です。"
+      ],
+      "choice": {
+        "prompt": "讓 CC 加入嗎？",
+        "options": [
+          {
+            "text": "接受",
+            "on_select": [
+              {
+                "set_flag": "cc_join_choice"
+              }
+            ],
+            "lines": [
+              "やった、です。",
+              "ずっと一緒、です。"
+            ],
+            "on_complete": [
+              {
+                "set_flag": "cc_joined"
+              },
+              {
+                "quest_event": "cc_joined"
+              }
+            ]
+          },
+          {
+            "text": "拒絕",
+            "on_select": [
+              {
+                "set_flag": "cc_rejection_reaction_seen"
+              },
+              {
+                "show_anger": "cc_penguin"
+              }
+            ],
+            "lines": [
+              "……💢",
+              "（OS：你怎麼忍心!!!）",
+              "……勝手についていく、です。"
+            ],
+            "on_complete": [
+              {
+                "set_flag": "cc_joined"
+              },
+              {
+                "quest_event": "cc_joined"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "requires": {
+        "flags": [
+          "cc_noodle_delivered"
+        ],
+        "not_flags": [
+          "cc_fried_food_demon_defeated"
+        ]
+      },
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】もう一回、です。",
+        "洞窟へ、送る、です。"
+      ],
+      "on_complete": [
+        {
+          "set_flag": "cc_cave_active"
+        },
+        {
+          "teleport": "fried_food_cave"
+        }
+      ]
+    },
+    {
+      "requires": {
+        "flags": [
+          "cc_found"
+        ],
+        "items": [
+          "chunhsiang_noodles"
+        ]
+      },
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】香椿乾拌麵、です！",
+        "ありがとう、です。",
+        "お礼に、洞窟へ送る、です。青菜、お茶、水を投げる、です。",
+        "炸物魔王に、5 回当てる、です。"
+      ],
+      "on_complete": [
+        {
+          "take_item": "chunhsiang_noodles"
+        },
+        {
+          "set_flag": "cc_noodle_delivered"
+        },
+        {
+          "quest_event": "cc_noodle_delivered"
+        },
+        {
+          "set_flag": "cc_cave_active"
+        },
+        {
+          "teleport": "fried_food_cave"
+        }
+      ]
+    },
+    {
+      "requires": {
+        "flags": [
+          "cc_found"
+        ]
+      },
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】麺、まだ、です。",
+        "阿嬤の香椿乾拌麵、お願い、です。"
+      ]
+    },
+    {
+      "speaker": "CC",
+      "portrait": "cc_penguin",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】CC、です。",
+        "お腹、空いた、です。",
+        "阿嬤の香椿乾拌麵、食べたい、です。"
+      ],
+      "on_complete": [
+        {
+          "quest_start": "cc_fried_food_battle"
+        },
+        {
+          "set_flag": "cc_found"
+        }
+      ]
+    }
   ]
 }

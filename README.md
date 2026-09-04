@@ -1,10 +1,12 @@
-# 山海樹港 RPG — Phase 3：任務引導、NPC、室內與存檔
+# 山海樹港 RPG — Phase 4：CC 與炸物魔王戰鬥切片
 
 Godot 4.7 / GDScript / Compatibility renderer 的 2D 原型。
 Phase 1：可以走、可以切換角色、其他人會跟隨、可以在一張連續的巨大樹洞城裡上下探索。
 Phase 2：靠近物件按 E 互動、木框羊皮紙對話框、燈籠／水面／旗幟／雲霧動畫與粒子、F5 日夜切換。
 Phase 3：集中式 GameState、JSON 存檔（F6／F7）、場景路由（主城 ⇄ 共享家庭屋 ⇄ 船長房間）、
 國王企鵝船長與市集老龜 NPC、資料驅動任務與任務日誌（J）、TEMP_DEMO_CONTENT 測試任務。
+Phase 4：阿嬤早餐攤與 CC、香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、五次命中掉炸雞翅、
+受傷變色、戰敗重來、對話選項（接受／拒絕 CC 加入）、CC 非戰鬥寵物跟隨、弟弟操控時較快。
 
 ## 執行
 
@@ -23,7 +25,8 @@ godot --path .
 | 按鍵 | 動作 |
 |---|---|
 | WASD／方向鍵 | 移動 |
-| E | 與面前的物件或 NPC 互動；對話中推進（打字中先補完整句） |
+| E | 與面前的物件或 NPC 互動；對話中推進（打字中先補完整句）；地上的投擲物 → 撿起；舉著物品 → 投擲 |
+| W／S（選項中） | 切換對話選項 |
 | J | 開關任務日誌 |
 | 1／2／3／4 | 切換哥哥／冷靜哥／妹妹／弟弟（對話、轉場中無效） |
 | Tab | 循環切換操控角色 |
@@ -33,8 +36,9 @@ godot --path .
 | Q（面板開啟時） | 離開遊戲 |
 | F1 | 顯示／隱藏碰撞格 |
 
-可互動物件：公告欄（接測試任務）、樹心、三個封鎖出口、市集老龜（廣場木箱旁）；
+可互動物件：公告欄（接測試任務）、樹心、三個封鎖出口、市集老龜（廣場木箱旁）、阿嬤與 CC（廣場左側早餐攤）；
 走進中層左下樹門房屋＝共享家庭屋，右下陽台房屋＝船長房間（內有國王企鵝船長）。
+把阿嬤的香椿乾拌麵交給 CC 會被傳送到炸物魔王洞窟：E 撿青菜／綠茶／水、再按 E 投擲，命中 5 次後回到 CC 身邊。
 
 ## 驗證
 
@@ -49,7 +53,9 @@ godot --headless --path . -s res://tests/run_tests.gd
 caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
 ```
 
-驗證報告見 `docs/PHASE_1_REPORT.md`、`docs/PHASE_2_REPORT.md`、`docs/PHASE_3_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_4_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+
+改過素材（重跑 `tools/build_assets.py`）後必須先 `godot --headless --path . --import`：執行期不會重新匯入 PNG。
 
 ## 匯出
 
@@ -87,10 +93,28 @@ QuestManager（assets/quests/*.json）：目標依序完成；interact 目標由
 GameState.to_dict() ─► SaveManager（user://save_01.json，schema_version）─► Main.apply_state() 還原
 ```
 
-- 對話版本條件：`flags`、`not_flags`、`quest {id: 狀態}`、`quest_objective {id: 目前目標}`；
-  動作：`quest_start`、`set_flag`、`clear_flag`、`unlock_scene`、`quest_objective`。
+- 對話版本條件：`flags`、`not_flags`、`items`、`quest {id: 狀態}`、`quest_objective {id: 目前目標}`；
+  動作：`quest_start`、`set_flag`、`clear_flag`、`unlock_scene`、`quest_objective`、`give_item`、`take_item`、`quest_event`、
+  `teleport`（Main 處理，記返回點）、`show_anger`（NPC 頭上 💢）。
+- 對話版本可帶 `choice {prompt, options[{text, on_select, lines, on_complete}]}`：最後一句後顯示選項，W／S 選、E 確認。
+- 任務目標 `kind`：`interact`（對話結束後推進）、`enter_scene`、`event`（系統事件，例如 Boss 倒下）。
 - 所有測試任務與測試對話都以 `TEMP_DEMO_CONTENT` 標記，正式內容由作者提供後直接替換 JSON。
 - 家庭記憶物件（家庭屋毛線籃）與船長重要物件（船長房間小箱子）只是插槽，內容留白。
+
+## 撿取、投擲與炸物魔王（Phase 4）
+
+```text
+props JSON 的 items ─► TownWorld.spawn_item() ─► CarryableItem（Interactable 子類，物理層 3）
+E ─► Main._on_interacted：CarryableItem → CarrySystem.pick_up()（貼圖掛到角色 VisualRoot/CarryAnchor）
+舉著物品時 E ─► CarrySystem.throw() ─► ThrownProjectile（只偵測物理層 5 Boss；落點在起飛時截到牆前）
+hit_boss ─► BattleDirector：命中特效 → FriedFoodDemon.take_hit() → 炸雞翅 → 物品 2 秒後原位重生
+FriedFoodDemon.attack_landed ─► BattleDirector：只有操控角色扣血，PlayableCharacter.flash_hurt() 變色閃爍 + 無敵
+battle_won／battle_lost ─► Main：旗標、任務事件、回到 state.return_position（CC 身旁）
+```
+
+- 戰鬥設定在 `scenes.json` 該場景的 `battle`（boss、x、y、boss_hp、player_hp）；三種投擲物在 `assets/items/throwables.json`。
+- 戰鬥暫態（Boss 生命、玩家生命、手上物品）不進存檔；轉場開始時清空。
+- 寵物 `PetFollower` 掛在 `PartyController` 底下、跟在 `order.back()` 後面，不在可切換名單；`GameState.pet_id` 存檔。
 
 ## 城鎮生命與日夜
 
@@ -112,8 +136,11 @@ assets/
   dialogue/              對話內容 JSON（主城、共享家庭屋、船長房間）
   quests/                任務定義 JSON
   portraits/             48×48 頭像（四位主角、兩位 NPC）
-  characters/npcs/       NPC 精靈表與 CharacterData
-  effects/               光暈與粒子貼圖
+  characters/npcs/       NPC 精靈表與 CharacterData（阿嬤為老龜換色佔位）
+  characters/pets/       CC 精靈表與 CharacterData
+  characters/boss/       炸物魔王 6 幀精靈表
+  items/                 投擲物精靈表（地面／舉起／飛行／命中）與 throwables.json
+  effects/               光暈、粒子、傳送／命中／消散／勝利／炸雞翅特效貼圖
   reference/             原始 AI 生成參考圖（不直接用於遊戲）；incoming/ 為 A 級補件
 scenes/                  main / world / characters / props / ui（debug_hud、dialogue_box）
 scripts/
@@ -127,6 +154,14 @@ scripts/
   quest/quest_manager.gd 任務定義、進度、動作
   dialogue/dialogue_resolver.gd 依狀態挑對話版本
   characters/npc_character.gd   站立 NPC
+  characters/pet_follower.gd    非戰鬥寵物跟隨與小動作
+  battle/carryable_item.gd      地上的投擲物（Interactable 子類）
+  battle/carry_system.gd        撿起／舉著／投擲
+  battle/thrown_projectile.gd   飛行中的物品、落點計算
+  battle/fried_food_demon.gd    炸物魔王狀態機
+  battle/battle_director.gd     這一場戰鬥的接線：命中、炸雞翅、生命、勝負
+  battle/chicken_wing.gd / effect_sprite.gd 命中回饋與一次性特效
+  ui/battle_hud.gd       愛心與 Boss 生命
   ui/quest_hud.gd        目標摘要、任務日誌、提示
   world/ambient_effects.gd 落葉／蝴蝶／螢火蟲粒子
   interaction/interactable.gd           可互動 Area2D（物理層 3）＋ interacted signal

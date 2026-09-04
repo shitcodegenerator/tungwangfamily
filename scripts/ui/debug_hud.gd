@@ -3,15 +3,17 @@ extends CanvasLayer
 ## 除錯 HUD：顯示目前操控角色、座標、所在區段、隊伍順序、日夜狀態與測試提示。
 ## Esc 切換測試資訊面板；面板開啟時按 Q 離開遊戲；F1 切換碰撞格顯示。
 
-const HELP_TEXT := """[Phase 3 測試資訊]
-WASD／方向鍵：移動　　E：互動／推進對話　　J：任務日誌
+const HELP_TEXT := """[Phase 4 測試資訊]
+WASD／方向鍵：移動　　E：互動／推進對話／撿取／投擲　　J：任務日誌
 1／2／3／4：切換哥哥／冷靜哥／妹妹／弟弟　　Tab：循環切換
 F5：日夜切換　　F6：存檔　　F7：讀檔　　F1：碰撞格
 Esc：關閉此面板　　Q（面板開啟時）：離開遊戲
 
 公告欄可接測試任務（TEMP_DEMO_CONTENT）。
 走進中層左下的樹門房屋＝共享家庭屋；右下陽台房屋＝船長房間。
-廣場木箱旁的市集老龜負責回報任務。"""
+廣場木箱旁的市集老龜負責回報任務。
+廣場左側早餐攤：阿嬤給香椿乾拌麵，交給 CC 後傳送到洞窟；
+洞窟裡 E 撿青菜／綠茶／水、再按 E 投擲，命中炸物魔王 5 次。"""
 
 @onready var status_label: Label = $Margin/Status
 @onready var status_panel: PanelContainer = $Margin

@@ -7,8 +7,15 @@ extends Node
 signal quest_started(quest_id: String)
 signal quest_updated(quest_id: String)
 signal quest_completed(quest_id: String)
+signal item_received(item_id: String)
+signal item_removed(item_id: String)
 
 const QUEST_PATH := "res://assets/quests/phase3_demo_quest.json"
+## 所有任務定義檔（依序載入；同 id 後者覆蓋）。
+const QUEST_PATHS: Array[String] = [
+	"res://assets/quests/phase3_demo_quest.json",
+	"res://assets/quests/phase4_cc_quest.json",
+]
 const STATE_AVAILABLE := "available"
 const STATE_ACTIVE := "active"
 const STATE_COMPLETED := "completed"
@@ -20,7 +27,16 @@ var state: GameState
 
 func _ready() -> void:
 	if definitions.is_empty():
-		load_definitions(QUEST_PATH)
+		load_all_definitions()
+
+
+func load_all_definitions() -> void:
+	definitions = {}
+	for path: String in QUEST_PATHS:
+		var parsed := parse_definitions(FileAccess.get_file_as_string(path))
+		if parsed.is_empty():
+			push_error("任務定義為空或無法解析：%s" % path)
+		definitions.merge(parsed, true)
 
 
 func load_definitions(path: String) -> void:
@@ -105,6 +121,11 @@ func notify_scene_entered(scene_id: String) -> void:
 	_advance_matching("enter_scene", scene_id)
 
 
+## 系統事件（例如 Boss 被擊倒、物品交付）：對應 kind = "event" 的目標。
+func notify_event(event_id: String) -> void:
+	_advance_matching("event", event_id)
+
+
 func _advance_matching(kind: String, target: String) -> void:
 	if state == null:
 		return
@@ -137,13 +158,22 @@ func _complete(quest_id: String) -> void:
 	quest_updated.emit(quest_id)
 
 
-## 對話 on_complete 動作：quest_start、set_flag、clear_flag、unlock_scene、quest_objective {quest, objective}。
+## 對話 on_complete 動作：quest_start、set_flag、clear_flag、unlock_scene、quest_objective {quest, objective}、
+## give_item、take_item、quest_event。teleport／show_anger 等場景動作不在此處理（Main 另外接）。
 func apply_actions(actions: Array) -> void:
 	if state == null:
 		return
 	for action: Variant in actions:
 		if typeof(action) != TYPE_DICTIONARY:
 			continue
+		if action.has("give_item"):
+			state.add_item(String(action["give_item"]))
+			item_received.emit(String(action["give_item"]))
+		if action.has("take_item"):
+			if state.remove_item(String(action["take_item"])):
+				item_removed.emit(String(action["take_item"]))
+		if action.has("quest_event"):
+			notify_event(String(action["quest_event"]))
 		if action.has("quest_start"):
 			start_quest(String(action["quest_start"]))
 		if action.has("set_flag"):

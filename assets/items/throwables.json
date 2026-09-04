@@ -1,0 +1,17 @@
+{
+  "vegetable_bundle": {
+    "name": "青菜",
+    "effect_type": "plain_damage",
+    "damage": 1
+  },
+  "green_tea": {
+    "name": "綠茶",
+    "effect_type": "plain_damage",
+    "damage": 1
+  },
+  "water_flask": {
+    "name": "水",
+    "effect_type": "plain_damage",
+    "damage": 1
+  }
+}

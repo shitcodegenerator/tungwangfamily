@@ -2,6 +2,7 @@ class_name InteractionController
 extends Node2D
 ## 互動控制：每個 physics frame 讀取領頭角色 InteractionArea 內的 Interactable，挑出最近者作為目前目標，
 ## 在目標上方顯示提示圖示；按下 interact（E）時若對話進行中則推進對話，否則觸發目標的 interact()。
+## Phase 4：領頭者舉著投擲物時，E 改為投擲（撿取仍走一般互動流程：地上的物品就是 Interactable）。
 ## 不包含任何對話內容或角色移動邏輯。
 
 signal target_changed(target: Interactable)
@@ -12,6 +13,7 @@ const PROMPT_BOB_SPEED := 4.0
 
 var party: PartyController
 var dialogue: DialogueManager
+var carry: CarrySystem
 var current_target: Interactable
 
 var _prompt: Sprite2D
@@ -29,9 +31,14 @@ func _ready() -> void:
 	add_child(_prompt)
 
 
-func bind(party_controller: PartyController, dialogue_manager: DialogueManager) -> void:
+func bind(party_controller: PartyController, dialogue_manager: DialogueManager, carry_system: CarrySystem = null) -> void:
 	party = party_controller
 	dialogue = dialogue_manager
+	carry = carry_system
+
+
+func is_leader_carrying() -> bool:
+	return carry != null and carry.is_leader_carrying()
 
 
 func _physics_process(delta: float) -> void:
@@ -49,7 +56,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_prompt(delta: float) -> void:
-	var show_prompt := current_target != null and not is_dialogue_active()
+	var show_prompt := current_target != null and not is_dialogue_active() and not is_leader_carrying()
 	_prompt.visible = show_prompt
 	if not show_prompt:
 		return
@@ -70,6 +77,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if is_dialogue_active():
 		dialogue.advance()
+	elif is_leader_carrying():
+		if party.input_locked:
+			return
+		carry.throw()
 	elif current_target != null:
 		interaction_requested.emit(current_target)
 		current_target.interact()

@@ -1,0 +1,47 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boss"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1, 0.07, 0.03, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.5, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="BattleHud" type="CanvasLayer"]
+layer = 16
+script = ExtResource("1_hud")
+
+[node name="Hearts" type="HBoxContainer" parent="."]
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 80.0
+offset_bottom = 18.0
+theme_override_constants/separation = 3
+
+[node name="BossPanel" type="PanelContainer" parent="."]
+offset_left = 6.0
+offset_top = 22.0
+offset_right = 186.0
+offset_bottom = 46.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_boss")
+
+[node name="Row" type="HBoxContainer" parent="BossPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Name" type="Label" parent="BossPanel/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "炸物魔王"
