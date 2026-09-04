@@ -1,0 +1,28 @@
+{
+  "phase": "4.6-carry-throw",
+  "master_identity": "assets/characters/playable/<id>_walk_v2_sheet.png",
+  "directions": ["down", "left", "right", "up"],
+  "assets": {
+    "carry_walk": {
+      "pattern": "assets/characters/playable/<id>_carry_walk_v2_sheet.png",
+      "size": [192, 256],
+      "cell": [48, 64],
+      "columns": 4,
+      "frames": ["contact_a", "passing_a", "contact_b", "passing_b"]
+    },
+    "throw": {
+      "pattern": "assets/characters/playable/<id>_throw_v2_sheet.png",
+      "size": [144, 256],
+      "cell": [48, 64],
+      "columns": 3,
+      "frames": ["windup", "release", "follow_through"]
+    },
+    "characters": ["big_brother", "calm_brother", "sister_sheep", "younger_brother"]
+  },
+  "consistency": {
+    "feet_last_opaque_row": 61,
+    "bottom_transparent_rows": 2,
+    "held_item_is_overlay": true,
+    "old_action_sheet_is_fallback_only": true
+  }
+}
