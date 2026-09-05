@@ -158,8 +158,9 @@ func _complete(quest_id: String) -> void:
 	quest_updated.emit(quest_id)
 
 
-## 對話 on_complete 動作：quest_start、set_flag、clear_flag、unlock_scene、quest_objective {quest, objective}、
-## give_item、take_item、quest_event。teleport／show_anger 等場景動作不在此處理（Main 另外接）。
+## 對話 on_complete 動作：quest_start、set_flag、clear_flag、set_daily_flag、clear_daily_flag、unlock_scene、
+## quest_objective {quest, objective}、give_item、take_item、quest_event。
+## teleport／show_anger／rest 等場景動作不在此處理（Main 另外接）。
 func apply_actions(actions: Array) -> void:
 	if state == null:
 		return
@@ -180,6 +181,10 @@ func apply_actions(actions: Array) -> void:
 			state.set_flag(String(action["set_flag"]), true)
 		if action.has("clear_flag"):
 			state.set_flag(String(action["clear_flag"]), false)
+		if action.has("set_daily_flag"):
+			state.set_daily_flag(String(action["set_daily_flag"]), true)
+		if action.has("clear_daily_flag"):
+			state.set_daily_flag(String(action["clear_daily_flag"]), false)
 		if action.has("unlock_scene"):
 			state.unlock_scene(String(action["unlock_scene"]))
 		if action.has("quest_objective"):

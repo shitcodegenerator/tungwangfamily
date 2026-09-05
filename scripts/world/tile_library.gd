@@ -11,11 +11,16 @@ extends RefCounted
 ##   第 4 列：A11～A19 補件（虛空 ×9、雲霧、深色樹皮、樓梯、花草草地、綠色樹幹、木板、家庭屋地板、船長房地板）
 ##   第 5 列：Phase 4.6 洞窟正式 tile（由 assets/tiles/fried_food_cave_tiles_32.png 4×2 複製：
 ##            濕苔地面 A、濕苔地面 B、岩壁面、岩壁頂、左上角、右上角、內凹角、晶簇 overlay）
+##   第 6～7 列：Phase 5 城鎮視覺更新（tools/build_assets_phase5.py 由 town_visual_refresh_tiles_32.png 去格框後複製，
+##            atlas (c, r) → tileset (c + 8×(r%2), 6 + r/2)）：
+##            第 6 列 0～7 草地 A／B／花草、泥土、石板 A／B、木板、深水（靜態）；8～15 石板路 edge N/S/W/E、corner NW/NE/SW/SE
+##            第 7 列 0～7 水岸 edge N/S/W/E、corner NW/NE/SW/SE；8～15 草崖、樹根牆、南北橋面、橋側、水面動畫 4 幀；
+##            16～17 東西向木橋上列／下列。tile_style = "town_refresh" 時由 town_refresh_atlas_for 依鄰居選 tile。
 
 const TILE_SIZE := 32
 const TILE_VECTOR := Vector2i(TILE_SIZE, TILE_SIZE)
 const ATLAS_COLUMNS := 18
-const ATLAS_ROWS := 6
+const ATLAS_ROWS := 8
 const UPPER_ZONE_LAST_ROW := 11
 const WATER_FRAMES := 4
 const WATER_FRAME_SECONDS := 0.28
@@ -67,6 +72,53 @@ const CAVE_CRYSTAL_CHANCE := 0.22
 const WALL_FACE_KEY := "#_face"
 const TILE_STYLE_KEY := "tile_style"
 const TILE_STYLE_CAVE := "cave"
+const TILE_STYLE_TOWN_REFRESH := "town_refresh"
+## scenes.json 可用 tile_style_rows: [first, last] 只把樣式套在部分列（Phase 5 先做下層樹根廣場的垂直切片）。
+const TILE_STYLE_ROWS_KEY := "tile_style_rows"
+
+## 第 6～7 列：Phase 5 城鎮視覺更新（TR_ = town refresh）
+const TR_GRASS_A := Vector2i(0, 6)
+const TR_GRASS_B := Vector2i(1, 6)
+const TR_GRASS_FLOWERS := Vector2i(2, 6)
+const TR_EARTH := Vector2i(3, 6)
+const TR_STONE_A := Vector2i(4, 6)
+const TR_STONE_B := Vector2i(5, 6)
+const TR_PLANKS := Vector2i(6, 6)
+const TR_DEEP_WATER := Vector2i(7, 6)
+const TR_PATH_EDGE_N := Vector2i(8, 6)
+const TR_PATH_EDGE_S := Vector2i(9, 6)
+const TR_PATH_EDGE_W := Vector2i(10, 6)
+const TR_PATH_EDGE_E := Vector2i(11, 6)
+const TR_PATH_CORNER_NW := Vector2i(12, 6)
+const TR_PATH_CORNER_NE := Vector2i(13, 6)
+const TR_PATH_CORNER_SW := Vector2i(14, 6)
+const TR_PATH_CORNER_SE := Vector2i(15, 6)
+const TR_SHORE_EDGE_N := Vector2i(0, 7)
+const TR_SHORE_EDGE_S := Vector2i(1, 7)
+const TR_SHORE_EDGE_W := Vector2i(2, 7)
+const TR_SHORE_EDGE_E := Vector2i(3, 7)
+const TR_SHORE_CORNER_NW := Vector2i(4, 7)
+const TR_SHORE_CORNER_NE := Vector2i(5, 7)
+const TR_SHORE_CORNER_SW := Vector2i(6, 7)
+const TR_SHORE_CORNER_SE := Vector2i(7, 7)
+const TR_GRASS_CLIFF := Vector2i(8, 7)
+const TR_ROOT_WALL := Vector2i(9, 7)
+const TR_BRIDGE_NS := Vector2i(10, 7)
+const TR_BRIDGE_SIDE := Vector2i(11, 7)
+## 水面動畫第一幀（第 12～15 欄 4 幀，由 TileSet 動畫播放）
+const TR_WATER := Vector2i(12, 7)
+const TR_BRIDGE_EW_TOP := Vector2i(16, 7)
+const TR_BRIDGE_EW_BOTTOM := Vector2i(17, 7)
+## 草地變體週期：7 格裡 4 格 A、2 格 B、1 格花草，依座標雜湊選取（可重現）。
+const TR_GRASS_PATTERN: Array[Vector2i] = [TR_GRASS_A, TR_GRASS_A, TR_GRASS_B, TR_GRASS_A, TR_GRASS_FLOWERS, TR_GRASS_A, TR_GRASS_B]
+const TR_STONE_PATTERN: Array[Vector2i] = [TR_STONE_A, TR_STONE_B, TR_STONE_A, TR_STONE_A, TR_STONE_B]
+## 鄰居位元：石板路的邊緣看「草地」鄰居，水岸看「陸地」鄰居（橋與樓梯不算陸地，橋旁的水維持水面）。
+const NEIGHBOR_N := 1
+const NEIGHBOR_S := 2
+const NEIGHBOR_W := 4
+const NEIGHBOR_E := 8
+const GRASS_CHARS := "g"
+const LAND_CHARS := "gsmdrbw"
 
 const DECO_FLOWERS := Vector2i(0, 1)
 const DECO_CLOVER := Vector2i(1, 1)
@@ -110,6 +162,8 @@ const SIMPLE_LEGEND := {
 static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Dictionary = {}) -> Vector2i:
 	if String(options.get(TILE_STYLE_KEY, "")) == TILE_STYLE_CAVE:
 		return cave_atlas_for(parser, x, y)
+	if uses_town_refresh(options, y):
+		return town_refresh_atlas_for(parser, x, y)
 	var ch := parser.char_at(x, y)
 	var overrides: Dictionary = options.get("overrides", {})
 	if ch == "#" and overrides.has(WALL_FACE_KEY) and parser.is_walkable(x, y + 1):
@@ -160,6 +214,97 @@ static func cave_decoration_for(parser: MapParser, x: int, y: int, rng: RandomNu
 	return Vector2i(-1, -1)
 
 
+## tile_style = "town_refresh" 且（沒有 tile_style_rows，或 y 落在 [first, last] 內）時使用城鎮更新 tile。
+static func uses_town_refresh(options: Dictionary, y: int) -> bool:
+	if String(options.get(TILE_STYLE_KEY, "")) != TILE_STYLE_TOWN_REFRESH:
+		return false
+	var rows: Variant = options.get(TILE_STYLE_ROWS_KEY, [])
+	if typeof(rows) != TYPE_ARRAY or rows.size() != 2:
+		return true
+	return y >= int(rows[0]) and y <= int(rows[1])
+
+
+## 城鎮更新樣式：依圖例與四方鄰居選 tile（不用固定座標）。
+##   g → 草地變體；s／m → 石板，與草地相鄰的邊用 edge／corner（草地那側）；
+##   ,／~ → 水，與陸地相鄰的邊用水岸 edge／corner（陸地那側），其餘 ~ 為動畫水面、, 為靜態深水；
+##   = → 東西向木橋：上方不是橋的列用上列、下方不是橋的列用下列；
+##   # → 下方可走用草崖，其餘樹根牆；| 與其他圖例退回舊 atlas。
+static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
+	var ch := parser.char_at(x, y)
+	match ch:
+		"g":
+			return TR_GRASS_PATTERN[posmod(x * 5 + y * 11, TR_GRASS_PATTERN.size())]
+		"s", "m":
+			var mask := neighbor_mask(parser, x, y, GRASS_CHARS)
+			var base: Vector2i = TR_STONE_B if ch == "m" else TR_STONE_PATTERN[posmod(x * 3 + y * 7, TR_STONE_PATTERN.size())]
+			return edge_tile_for(mask, base, [
+				TR_PATH_EDGE_N, TR_PATH_EDGE_S, TR_PATH_EDGE_W, TR_PATH_EDGE_E,
+				TR_PATH_CORNER_NW, TR_PATH_CORNER_NE, TR_PATH_CORNER_SW, TR_PATH_CORNER_SE,
+			])
+		",", "~":
+			var mask := neighbor_mask(parser, x, y, LAND_CHARS)
+			var base: Vector2i = TR_WATER if ch == "~" else TR_DEEP_WATER
+			return edge_tile_for(mask, base, [
+				TR_SHORE_EDGE_N, TR_SHORE_EDGE_S, TR_SHORE_EDGE_W, TR_SHORE_EDGE_E,
+				TR_SHORE_CORNER_NW, TR_SHORE_CORNER_NE, TR_SHORE_CORNER_SW, TR_SHORE_CORNER_SE,
+			])
+		"=":
+			if parser.char_at(x, y - 1) != "=":
+				return TR_BRIDGE_EW_TOP
+			if parser.char_at(x, y + 1) != "=":
+				return TR_BRIDGE_EW_BOTTOM
+			return TR_PLANKS
+		"#":
+			return TR_GRASS_CLIFF if parser.is_walkable(x, y + 1) else TR_ROOT_WALL
+		"d":
+			return TR_EARTH
+		"p", "b":
+			return TR_PLANKS
+	if SIMPLE_LEGEND.has(ch):
+		return SIMPLE_LEGEND[ch]
+	return TR_ROOT_WALL
+
+
+## 四方鄰居中屬於 chars 的位元組合（N=1、S=2、W=4、E=8）。
+static func neighbor_mask(parser: MapParser, x: int, y: int, chars: String) -> int:
+	var mask := 0
+	if chars.contains(parser.char_at(x, y - 1)):
+		mask |= NEIGHBOR_N
+	if chars.contains(parser.char_at(x, y + 1)):
+		mask |= NEIGHBOR_S
+	if chars.contains(parser.char_at(x - 1, y)):
+		mask |= NEIGHBOR_W
+	if chars.contains(parser.char_at(x + 1, y)):
+		mask |= NEIGHBOR_E
+	return mask
+
+
+## 依鄰居位元選 edge／corner：tiles = [N, S, W, E, NW, NE, SW, SE]。
+## 兩個相鄰方向 → corner；單一方向 → edge；沒有鄰居或只有對邊（走廊）→ base。
+static func edge_tile_for(mask: int, base: Vector2i, tiles: Array[Vector2i]) -> Vector2i:
+	var n := (mask & NEIGHBOR_N) != 0
+	var s := (mask & NEIGHBOR_S) != 0
+	var w := (mask & NEIGHBOR_W) != 0
+	var e := (mask & NEIGHBOR_E) != 0
+	if n and w:
+		return tiles[4]
+	if n and e:
+		return tiles[5]
+	if s and w:
+		return tiles[6]
+	if s and e:
+		return tiles[7]
+	if n:
+		return tiles[0]
+	if s:
+		return tiles[1]
+	if w:
+		return tiles[2]
+	if e:
+		return tiles[3]
+	return base
+
+
 ## 虛空依座標雜湊選取變體（確定性，不用亂數，讓截圖可重現）。
 static func void_atlas_for(x: int, y: int) -> Vector2i:
 	var index := VOID_PATTERN[posmod(x * 7 + y * 13, VOID_PATTERN.size())]
@@ -170,6 +315,9 @@ static func void_atlas_for(x: int, y: int) -> Vector2i:
 static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomNumberGenerator, options: Dictionary = {}) -> Vector2i:
 	if String(options.get(TILE_STYLE_KEY, "")) == TILE_STYLE_CAVE:
 		return cave_decoration_for(parser, x, y, rng)
+	if uses_town_refresh(options, y):
+		# 城鎮更新 tile 自帶花草變體，不疊舊 atlas 的裝飾（風格不同）
+		return Vector2i(-1, -1)
 	var ch := parser.char_at(x, y)
 	var roll := rng.randf()
 	var dark_wall_last_row := int(options.get("dark_wall_last_row", UPPER_ZONE_LAST_ROW))
@@ -205,16 +353,26 @@ static func build_ground_tileset(texture: Texture2D) -> TileSet:
 		if row == WATER_SHALLOW.y:
 			continue
 		for col: int in range(ATLAS_COLUMNS):
-			source.create_tile(Vector2i(col, row))
+			var coords := Vector2i(col, row)
+			# 第 7 列第 13～15 欄是城鎮更新水面的第 2～4 幀，由 TR_WATER 的動畫涵蓋
+			if row == TR_WATER.y and col > TR_WATER.x and col < TR_WATER.x + WATER_FRAMES:
+				continue
+			source.create_tile(coords)
 	if available_rows > WATER_SHALLOW.y:
 		for coords: Vector2i in WATER_TILES:
 			source.create_tile(coords)
-			source.set_tile_animation_columns(coords, 0)
-			source.set_tile_animation_frames_count(coords, WATER_FRAMES)
-			for frame: int in range(WATER_FRAMES):
-				source.set_tile_animation_frame_duration(coords, frame, WATER_FRAME_SECONDS)
+			_animate_water(source, coords)
+	if available_rows > TR_WATER.y:
+		_animate_water(source, TR_WATER)
 	tile_set.add_source(source, 0)
 	return tile_set
+
+
+static func _animate_water(source: TileSetAtlasSource, coords: Vector2i) -> void:
+	source.set_tile_animation_columns(coords, 0)
+	source.set_tile_animation_frames_count(coords, WATER_FRAMES)
+	for frame: int in range(WATER_FRAMES):
+		source.set_tile_animation_frame_duration(coords, frame, WATER_FRAME_SECONDS)
 
 
 ## 建立碰撞 TileSet：一個半透明紅色方塊，帶有整格碰撞多邊形。

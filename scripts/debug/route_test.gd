@@ -103,6 +103,7 @@ func _run() -> void:
 	await _phase3_checks()
 	await _phase4_checks()
 	await _phase46_checks()
+	await _phase5_checks()
 	while switches_done < SWITCH_TARGET:
 		party.cycle_leader()
 		switches_done += 1
@@ -510,6 +511,144 @@ func _phase46_checks() -> void:
 	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
 	await get_tree().create_timer(1.2).timeout
 	_check(_min_member_gap() >= 20.0, "停下 1.2 秒後隊伍沒有同格重疊（最小間距 %.0f）" % _min_member_gap())
+
+
+## Phase 5：更新後的下層廣場（噴泉繞行、拱門穿越、新早餐攤／樹屋門）、休息流程（取消不加天、確認加一天、
+## 重複觸發只加一天、自動存檔、每日旗標重置、永久資料保留、早晨→白天）、切場景不加天、v2 存檔遷移、夜晚燈籠。
+func _phase5_checks() -> void:
+	var state: GameState = main_node.state
+	world = main_node.get("world")
+	_check(state.day == 1 and state.schema_version == 3 and state.daily_state.is_empty(), "Phase 5 開始時為第 1 天（schema v3、無每日旗標）")
+	_check(world.prop_blocked_tiles.has(Vector2i(19, 30)) and world.prop_blocked_tiles.has(Vector2i(20, 29)), "心形噴泉的碰撞登記為封鎖格")
+	_check(await _walk_to(Vector2i(17, 31)), "走到噴泉左側")
+	_check(await _walk_to(Vector2i(22, 31)), "繞過噴泉走到右側草地")
+	_check(await _walk_to(Vector2i(20, 31)), "走到噴泉正下方")
+	_check(await _push_against(Vector2i.UP, 0.6, func(p: Vector2) -> bool: return p.y >= 990.0), "噴泉水池阻擋，不會走進噴泉")
+	_check(world.prop_blocked_tiles.has(Vector2i(13, 23)) and world.prop_blocked_tiles.has(Vector2i(16, 23)) and not world.prop_blocked_tiles.has(Vector2i(14, 23)) and not world.prop_blocked_tiles.has(Vector2i(15, 23)), "拱門兩腳封鎖第 13／16 欄，中央第 14～15 欄可通行")
+	_check(await _walk_to(Vector2i(14, 25)), "走到拱門下方")
+	_check(await _walk_to(Vector2i(14, 22)), "穿過拱門走上樓梯")
+	_check(await _walk_to(Vector2i(14, 25)), "穿過拱門回到廣場")
+	_check(await _followers_catch_up(3.0, 110.0), "穿過拱門後跟隨者 3 秒內追上")
+	_check(await _walk_to(Vector2i(14, 28)), "走到廣場中央上方")
+	await _screenshot("20_plaza_refresh")
+	_check(await _walk_to(Vector2i(9, 30)), "走到新早餐攤前")
+	await _face(Vector2i.UP)
+	await _wait_frames(3)
+	_check(interaction.current_target != null and interaction.current_target.interactable_id == &"grandma_turtle", "新早餐攤前仍可鎖定阿嬤互動")
+
+	# 家庭屋：休息點提示、取消休息
+	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口（新樹屋外觀）")
+	_check(await _enter_portal(Vector2i.UP, "family_home"), "新樹屋門口仍可進入家庭屋")
+	state = main_node.state
+	_check(await _walk_to(Vector2i(2, 6)), "走到臥室門旁")
+	await _push_for(Vector2i.LEFT, 0.3)
+	await _wait_frames(3)
+	var target := interaction.current_target
+	_check(target != null and target.interactable_id == &"family_rest_door" and interaction.prompt_visible() and target.prompt_texture != null, "臥室門出現休息提示圖示")
+	await _screenshot("21_rest_prompt")
+	await _tap_action("interact")
+	var guard := 0
+	while dialogue.is_active and not dialogue.is_choosing() and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	_check(dialogue.is_active and dialogue.is_choosing(), "臥室門對話出現休息／再等等選項")
+	await _tap_action("move_down")
+	_check(dialogue.choice_index() == 1, "方向鍵下選到「再等等」")
+	await _tap_action("interact")
+	guard = 0
+	while dialogue.is_active and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	await get_tree().create_timer(0.3).timeout
+	_check(not dialogue.is_active and state.day == 1 and not main_node.is_resting(), "取消休息：day 仍為 1、沒有進入轉場")
+	for _i: int in range(3):
+		await _tap_action("debug_cycle_daytime")
+	_check(day_night.index == 0 and state.day == 1, "F5 三次回到白天，day 不變")
+
+	# 每日示範旗標：流理台
+	_check(await _walk_to(Vector2i(4, 4)), "走到流理台前")
+	_check(await _push_against(Vector2i.UP, 0.4, func(p: Vector2) -> bool: return p.y >= 100.0), "流理台阻擋")
+	_check(await _interact_and_close(&"kitchen_counter"), "流理台互動（今天第一次）")
+	_check(state.has_daily_flag("demo_counter_checked_today"), "流理台互動設定每日示範旗標")
+	await _wait_frames(3)
+	var counter_target := interaction.current_target
+	var again: Dictionary = DialogueResolver.resolve(counter_target.dialogue_entry, state, quests) if counter_target != null else {"on_complete": [1]}
+	_check(counter_target != null and again["on_complete"].is_empty(), "同一天再互動流理台為「已看過」版本")
+
+	# 確認休息（先離開流理台的封鎖格，BFS 才有起點）
+	await _push_for(Vector2i.DOWN, 0.25)
+	var day_before := state.day
+	_check(await _walk_to(Vector2i(2, 6)), "走回臥室門旁")
+	await _push_for(Vector2i.LEFT, 0.3)
+	await _wait_frames(3)
+	await _tap_action("interact")
+	guard = 0
+	while dialogue.is_active and not dialogue.is_choosing() and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	_check(dialogue.is_choosing() and dialogue.choice_index() == 0, "選項預設在「休息」")
+	await _tap_action("interact")
+	guard = 0
+	while dialogue.is_active and guard < 12:
+		await _tap_action("interact")
+		guard += 1
+	_check(await _wait_until(func() -> bool: return main_node.is_resting(), 1.0), "確認休息後開始轉場")
+	main_node.rest_until_morning()
+	main_node.rest_until_morning()
+	await get_tree().create_timer(1.4).timeout
+	await _screenshot_quick("22_rest_sunrise")
+	_check(await _wait_until(func() -> bool: return not main_node.is_resting(), 8.0), "休息轉場結束")
+	state = main_node.state
+	world = main_node.get("world")
+	_check(state.day == day_before + 1, "休息後 day +1，轉場中重複觸發不會再加（day %d）" % state.day)
+	_check(state.current_scene_id == "family_home" and party.get_leader().global_position.distance_to(Vector2(80, 208)) < 12.0 and _all_members_in_world(), "醒來時在家庭屋的醒來點")
+	_check(day_night.is_morning() and day_night.state_label() == "早晨" and day_night.index == 0, "醒來後為早晨色調（時段狀態仍是白天）")
+	_check(not state.has_daily_flag("demo_counter_checked_today") and state.daily_state.is_empty(), "每日示範旗標在新的一天被重置")
+	_check(state.has_flag("cc_joined") and state.has_flag("cc_fried_food_demon_defeated") and party.has_pet() and quests.quest_state("cc_fried_food_battle") == "completed", "永久旗標、CC 寵物與任務狀態不被每日重置清掉")
+	await _screenshot("23_morning_wake")
+	var saved: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_check(typeof(saved) == TYPE_DICTIONARY and int(saved.get("day", 0)) == state.day and int(saved.get("schema_version", 0)) == 3 and (saved.get("daily_state", {"x": 1}) as Dictionary).is_empty(), "休息時自動存檔：day 與 schema v3 寫入、daily_state 為空")
+	_check(await _wait_until(func() -> bool: return not day_night.is_morning(), DayNightController.MORNING_SECONDS + 1.0), "早晨在數秒內漸變成白天")
+
+	# 切換場景不增加 day；讀檔保留 day；v2 存檔遷移
+	_check(await _walk_to(Vector2i(9, 9)), "走到家庭屋出口上方")
+	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "走出家庭屋回到主城")
+	_check(await _walk_to(Vector2i(4, 21)), "再走到家庭屋門口")
+	_check(await _enter_portal(Vector2i.UP, "family_home"), "再次進入家庭屋")
+	state = main_node.state
+	_check(state.day == day_before + 1, "連續切換場景不會增加 day")
+	_check(main_node.load_game() == "", "F7 讀取休息時的自動存檔")
+	await _wait_transition()
+	state = main_node.state
+	quests = main_node.get("quests")
+	_check(state.day == day_before + 1 and state.has_flag("cc_joined") and party.has_pet() and state.current_scene_id == "family_home", "讀檔後 day、旗標、寵物與場景一致")
+	var raw: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	raw["schema_version"] = 2
+	raw.erase("day")
+	raw.erase("day_seed")
+	raw.erase("daily_state")
+	var file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify(raw))
+	file.close()
+	_check(main_node.load_game() == "", "讀取 v2 格式存檔")
+	await _wait_transition()
+	state = main_node.state
+	quests = main_node.get("quests")
+	_check(state.day == 1 and state.schema_version == 3 and state.has_flag("cc_joined") and party.has_pet(), "v2 存檔遷移為 v3：day 1、旗標與寵物保留")
+	SaveManager.delete_save()
+
+	# 回主城：夜晚的 v2 燈籠
+	world = main_node.get("world")
+	_check(await _walk_to(Vector2i(9, 9)), "走到家庭屋出口上方")
+	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "回到主城")
+	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
+	await _tap_action("debug_cycle_daytime")
+	await _tap_action("debug_cycle_daytime")
+	await get_tree().create_timer(DayNightController.TRANSITION_SECONDS + 0.1).timeout
+	_check(day_night.index == 2, "F5 兩次切到夜晚")
+	await _screenshot("24_plaza_night")
+	await _tap_action("debug_cycle_daytime")
+	_check(day_night.index == 0 and main_node.state.day == 1, "F5 切回白天，day 不變")
 
 
 ## 隊伍成員（含 CC）兩兩之間的最小距離。

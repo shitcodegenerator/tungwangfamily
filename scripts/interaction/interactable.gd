@@ -18,6 +18,8 @@ var portrait_id: String = ""
 var owner_node: Node2D
 ## 互動提示圖示相對於 Area2D 原點的位置。
 var prompt_offset: Vector2 = Vector2(0.0, -28.0)
+## 自訂提示圖示（例如休息點的床圖示）；null 時用 InteractionController 的預設「E」泡泡。
+var prompt_texture: Texture2D
 
 
 func _init() -> void:

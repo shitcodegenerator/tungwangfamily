@@ -4,7 +4,8 @@ extends RefCounted
 ## 對話 JSON 的每個 id 可以是單一字典，或「版本陣列」：依序檢查 requires，第一個符合的版本勝出；
 ## 全部不符時使用最後一個版本（因此請把預設版本放在最後）。
 ##
-## requires 支援：flags、not_flags、items（背包內有）、quest {id: 狀態或狀態陣列}、quest_objective {id: 目前目標 id}。
+## requires 支援：flags、not_flags、items（背包內有）、quest {id: 狀態或狀態陣列}、quest_objective {id: 目前目標 id}、
+## daily_flags／not_daily_flags（GameState.daily_state 的每日旗標，休息後重置）。
 ## on_complete 為動作陣列，交給 QuestManager.apply_actions 處理。
 ## choice（可選）：{prompt, options: [{text, on_select, lines, on_complete}]}，最後一句播完後由 DialogueManager 顯示選項。
 
@@ -59,6 +60,12 @@ static func requires_met(requires: Variant, state: GameState, quests: QuestManag
 			return false
 	for item: Variant in requires.get("items", []):
 		if not state.has_item(String(item)):
+			return false
+	for flag: Variant in requires.get("daily_flags", []):
+		if not state.has_daily_flag(String(flag)):
+			return false
+	for flag: Variant in requires.get("not_daily_flags", []):
+		if state.has_daily_flag(String(flag)):
 			return false
 	var quest_conditions: Variant = requires.get("quest", {})
 	if typeof(quest_conditions) == TYPE_DICTIONARY and not quest_conditions.is_empty():

@@ -61,6 +61,7 @@ func _update_prompt(delta: float) -> void:
 	if not show_prompt:
 		return
 	_bob_time += delta
+	_prompt.texture = current_target.prompt_texture if current_target.prompt_texture != null else PROMPT_TEXTURE
 	_prompt.global_position = current_target.prompt_position() + Vector2(0.0, roundf(sin(_bob_time * PROMPT_BOB_SPEED)))
 
 

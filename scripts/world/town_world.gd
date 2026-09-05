@@ -16,6 +16,7 @@ const DIALOGUE_RESOLVER := preload("res://scripts/dialogue/dialogue_resolver.gd"
 ## 沒有指定 interact_size 時，互動偵測矩形 = 碰撞盒往外擴的量。
 const INTERACT_PADDING := Vector2(24.0, 28.0)
 const PROP_TEXTURE_DIR := "res://assets/props/"
+const PROMPT_ICON_DIR := "res://assets/ui/"
 const TILESET_TEXTURE := preload("res://assets/tilesets/tide_root_town_tileset.png")
 const PROP_SCENE := preload("res://scenes/props/town_prop.tscn")
 const DECORATION_SEED := 20260904
@@ -42,7 +43,8 @@ var scene_name: String = "潮根城"
 var map_path: String = MAP_TEXT_PATH
 var props_path: String = PROPS_JSON_PATH
 var dialogue_path: String = DIALOGUE_JSON_PATH
-## 傳給 TileLibrary 的選項：overrides（圖例覆寫）、dark_wall_last_row、tile_style（"cave" 走洞窟正式 tile）。
+## 傳給 TileLibrary 的選項：overrides（圖例覆寫）、dark_wall_last_row、tile_style（"cave" 洞窟、"town_refresh" 城鎮更新）、
+## tile_style_rows（只把樣式套在 [first, last] 列，Phase 5 下層樹根廣場垂直切片）。
 var tile_options: Dictionary = {}
 
 var parser: MapParser
@@ -63,6 +65,7 @@ func configure(id: String, info: Dictionary) -> void:
 		"overrides": TileLibrary.overrides_from_json(info.get("legend_overrides", {})),
 		"dark_wall_last_row": int(info.get("dark_wall_last_row", TileLibrary.UPPER_ZONE_LAST_ROW)),
 		TileLibrary.TILE_STYLE_KEY: String(info.get(TileLibrary.TILE_STYLE_KEY, "")),
+		TileLibrary.TILE_STYLE_ROWS_KEY: info.get(TileLibrary.TILE_STYLE_ROWS_KEY, []),
 	}
 var world_rect: Rect2 = Rect2()
 ## 道具碰撞佔用的格子（key: Vector2i），供路徑規劃與測試使用。
@@ -120,7 +123,8 @@ func _build_collision() -> void:
 func _build_decoration() -> void:
 	decoration.tile_set = ground.tile_set
 	var rng := RandomNumberGenerator.new()
-	rng.seed = DECORATION_SEED
+	# 裝飾層以「固定種子 + 當天 day_seed」決定：同一天可重現，休息進入新的一天後花草分布會換（day_seed 的示範用途）
+	rng.seed = decoration_seed_for(state.day_seed if state != null else 0)
 	for y: int in range(parser.height):
 		for x: int in range(parser.width):
 			var atlas := TileLibrary.decoration_atlas_for(parser, x, y, rng, tile_options)
@@ -145,6 +149,8 @@ func _build_props() -> void:
 		props.add_child(prop)
 		prop.setup(texture, collision_size, float(entry.get("alpha", 1.0)), int(entry.get("z_bias", 0)), entry)
 		_register_prop_blocking(prop.position, collision_size)
+		for rect: Rect2 in prop.extra_collision_rects:
+			_register_prop_blocking(Vector2(rect.get_center().x, rect.end.y), rect.size)
 		if prop.has_glow():
 			lamp_props.append(prop)
 		if entry.has("interact"):
@@ -169,6 +175,12 @@ func _add_interactable(id: StringName, center: Vector2, size: Vector2, entry: Di
 	node.setup(id, resolved["speaker"], resolved["lines"], size, prompt)
 	node.dialogue_entry = dialogue
 	node.portrait_id = String(entry.get("portrait", resolved.get("portrait", "")))
+	if entry.has("prompt_icon"):
+		var icon_path := PROMPT_ICON_DIR + String(entry["prompt_icon"]) + ".png"
+		if ResourceLoader.exists(icon_path):
+			node.prompt_texture = load(icon_path)
+		else:
+			push_error("找不到互動提示圖示：%s" % icon_path)
 	interactables.add_child(node)
 	return node
 
@@ -412,6 +424,11 @@ func get_zone_name(world_position: Vector2) -> String:
 		if row >= int(rows[0]) and row <= int(rows[1]):
 			return String(zone.get("name", "?"))
 	return "主城外"
+
+
+## 純函式：裝飾層的亂數種子（固定種子與當天 day_seed 的組合）。
+static func decoration_seed_for(day_seed: int) -> int:
+	return DECORATION_SEED + day_seed
 
 
 func tile_to_world(tile: Vector2i) -> Vector2:

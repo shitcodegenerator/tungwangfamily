@@ -16,6 +16,7 @@
 > B1、B2、B4、B5、B6 目前以程式合成 placeholder 運作中；B3、B10 已交付並套用；B7、B8、B9 尚未交付。
 > **Phase 4（2026-09-04）**：CC、炸物魔王、投擲物、特效、三張行動表已切割套用；D1、D2 已由作者提供原圖補上；D3 已補上新版洞窟構圖參考。投擲物 v2 另提高一般幀主體尺寸，詳見 `docs/PHASE_4_VISUAL_POLISH.md`。
 > **Phase 4.6（2026-09-05）**：四位主角 v2 行走表、待機表、兩張陰影、洞窟 32×32 tile 組已套用（見 `docs/PHASE_4_6_REPORT.md`）；D4 新造型行動表由作者提供原圖，已切割套用。
+> **Phase 5（2026-09-05）**：城鎮更新 atlas、八個 v2 props、時段圖示、休息提示、日出表已套用（見 `docs/PHASE_5_REPORT.md`）；atlas 有格框與方向錯誤的格，本機已修正，正式版請見 E 節重出。
 
 ---
 
@@ -109,3 +110,19 @@
 | D2 | `GRANDMA_turtle_breakfast_sheet_reference.png` | **已補上**（原圖 1224×1285）。注意它不是行走表：四列相同、每列為五種視角；已重組為四方向站立幀。若之後需要阿嬤走動，請另交 5 欄 × 4 列的行走表 | 5 欄 × 4 列（4 行走幀 + 1 站立），圍裙、格紋頭巾、念珠、早餐籃 |
 | D3 | `CAVE_fried_food_demon_arena_reference_v2.png` | **已補上構圖參考**；Phase 4.6 再交付 `assets/tiles/fried_food_cave_tiles_32.png`（4×2 正式 tile 組），已套用進遊戲 | 兩款地面最右一欄偏暗，切割器已補平；若日後重出，請讓地面 tile 四邊可無縫平鋪 |
 | D4 | `ACTION_<id>_v2_carry_throw_reference.png` ×4 | **已由作者提供原圖補上**（4 列 × 3 欄，白底／棋盤格／透明底皆可；切割器泛洪去背、依 v2 站立幀高度縮放） | 第 0 欄舉物、第 1 欄投擲；投擲幀伸手超過 48px 的部分會被置中裁掉幾個像素 |
+
+
+## E. Phase 5：城鎮更新 atlas 需修正（已本機修正，重出時請照下列規格）
+
+`assets/tilesets/town_visual_refresh_tiles_32.png`（256×128，8×4）目前由 `tools/build_assets_phase5.py` 修正後才進遊戲。若重新輸出，請：
+
+| 編號 | 問題 | 規格 |
+|---|---|---|
+| E1 | 每格最外圈 1px 偏亮、次外圈 1px 偏暗（像有格框），平鋪出格線 | 每格 32×32 的四邊要能與同材質無縫平鋪：外圈像素亮度與內部差 ≤ 10；不要畫格線、外框或每格獨立的陰影 |
+| E2 | `path_edge_s`（第 1 列第 1 格）、`shore_edge_s`（第 2 列第 1 格）與 `_n` 同向（草都在上） | `_s` 應為「材質在上、草在下」：石板／水佔上方約 2/3，草與土坡在下緣 |
+| E3 | `path_corner_sw`（第 1 列第 6 格）是草地佔四分之三的內凹角；`path_corner_se`、`shore_corner_sw`、`shore_corner_se` 與 `_nw`／`_ne` 同向 | 四個 corner 都是「石板／水佔大半，草只在指定的一個角」：nw 草在左上、ne 右上、sw 左下、se 右下。若要另外提供內凹角（草只在一個角、材質佔大半的反向版），請放在新的一列並在 manifest 註明 |
+| E4 | `bridge_planks`／`bridge_edge` 是南北向（欄杆在左右） | 主城港口橋是東西向兩列：請另給「上列（欄杆在上）」與「下列（欄杆在下）」各一格；目前以旋轉合成 |
+| E5 | `TOWN_visual_refresh_tiles_reference_v1.png` 不是 PNG（前 8 bytes 非 PNG 簽名） | 請重新輸出並用一般看圖軟體確認可開啟 |
+| E6 | 共享家庭屋外觀 176×162 比原本的門口空間（3 列 = 96px）高，屋頂蓋到街道 | 若作者希望不遮街道：另給約 176×96～176×110 的版本，或接受目前效果（見 `docs/PHASE_5_REPORT.md` 第 6 節） |
+
+八個 v2 props（透明背景、底部接地）規格正確，直接使用；`day_phase_icons.png` 四格順序請確認是「早晨、白天、黃昏、夜晚」。

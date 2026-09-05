@@ -6,13 +6,32 @@
       "（測試互動點：正式描述待作者提供）"
     ]
   },
-  "kitchen_counter": {
-    "speaker": "廚房流理台",
-    "lines": [
-      "【TEMP_DEMO_CONTENT】爐火溫著一鍋東西，架上的罐子貼著手寫標籤。",
-      "（測試互動點：食材與料理系統尚未開放）"
-    ]
-  },
+  "kitchen_counter": [
+    {
+      "requires": {
+        "daily_flags": [
+          "demo_counter_checked_today"
+        ]
+      },
+      "speaker": "廚房流理台",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】今天已經整理過流理台了。",
+        "（每日示範旗標：休息進入下一天後會重置，可再互動一次）"
+      ]
+    },
+    {
+      "speaker": "廚房流理台",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】爐火溫著一鍋東西，架上的罐子貼著手寫標籤。",
+        "（測試互動點：食材與料理系統尚未開放）"
+      ],
+      "on_complete": [
+        {
+          "set_daily_flag": "demo_counter_checked_today"
+        }
+      ]
+    }
+  ],
   "sewing_table": {
     "speaker": "縫紉工作區",
     "lines": [
@@ -33,5 +52,34 @@
       "【TEMP_DEMO_CONTENT】這裡預留給一件重要的家庭物件。",
       "（系統插槽：內容、圖片與觸發條件待作者提供；請勿自行填入）"
     ]
+  },
+  "family_rest_door": {
+    "speaker": "臥室門",
+    "lines": [
+      "【TEMP_DEMO_CONTENT】門後是大家的房間。",
+      "今天要在這裡休息，直接到明天早上嗎？"
+    ],
+    "choice": {
+      "prompt": "休息到明天？",
+      "options": [
+        {
+          "text": "休息",
+          "lines": [
+            "（大家陸續回房，燈一盞一盞熄了……）"
+          ],
+          "on_complete": [
+            {
+              "rest": true
+            }
+          ]
+        },
+        {
+          "text": "再等等",
+          "lines": [
+            "（還不想睡，先去做點別的。）"
+          ]
+        }
+      ]
+    }
   }
 }

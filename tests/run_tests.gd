@@ -24,6 +24,9 @@ const BossScript := preload("res://scripts/battle/fried_food_demon.gd")
 const CarryableItemScript := preload("res://scripts/battle/carryable_item.gd")
 const DialogueManagerScript := preload("res://scripts/ui/dialogue_manager.gd")
 const BattleHudScript := preload("res://scripts/ui/battle_hud.gd")
+const TownWorldScript := preload("res://scripts/world/town_world.gd")
+const RestTransitionScript := preload("res://scripts/ui/rest_transition.gd")
+const DayHudScript := preload("res://scripts/ui/day_hud.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -58,6 +61,11 @@ func _initialize() -> void:
 	test_phase4_assets()
 	test_phase46_sheets()
 	test_phase46_logic()
+	test_phase5_tiles()
+	test_game_state_v3()
+	test_daily_flags_in_dialogue()
+	test_phase5_props()
+	test_phase5_ui()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -373,13 +381,13 @@ func test_game_state_v2() -> void:
 	_assert(state.has_item("chunhsiang_noodles") and state.item_count("chunhsiang_noodles") == 1, "背包加入物品")
 	var restored: GameState = GameStateScript.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))["state"]
 	_assert(restored != null and restored.has_item("chunhsiang_noodles") and restored.pet_id == "cc_penguin", "v2 存檔保留物品與寵物")
-	_assert(restored.schema_version == 2 and state.to_dict()["schema_version"] == 2, "schema_version 為 2")
+	_assert(restored.schema_version == GameStateScript.SCHEMA_VERSION and state.to_dict()["schema_version"] == GameStateScript.SCHEMA_VERSION, "schema_version 為目前版本")
 	var legacy := {"schema_version": 1, "current_scene_id": "tide_root_town", "flags": {"demo": true}, "quests": {}}
 	var migrated: Dictionary = GameStateScript.from_dict(legacy)
 	var old: GameState = migrated["state"]
 	_assert(old != null and old.inventory.is_empty() and old.pet_id == "" and old.has_flag("demo"), "v1 存檔以空背包與無寵物補齊")
 	_assert(not state.remove_item("chunhsiang_noodles", 2) and state.remove_item("chunhsiang_noodles") and not state.has_item("chunhsiang_noodles"), "扣除物品：不足時拒絕，足夠時移除")
-	_assert(GameStateScript.from_dict({"schema_version": 3, "current_scene_id": "x", "flags": {}, "quests": {}})["state"] == null, "版本 3 存檔被拒絕")
+	_assert(GameStateScript.from_dict({"schema_version": GameStateScript.SCHEMA_VERSION + 1, "current_scene_id": "x", "flags": {}, "quests": {}})["state"] == null, "比目前 schema 新一版的存檔被拒絕")
 
 
 func test_inventory_and_events() -> void:
@@ -561,7 +569,7 @@ func test_phase4_assets() -> void:
 	_assert(throw_frame.region == Rect2(48, 128, 48, 64), "throw_right 取自行動表第 1 欄第 2 列")
 	_assert(PlayerScript.build_sprite_frames(sheet).get_animation_names().size() == 8, "沒有行動表時只有 8 個動畫")
 	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
-	_assert(tileset != null and tileset.get_size() == Vector2(576, 192), "tileset 擴充為 6 列")
+	_assert(tileset != null and tileset.get_size() == Vector2(576, 256), "tileset 擴充為 8 列（第 6～7 列為 Phase 5 城鎮更新）")
 	for name: String in ["fx_teleport", "fx_hit_sparkle", "fx_poof", "fx_victory", "fx_chicken_wing"]:
 		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
 	var grandma: Texture2D = load("res://assets/characters/npcs/grandma_turtle_sheet.png")
@@ -662,3 +670,284 @@ func test_phase46_logic() -> void:
 	_assert(bb.contains("[img=12x12]res://assets/ui/anger_mark.png[/img]") and not bb.contains("💢"), "💢 換成 anger_mark 圖片")
 	_assert(bb.contains("[lb]OS[rb]"), "方括號會被跳脫，不會被當成 bbcode")
 	_assert(DialogueBoxScript.to_bbcode("普通句子です") == "普通句子です", "沒有特殊字元時原樣輸出")
+
+
+## Phase 5：城鎮更新 tile（去格框、翻轉補齊、鄰接判斷、只套用在下層列）。
+func test_phase5_tiles() -> void:
+	var delivered: Texture2D = load("res://assets/tilesets/town_visual_refresh_tiles_32.png")
+	_assert(delivered != null and delivered.get_size() == Vector2(256, 128), "交付 atlas 為 256×128（8×4 格 32×32）")
+	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
+	var image := tileset.get_image()
+	var seam_ok := true
+	var worst := 0.0
+	for coords: Vector2i in [TileLibraryScript.TR_GRASS_A, TileLibraryScript.TR_GRASS_B, TileLibraryScript.TR_STONE_A, TileLibraryScript.TR_STONE_B, TileLibraryScript.TR_ROOT_WALL, TileLibraryScript.TR_WATER, TileLibraryScript.TR_DEEP_WATER, TileLibraryScript.TR_EARTH]:
+		var cell := image.get_region(Rect2i(coords.x * 32, coords.y * 32, 32, 32))
+		var inner := _ring_brightness(cell, 2)
+		for ring: int in [0, 1]:
+			var diff := absf(_ring_brightness(cell, ring) - inner)
+			worst = maxf(worst, diff)
+			if diff > 12.0:
+				seam_ok = false
+	_assert(seam_ok, "城鎮更新的整面 tile 外圈與內圈亮度差 ≤ 12（無格線，最大 %.1f）" % worst)
+	var opaque := true
+	for row: int in [6, 7]:
+		for col: int in range(16):
+			var cell := image.get_region(Rect2i(col * 32, row * 32, 32, 32))
+			for y: int in range(32):
+				for x: int in range(32):
+					if cell.get_pixel(x, y).a < 1.0:
+						opaque = false
+	_assert(opaque, "第 6～7 列 32 格都是整格不透明（沒有白邊或透明縫）")
+	var edge_n := image.get_region(Rect2i(TileLibraryScript.TR_PATH_EDGE_N.x * 32, TileLibraryScript.TR_PATH_EDGE_N.y * 32, 32, 32))
+	var edge_s := image.get_region(Rect2i(TileLibraryScript.TR_PATH_EDGE_S.x * 32, TileLibraryScript.TR_PATH_EDGE_S.y * 32, 32, 32))
+	_assert(_greenness(edge_n, 4) > _greenness(edge_n, 27) + 0.1 and _greenness(edge_s, 27) > _greenness(edge_s, 4) + 0.1, "path_edge_n 草在上、path_edge_s 草在下（翻轉補齊）")
+	var registry: Dictionary = SceneRouterScript.parse_registry(FileAccess.get_file_as_string("res://assets/maps/scenes.json"))
+	var options := {
+		TileLibraryScript.TILE_STYLE_KEY: String(registry["tide_root_town"].get("tile_style", "")),
+		TileLibraryScript.TILE_STYLE_ROWS_KEY: registry["tide_root_town"].get("tile_style_rows", []),
+	}
+	var rows: Array = options[TileLibraryScript.TILE_STYLE_ROWS_KEY]
+	_assert(String(options[TileLibraryScript.TILE_STYLE_KEY]) == "town_refresh" and int(rows[0]) == 23 and int(rows[1]) == 35, "主城以 tile_style = town_refresh 只套用第 23～35 列")
+	var parser := _load_map()
+	var tl := TileLibraryScript
+	_assert(tl.ground_atlas_for(parser, 5, 22, options) == tl.GRASS and tl.ground_atlas_for(parser, 13, 22, options) == tl.STAIRS, "第 22 列（中層）仍用舊 atlas")
+	_assert(tl.ground_atlas_for(parser, 13, 23, options) == tl.STAIRS, "更新列裡的樓梯退回舊 atlas 的樓梯")
+	_assert(tl.ground_atlas_for(parser, 5, 24, options) == tl.TR_GRASS_CLIFF and tl.ground_atlas_for(parser, 0, 24, options) == tl.TR_ROOT_WALL, "牆：下方可走用草崖、其餘樹根牆")
+	_assert(tl.ground_atlas_for(parser, 14, 29, options) == tl.TR_STONE_B, "廣場中心 m 用石板 B")
+	_assert(tl.TR_STONE_PATTERN.has(tl.ground_atlas_for(parser, 11, 24, options)), "沒有草地鄰居的石板用 A／B 變體")
+	_assert(tl.ground_atlas_for(parser, 9, 26, options) == tl.TR_PATH_EDGE_W and tl.ground_atlas_for(parser, 9, 25, options) == tl.TR_PATH_EDGE_W, "石板左側是草地 → path_edge_w（牆不算草地）")
+	_assert(tl.ground_atlas_for(parser, 10, 30, options) == tl.TR_PATH_CORNER_SW and tl.ground_atlas_for(parser, 18, 31, options) == tl.TR_PATH_CORNER_SE, "石板左下／右下是草地 → corner_sw／corner_se")
+	_assert(tl.ground_atlas_for(parser, 3, 27, options) == tl.TR_SHORE_CORNER_NE and tl.ground_atlas_for(parser, 23, 30, options) == tl.TR_SHORE_EDGE_W, "淺水上方與右方是陸地 → shore_corner_ne；只有左方是陸地 → shore_edge_w")
+	_assert(tl.ground_atlas_for(parser, 2, 27, options) == tl.TR_DEEP_WATER and tl.ground_atlas_for(parser, 2, 29, options) == tl.TR_WATER, "不靠岸的淺水用靜態深水、深水用動畫水面")
+	_assert(tl.ground_atlas_for(parser, 16, 32, options) == tl.TR_SHORE_CORNER_NW, "淺水上方與左方是陸地 → shore_corner_nw")
+	_assert(tl.ground_atlas_for(parser, 23, 29, options) == tl.TR_SHORE_EDGE_W, "橋旁的水只看草地那側（橋不算陸地）")
+	_assert(tl.ground_atlas_for(parser, 22, 27, options) == tl.TR_BRIDGE_EW_TOP and tl.ground_atlas_for(parser, 22, 28, options) == tl.TR_BRIDGE_EW_BOTTOM, "兩列東西向木橋：上列／下列")
+	var variants := {}
+	for x: int in range(8, 16):
+		variants[tl.ground_atlas_for(parser, x, 32, options)] = true
+	_assert(variants.size() >= 2 and variants.has(tl.TR_GRASS_A), "草地在同列裡至少兩種變體（%d 種）" % variants.size())
+	_assert(tl.edge_tile_for(tl.NEIGHBOR_N | tl.NEIGHBOR_S, tl.TR_STONE_A, [tl.TR_PATH_EDGE_N, tl.TR_PATH_EDGE_S, tl.TR_PATH_EDGE_W, tl.TR_PATH_EDGE_E, tl.TR_PATH_CORNER_NW, tl.TR_PATH_CORNER_NE, tl.TR_PATH_CORNER_SW, tl.TR_PATH_CORNER_SE]) == tl.TR_PATH_EDGE_N, "對邊都是草地時先取北邊 edge")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var decorated := 0
+	for y: int in range(23, 36):
+		for x: int in range(parser.width):
+			if tl.decoration_atlas_for(parser, x, y, rng, options).x >= 0:
+				decorated += 1
+	_assert(decorated == 0, "更新列不疊舊 atlas 的裝飾")
+	_assert(not tl.uses_town_refresh({tl.TILE_STYLE_KEY: "town_refresh"}, 0) == false, "沒有 tile_style_rows 時整張地圖都用更新樣式")
+	var walkable_same := true
+	for y: int in range(parser.height):
+		for x: int in range(parser.width):
+			if parser.is_walkable(x, y) != MapParserScript.WALKABLE_CHARS.contains(parser.char_at(x, y)):
+				walkable_same = false
+	_assert(walkable_same and not parser.find_path(Vector2i(14, 29), Vector2i(26, 27)).is_empty() and not parser.find_path(Vector2i(14, 29), Vector2i(2, 16)).is_empty(), "換樣式不改可走性：出生點仍可到東西兩出口")
+	var big := Image.create(TileLibraryScript.ATLAS_COLUMNS * 32, TileLibraryScript.ATLAS_ROWS * 32, false, Image.FORMAT_RGBA8)
+	var tile_set: TileSet = TileLibraryScript.build_ground_tileset(ImageTexture.create_from_image(big))
+	var source: TileSetAtlasSource = tile_set.get_source(0)
+	_assert(source.get_tile_animation_frames_count(tl.TR_WATER) == tl.WATER_FRAMES and not source.has_tile(Vector2i(13, 7)) and source.has_tile(tl.TR_BRIDGE_EW_BOTTOM), "更新水面 4 幀動畫、幀格不獨立成 tile、東西向木橋 tile 存在")
+
+
+func _ring_brightness(cell: Image, ring: int) -> float:
+	var total := 0.0
+	var count := 0
+	for y: int in range(32):
+		for x: int in range(32):
+			if mini(mini(x, y), mini(31 - x, 31 - y)) == ring:
+				var c := cell.get_pixel(x, y)
+				total += 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+				count += 1
+	return total * 255.0 / float(count)
+
+
+## 一列裡中央 8 個像素的「綠色優勢」平均值（g - r），用來分辨草地與石板。
+func _greenness(cell: Image, y: int) -> float:
+	var total := 0.0
+	for x: int in range(12, 20):
+		var c := cell.get_pixel(x, y)
+		total += c.g - c.r
+	return total / 8.0
+
+
+## Phase 5：schema v3（day、day_seed、daily_state）、advance_day 只由休息呼叫、reset 不清永久資料、v2 遷移。
+func test_game_state_v3() -> void:
+	var state: GameState = GameStateScript.new()
+	_assert(GameStateScript.SCHEMA_VERSION == 3 and state.day == 1 and state.daily_state.is_empty(), "新遊戲從 day 1 開始、daily_state 為空、schema 3")
+	_assert(state.day_seed == GameStateScript.seed_for_day(1) and GameStateScript.seed_for_day(1) != GameStateScript.seed_for_day(2), "day_seed 由 day 決定且每天不同")
+	var rng_a := state.daily_rng()
+	var rng_b := state.daily_rng()
+	_assert(rng_a.randi() == rng_b.randi(), "同一天的 daily_rng 序列可重現")
+	state.set_flag("permanent_flag")
+	state.add_item("chunhsiang_noodles")
+	state.pet_id = "cc_penguin"
+	state.quests = {"q": {"state": "active", "progress": {"a": 1}}}
+	state.set_daily_flag("demo_counter_checked_today")
+	_assert(state.has_daily_flag("demo_counter_checked_today") and not state.has_flag("demo_counter_checked_today"), "每日旗標存在 daily_state，不進永久 flags")
+	var advanced: Array[int] = []
+	state.day_advanced.connect(func(day: int) -> void: advanced.append(day))
+	state.advance_day()
+	_assert(state.day == 2 and advanced == [2] and state.day_seed == GameStateScript.seed_for_day(2), "advance_day：day +1、day_seed 更新、發出 day_advanced 一次")
+	_assert(not state.has_daily_flag("demo_counter_checked_today") and state.daily_state.is_empty(), "進入新的一天後每日旗標重置")
+	_assert(state.has_flag("permanent_flag") and state.has_item("chunhsiang_noodles") and state.pet_id == "cc_penguin" and state.quests["q"]["progress"]["a"] == 1, "每日重置不清永久旗標、背包、寵物與任務")
+	state.set_daily_flag("x")
+	state.reset_daily_state()
+	_assert(state.day == 2 and state.daily_state.is_empty(), "reset_daily_state 只清 daily_state，不改 day")
+	state.set_daily_flag("kept")
+	var restored: GameState = GameStateScript.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))["state"]
+	_assert(restored != null and restored.day == 2 and restored.day_seed == state.day_seed and restored.has_daily_flag("kept"), "v3 存檔保留 day、day_seed 與 daily_state")
+	var legacy := {"schema_version": 2, "current_scene_id": "family_home", "flags": {"cc_joined": true}, "quests": {"q": {"state": "completed", "progress": {}}}, "inventory": {"chunhsiang_noodles": 1}, "pet_id": "cc_penguin"}
+	var migrated: GameState = GameStateScript.from_dict(legacy)["state"]
+	_assert(migrated != null and migrated.day == 1 and migrated.day_seed == GameStateScript.seed_for_day(1) and migrated.daily_state.is_empty(), "v2 存檔遷移：day 1、空 daily_state")
+	_assert(migrated.has_flag("cc_joined") and migrated.has_item("chunhsiang_noodles") and migrated.pet_id == "cc_penguin" and migrated.quests["q"]["state"] == "completed", "v2 遷移不清旗標、背包、寵物與任務")
+	var bad_day: GameState = GameStateScript.from_dict({"schema_version": 3, "current_scene_id": "x", "flags": {}, "quests": {}, "day": 0, "daily_state": "oops"})["state"]
+	_assert(bad_day != null and bad_day.day == 1 and bad_day.daily_state.is_empty(), "day < 1 或 daily_state 型別錯誤時退回預設值")
+	var v1 := {"schema_version": 1, "current_scene_id": "tide_root_town", "flags": {}, "quests": {}}
+	_assert(GameStateScript.from_dict(v1)["state"] != null and (GameStateScript.from_dict(v1)["state"] as GameState).day == 1, "v1 存檔仍可讀取")
+	var path := "user://test_save_v3.json"
+	_assert(SaveManagerScript.save_state(state, path) == "" and (SaveManagerScript.load_state(path)["state"] as GameState).day == 2, "存檔再讀回 day 一致")
+	SaveManagerScript.delete_save(path)
+	var router_state: GameState = GameStateScript.new()
+	router_state.current_scene_id = "family_home"
+	router_state.unlock_scene("captain_room")
+	router_state.current_scene_id = "tide_root_town"
+	_assert(router_state.day == 1, "切換場景（改 current_scene_id／unlock）不增加 day")
+
+
+func test_daily_flags_in_dialogue() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	_assert(DialogueResolverScript.requires_met({"not_daily_flags": ["today"]}, state, quests) and not DialogueResolverScript.requires_met({"daily_flags": ["today"]}, state, quests), "daily_flags／not_daily_flags 條件")
+	quests.apply_actions([{"set_daily_flag": "today"}])
+	_assert(state.has_daily_flag("today") and DialogueResolverScript.requires_met({"daily_flags": ["today"]}, state, quests), "對話動作 set_daily_flag 寫入每日旗標")
+	quests.apply_actions([{"clear_daily_flag": "today"}])
+	_assert(not state.has_daily_flag("today"), "clear_daily_flag 清除每日旗標")
+	var home: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/dialogue/family_home.json"))
+	var counter: Array = home["kitchen_counter"]
+	var first: Dictionary = DialogueResolverScript.resolve(counter, state, quests)
+	_assert(_has_action(first["on_complete"], "set_daily_flag"), "流理台第一次互動設定每日示範旗標")
+	quests.apply_actions(first["on_complete"])
+	var again: Dictionary = DialogueResolverScript.resolve(counter, state, quests)
+	_assert(again["lines"] != first["lines"] and again["on_complete"].is_empty(), "同一天再互動顯示「今天已看過」版本")
+	state.advance_day()
+	_assert(DialogueResolverScript.resolve(counter, state, quests)["lines"] == first["lines"], "休息後每日旗標重置，回到第一次版本")
+	var rest: Dictionary = DialogueResolverScript.resolve(home["family_rest_door"], state, quests)
+	_assert(DialogueManagerScript.has_valid_options(rest["choice"]) and rest["choice"]["options"].size() == 2, "臥室門對話帶「休息／再等等」兩個選項")
+	var confirm: Dictionary = rest["choice"]["options"][0]
+	var cancel: Dictionary = rest["choice"]["options"][1]
+	_assert(_has_action(confirm.get("on_complete", []), "rest") and not _has_action(cancel.get("on_complete", []), "rest"), "只有確認選項帶 rest 動作，取消不帶")
+	quests.apply_actions(cancel.get("on_complete", []))
+	_assert(state.day == 2, "取消休息不增加 day（QuestManager 不處理 rest）")
+	quests.apply_actions(confirm.get("on_complete", []))
+	_assert(state.day == 2, "rest 動作只由 Main 的休息流程執行，apply_actions 不會增加 day")
+	quests.free()
+
+
+## Phase 5：八個城鎮更新 props 的尺寸、接地、碰撞與 JSON 選項；家庭屋休息點與醒來點。
+func test_phase5_props() -> void:
+	var expected_sizes := {
+		"breakfast_stall_v2": Vector2(144, 135), "shared_family_treehouse_v2": Vector2(176, 162), "lantern_post_v2": Vector2(80, 81),
+		"harbor_crate_barrel_v2": Vector2(128, 102), "flower_herb_bed_v2": Vector2(144, 132), "blank_signpost_v2": Vector2(80, 76),
+		"root_archway_v2": Vector2(176, 166), "heart_fountain_v2": Vector2(144, 129),
+	}
+	var sized := 0
+	var grounded := 0
+	var transparent_corners := 0
+	for name: String in expected_sizes:
+		var texture: Texture2D = load("res://assets/props/town_refresh/%s.png" % name)
+		if texture != null and texture.get_size() == expected_sizes[name]:
+			sized += 1
+		var image := texture.get_image()
+		var bottom := _alpha_bottom(image)
+		if bottom == image.get_height():
+			grounded += 1
+		if image.get_pixel(0, 0).a == 0.0 and image.get_pixel(image.get_width() - 1, 0).a == 0.0:
+			transparent_corners += 1
+	_assert(sized == 8, "八個 v2 props 尺寸與 manifest 一致（實際 %d）" % sized)
+	_assert(grounded == 8 and transparent_corners == 8, "八個 props 底緣都有不透明像素（接地）且背景透明")
+	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/tide_root_town_props.json"))
+	var refresh_entries: Array = []
+	var old_lower_lamps := 0
+	for entry: Dictionary in props["props"]:
+		var texture_name := String(entry["texture"])
+		if texture_name.begins_with("town_refresh/"):
+			refresh_entries.append(entry)
+		if texture_name == "lamp_post" and float(entry["y"]) >= 24 * 32:
+			old_lower_lamps += 1
+	_assert(refresh_entries.size() >= 10 and old_lower_lamps == 0, "下層廣場的燈籠全部換成 v2，且至少 10 個更新 props（實際 %d）" % refresh_entries.size())
+	var collision_fits := true
+	var uses := {}
+	for entry: Dictionary in refresh_entries:
+		var texture: Texture2D = load("res://assets/props/%s.png" % entry["texture"])
+		uses[String(entry["texture"])] = true
+		var raw: Variant = entry.get("collision")
+		if typeof(raw) == TYPE_ARRAY and (float(raw[0]) > texture.get_width() or float(raw[1]) > texture.get_height()):
+			collision_fits = false
+		for box: Rect2 in TownPropScript.collision_boxes_from(entry.get("collision_boxes")):
+			if box.size.x > texture.get_width() or box.end.y > 0.0:
+				collision_fits = false
+	_assert(collision_fits, "更新 props 的碰撞盒不超出貼圖，額外碰撞盒都在接地線之上")
+	for name: String in ["shared_family_treehouse_v2", "breakfast_stall_v2", "lantern_post_v2", "heart_fountain_v2", "root_archway_v2"]:
+		_assert(uses.has("town_refresh/" + name), "主城使用 %s" % name)
+	var treehouse := {}
+	var arch := {}
+	var lantern := {}
+	for entry: Dictionary in refresh_entries:
+		match String(entry["texture"]):
+			"town_refresh/shared_family_treehouse_v2":
+				treehouse = entry
+			"town_refresh/root_archway_v2":
+				arch = entry
+			"town_refresh/lantern_post_v2":
+				lantern = entry
+	_assert(float(treehouse["x"]) == 144 and float(treehouse["y"]) == 672, "共享家庭屋外觀仍以 (144, 672) 為底部中央（門口傳送門不變）")
+	var portal_ok := false
+	for portal: Dictionary in props["portals"]:
+		if portal["id"] == "family_home_door" and float(portal["x"]) == 144 and float(portal["y"]) == 674:
+			portal_ok = true
+	_assert(portal_ok, "家庭屋門口傳送門座標不變")
+	_assert(float(arch.get("foot_inset", 0)) > 0.0 and TownPropScript.collision_boxes_from(arch.get("collision_boxes")).size() == 2, "根拱門以石板地面為接地線並有左右兩隻腳的碰撞盒")
+	var boxes := TownPropScript.collision_boxes_from(arch["collision_boxes"])
+	var gap := (float(arch["x"]) + boxes[1].position.x) - (float(arch["x"]) + boxes[0].end.x)
+	_assert(gap >= 60.0 and gap <= 72.0 and float(arch["x"]) + boxes[0].end.x < 448.0 and float(arch["x"]) + boxes[1].position.x > 512.0, "拱門兩腳之間留出第 14～15 欄（樓梯中央）可通行（間距 %.0f）" % gap)
+	_assert(float(lantern.get("foot_x", -1)) == 60 and bool(lantern.get("glow", false)) and lantern.has("glow_x"), "v2 燈籠以燈柱（foot_x 60）接地並指定光暈中心")
+	_assert(TownPropScript.sprite_offset_for(80, 81, 60, 0) == Vector2(-60, -81) and TownPropScript.sprite_offset_for(176, 166, 88, 38) == Vector2(-88, -128), "sprite_offset_for：接地點在 (foot_x, height - foot_inset)")
+	var parsed := TownPropScript.collision_boxes_from([[52, 40, -56, 0], [56, 40, 54, 0], "bad", [1]])
+	_assert(parsed.size() == 2 and parsed[0] == Rect2(-82, -40, 52, 40) and parsed[1].get_center() == Vector2(54, -20), "collision_boxes_from 解析 [寬, 高, dx, dy] 並忽略壞資料")
+	_assert(TownPropScript.collision_boxes_from(null).is_empty(), "沒有 collision_boxes 時回傳空陣列")
+	var home: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/family_home_props.json"))
+	var rest_door := {}
+	for entry: Dictionary in home["props"]:
+		if entry.get("interact", "") == "family_rest_door":
+			rest_door = entry
+	_assert(not rest_door.is_empty() and String(rest_door.get("prompt_icon", "")) == "rest_prompt" and ResourceLoader.exists("res://assets/ui/rest_prompt.png"), "家庭屋臥室門是休息點並使用 rest_prompt 圖示")
+	var rest_tiles: Array = home["entries"]["rest"]
+	var spaced := rest_tiles.size() == 4
+	var parser: MapParser = MapParserScript.load_from_file("res://assets/maps/family_home.txt")
+	for a: int in range(rest_tiles.size()):
+		if not parser.is_walkable(int(rest_tiles[a][0]), int(rest_tiles[a][1])):
+			spaced = false
+		for b: int in range(a + 1, rest_tiles.size()):
+			var pa := Vector2(float(rest_tiles[a][0]), float(rest_tiles[a][1])) * 32.0
+			var pb := Vector2(float(rest_tiles[b][0]), float(rest_tiles[b][1])) * 32.0
+			if pa.distance_to(pb) < 64.0:
+				spaced = false
+	_assert(spaced, "醒來點四格可走且彼此間隔 ≥ 2 格")
+	_assert(TownWorldScript.decoration_seed_for(GameStateScript.seed_for_day(1)) != TownWorldScript.decoration_seed_for(GameStateScript.seed_for_day(2)), "裝飾層種子隨 day_seed 改變")
+
+
+## Phase 5：早晨色調、時段圖示、日出轉場幀與天數 HUD 文字。
+func test_phase5_ui() -> void:
+	_assert(DayNightScript.MORNING_COLOR != DayNightScript.STATE_COLORS[0] and DayNightScript.MORNING_SECONDS > 0.0, "早晨色調與白天不同且會漸變")
+	_assert(DayNightScript.phase_icon_for(0, true) == DayNightScript.PHASE_ICON_MORNING and DayNightScript.phase_icon_for(0, false) == DayNightScript.PHASE_ICON_DAY, "早晨／白天圖示")
+	_assert(DayNightScript.phase_icon_for(1, false) == DayNightScript.PHASE_ICON_DUSK and DayNightScript.phase_icon_for(2, false) == DayNightScript.PHASE_ICON_NIGHT, "黃昏／夜晚圖示")
+	_assert(DayNightScript.next_index(0) == 1 and DayNightScript.STATE_NAMES.size() == 3, "F5 循環仍是三態（早晨不是存檔狀態）")
+	var icons: Texture2D = load("res://assets/ui/day_phase_icons.png")
+	_assert(icons != null and icons.get_size() == Vector2(96, 24), "時段圖示表 96×24（4 格）")
+	var sheet: Texture2D = load("res://assets/effects/morning_transition_sheet.png")
+	_assert(sheet != null and sheet.get_size() == Vector2(256, 64), "日出轉場表 256×64（4 幀 64×64）")
+	var frame: AtlasTexture = RestTransitionScript.frame_texture(3)
+	_assert(frame.region == Rect2(192, 0, 64, 64) and RestTransitionScript.frame_texture(9).region.position.x == 192, "日出第 4 幀取自 x=192，超出範圍夾到最後一幀")
+	_assert(RestTransitionScript.day_label(7) == "第 7 天" and DayHudScript.text_for(3, "早晨") == "第 3 天・早晨", "轉場與 HUD 的天數文字")
+	_assert(DayHudScript.icon_texture(2).region == Rect2(48, 0, 24, 24), "HUD 圖示取自圖示表第 3 格")

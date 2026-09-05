@@ -53,7 +53,13 @@ godot --headless --path . -s res://tests/run_tests.gd
 caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
 ```
 
-驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_4_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_5_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+
+美術版面檢查（不做斷言，只截圖）：
+
+```bash
+caffeinate -dis godot --path . --always-on-top -- "--snapshot=tide_root_town:14,29:$PWD/plaza.png;family_home:2,6:$PWD/rest.png"
+```
 
 改過素材（重跑 `tools/build_assets.py`）後必須先 `godot --headless --path . --import`：執行期不會重新匯入 PNG。
 
@@ -125,6 +131,19 @@ battle_won／battle_lost ─► Main：旗標、任務事件、回到 state.retu
 - 洞窟：`scenes.json` 的 `tile_style: "cave"` 讓 `TileLibrary.cave_atlas_for` 依鄰居選 tileset 第 5 列（地面 A／B、岩壁面、岩壁頂、轉角、晶簇 overlay）；來源是 `assets/tiles/fried_food_cave_tiles_32.png`，由切割器複製進 tileset。`battle.min_y` 是 Boss 活動上限。
 - 對話框內文是 RichTextLabel；`💢` 由 `DialogueBox.to_bbcode` 換成 `assets/ui/anger_mark.png`。
 
+## 每日循環與下層廣場新美術（Phase 5）
+
+- `GameState` schema v3：`day`（從 1 起）、`day_seed`（`seed_for_day(day)` 確定性雜湊，`daily_rng()` 可重現）、`daily_state`（每日旗標）。
+  讀 v1／v2 存檔補 day 1 與空 daily_state，旗標、任務、背包、寵物不動。
+- 休息：共享家庭屋左側臥室門（提示圖示 `rest_prompt.png`）→ 對話選「休息」→ `Main.rest_until_morning`：淡黑 → `advance_day()`
+  （day +1、`reset_daily_state()` 清空 daily_state、發 `day_advanced`）→ 隊伍放到 `entries.rest` 醒來點 → 自動存檔 → 日出卡「第 N 天」→
+  淡入 → 早晨暖色 4 秒漸變成白天。選「再等等」什麼都不發生；轉場中重複觸發被忽略；切場景、F5、讀檔都不會改 day。
+- 每日旗標：對話動作 `set_daily_flag`／`clear_daily_flag`、條件 `daily_flags`／`not_daily_flags`；示範是家庭屋流理台（同一天第二次互動走「已看過」版本）。
+- 天數 HUD（`scripts/ui/day_hud.gd`）：畫面上方中央「時段圖示 + 第 N 天・時段」。
+- 下層樹根廣場：`scenes.json` 主城 `tile_style: "town_refresh"`、`tile_style_rows: [23, 35]`，`TileLibrary.town_refresh_atlas_for` 依四方鄰居選
+  tileset 第 6～7 列（草地變體、石板 edge／corner、水岸 edge／corner、東西向木橋、草崖／樹根牆）；ASCII 與碰撞不變。
+- 大型 props：`assets/props/town_refresh/`，JSON 選項 `foot_x`、`foot_inset`、`glow_x`、`collision_boxes`（見 AGENTS.md）。
+
 ## 城鎮生命與日夜
 
 - 道具 JSON 可加 `frames`/`fps`（橫向多幀循環：燈籠、旗幟）、`drift: [振幅, 週期]`（雲霧水平飄移）、
@@ -188,8 +207,13 @@ scripts/
 tests/run_tests.gd       單元測試
 tools/build_assets.py    由參考圖重建所有遊戲素材（需 Pillow）
 tools/validate_map.py    地圖驗證
+tools/build_assets_phase5.py  Phase 5 城鎮更新 atlas 去格框／翻轉補齊／東西向木橋 → tileset 第 6～7 列
 docs/                    規劃、提示詞、驗證報告、截圖
 ```
+
+## 製作注意事項
+
+踩過的坑與之後產出內容的檢查清單見 `docs/PRODUCTION_NOTES.md`。
 
 ## 重建素材
 

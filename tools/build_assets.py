@@ -379,6 +379,10 @@ def main() -> None:
     import build_assets_phase4
 
     build_assets_phase4.main()
+    # Phase 5：城鎮視覺更新 atlas 去格框、補齊翻轉方向、東西向木橋 → tileset 第 6～7 列
+    import build_assets_phase5
+
+    build_assets_phase5.main()
 
 
 if __name__ == "__main__":

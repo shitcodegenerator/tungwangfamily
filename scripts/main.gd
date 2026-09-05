@@ -2,10 +2,12 @@ extends Node2D
 ## 主場景：組合世界（由 SceneRouter 依 scene_id 建立）、隊伍、鏡頭、互動、對話、任務、存檔、日夜、
 ## 撿取／投擲、炸物魔王戰鬥與寵物。這裡只做接線：
 ##   可互動物件 → 對話（依狀態挑版本）→ 任務動作；地上的投擲物 → CarrySystem；傳送門 → 路由；
-##   對話與轉場 → 輸入鎖；F6／F7 → SaveManager；戰鬥勝負 → 旗標、任務事件、回到 CC 身邊。
+##   對話與轉場 → 輸入鎖；F6／F7 → SaveManager；戰鬥勝負 → 旗標、任務事件、回到 CC 身邊；
+##   休息確認（對話 rest 動作）→ 淡出 → day +1 → 回到家庭屋 → 存檔 → 早晨轉場（Phase 5）。
 ## 帶 `-- --route-test` 參數啟動時執行自動化驗證。
 
 const ROUTE_TEST_SCRIPT := preload("res://scripts/debug/route_test.gd")
+const SNAPSHOT_SCRIPT := preload("res://scripts/debug/snapshot.gd")
 const PET_SCENE := preload("res://scenes/characters/pet_follower.tscn")
 const TELEPORT_FX := preload("res://assets/effects/fx_teleport.png")
 const ANGER_MARK := preload("res://assets/ui/anger_mark.png")
@@ -15,6 +17,8 @@ const TELEPORT_DELAY := 0.55
 const RETURN_DELAY := 0.4
 const CC_NPC_ID := "cc_penguin"
 const CC_PET_ID := "cc_penguin"
+const REST_SCENE_ID := "family_home"
+const REST_ENTRY := "rest"
 
 @onready var world_parent: Node2D = $World
 @onready var day_night: DayNightController = $World/DayNight
@@ -30,6 +34,8 @@ const CC_PET_ID := "cc_penguin"
 @onready var quest_hud: QuestHud = $QuestHud
 @onready var battle_hud: BattleHud = $BattleHud
 @onready var hud: DebugHUD = $DebugHUD
+@onready var day_hud: DayHud = $DayHud
+@onready var rest_transition: RestTransition = $RestTransition
 
 var state: GameState = GameState.new()
 var world: TownWorld
@@ -38,6 +44,7 @@ var _pending_actions: Array = []
 var _pending_interactable_id: String = ""
 var _ambient_ready: bool = false
 var _returning: bool = false
+var _resting: bool = false
 
 
 func _ready() -> void:
@@ -62,12 +69,19 @@ func _ready() -> void:
 	router.transition_finished.connect(func(_id: String) -> void: _set_input_locked(false))
 	router.load_scene(state.current_scene_id)
 	_on_daytime_changed(day_night.state_name(), day_night.index)
+	day_hud.bind(state, day_night)
 
 	var user_args := OS.get_cmdline_user_args()
 	if user_args.has("--route-test"):
 		var test: Node = ROUTE_TEST_SCRIPT.new()
 		test.name = "RouteTest"
 		add_child(test)
+	for arg: String in user_args:
+		if arg.begins_with("--snapshot="):
+			var snapshot: Node = SNAPSHOT_SCRIPT.new()
+			snapshot.name = "Snapshot"
+			add_child(snapshot)
+			break
 
 
 func _on_transition_started(_scene_id: String) -> void:
@@ -167,7 +181,7 @@ func _on_dialogue_finished() -> void:
 	_sync_pet()
 
 
-## 場景層級的動作：teleport（CC 傳送到洞窟，記住返回點）、show_anger（NPC 頭上的 💢）。
+## 場景層級的動作：teleport（CC 傳送到洞窟，記住返回點）、show_anger（NPC 頭上的 💢）、rest（休息到隔天早晨）。
 func _apply_scene_actions(actions: Array) -> void:
 	for action: Variant in actions:
 		if typeof(action) != TYPE_DICTIONARY:
@@ -176,6 +190,38 @@ func _apply_scene_actions(actions: Array) -> void:
 			_show_anger(String(action["show_anger"]))
 		if action.has("teleport"):
 			teleport_to(String(action["teleport"]))
+		if action.get("rest", false) == true:
+			rest_until_morning()
+
+
+## 休息流程：淡出 → day +1（daily_state 重置）→ 回到家庭屋的醒來點 → 存檔 → 日出卡 → 淡入 → 早晨色調漸變成白天。
+## 同一次休息只會增加 1 天：轉場進行中重複觸發會被忽略。
+func rest_until_morning() -> void:
+	if _resting or router.is_transitioning or world == null:
+		return
+	_resting = true
+	_set_input_locked(true)
+	await rest_transition.play(state.day + 1, _on_rest_dark)
+	day_night.play_morning()
+	_resting = false
+	_set_input_locked(false)
+
+
+## 畫面全黑時：進入下一天、重建家庭屋（NPC／道具依新一天的狀態）、把隊伍放到醒來點、存檔。
+func _on_rest_dark() -> void:
+	state.advance_day()
+	day_night.set_state(0, true)
+	carry.clear_all()
+	router.load_scene(REST_SCENE_ID, REST_ENTRY)
+	await get_tree().physics_frame
+	capture_runtime_state()
+	var error := SaveManager.save_state(state)
+	if not error.is_empty():
+		quest_hud.show_toast("存檔失敗：" + error)
+
+
+func is_resting() -> bool:
+	return _resting
 
 
 func _show_anger(npc_id: String) -> void:
@@ -244,7 +290,7 @@ func _sync_pet() -> void:
 
 
 func _set_input_locked(locked: bool) -> void:
-	var busy := locked or dialogue.is_active or router.is_transitioning
+	var busy := locked or dialogue.is_active or router.is_transitioning or _resting
 	party.set_input_locked(busy)
 	quest_hud.set_input_blocked(busy)
 
@@ -268,7 +314,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## 把隊伍與時段寫回狀態後存檔；失敗只提示，不影響遊戲。
 func save_game() -> String:
-	if dialogue.is_active or router.is_transitioning:
+	if dialogue.is_active or router.is_transitioning or _resting:
 		quest_hud.show_toast("對話或轉場中無法存檔")
 		return "busy"
 	capture_runtime_state()
@@ -279,7 +325,7 @@ func save_game() -> String:
 
 ## 讀檔失敗時保留目前狀態並提示；成功則還原場景、隊伍、日夜、旗標、任務、物品與寵物。
 func load_game() -> String:
-	if dialogue.is_active or router.is_transitioning:
+	if dialogue.is_active or router.is_transitioning or _resting:
 		quest_hud.show_toast("對話或轉場中無法讀檔")
 		return "busy"
 	var result := SaveManager.load_state()
@@ -305,6 +351,7 @@ func capture_runtime_state() -> void:
 func apply_state(loaded: GameState) -> void:
 	state = loaded
 	quests.bind(state)
+	day_hud.bind(state, day_night)
 	quest_hud.refresh()
 	day_night.set_state(state.time_of_day, true)
 	party.set_order_by_ids(state.party_order)

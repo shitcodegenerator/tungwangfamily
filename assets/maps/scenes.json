@@ -6,7 +6,12 @@
     "dialogue": "res://assets/dialogue/tide_root_town.json",
     "outdoor": true,
     "dark_wall_last_row": 11,
-    "legend_overrides": {}
+    "legend_overrides": {},
+    "tile_style": "town_refresh",
+    "tile_style_rows": [
+      23,
+      35
+    ]
   },
   "family_home": {
     "name": "共享家庭屋",

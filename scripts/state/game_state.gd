@@ -4,12 +4,19 @@ extends RefCounted
 ## 可序列化為 Dictionary（供 SaveManager 存成 JSON），並帶 schema_version 供欄位遷移：
 ##   v1（Phase 3）：場景、隊伍、日夜、旗標、任務、已開放場景
 ##   v2（Phase 4）：新增 inventory（物品 id → 數量）與 pet_id（跟隨中的寵物）；讀到 v1 存檔時以空值補齊
+##   v3（Phase 5）：新增 day（第幾天，從 1 起）、day_seed（該天的亂數種子）、daily_state（當天的暫時旗標，
+##                 休息進入下一天時由 reset_daily_state() 清空）；讀到 v1／v2 存檔時 day 1、空 daily_state，
+##                 既有旗標、任務、背包與寵物原樣保留。
 
 signal flag_changed(flag_name: String, value: bool)
 signal inventory_changed(item_id: String, count: int)
+## 休息確認後進入新的一天（day 已 +1、daily_state 已清空）時發出；每日重置的系統接這個 signal。
+signal day_advanced(day: int)
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 const DEFAULT_SCENE := "tide_root_town"
+## day_seed 的基底：之後若要改成「真實日期種子」，只需改 seed_for_day。
+const DAY_SEED_BASE := 20260905
 const REQUIRED_KEYS: Array[String] = ["schema_version", "current_scene_id", "flags", "quests"]
 
 var schema_version: int = SCHEMA_VERSION
@@ -29,6 +36,12 @@ var unlocked_scenes: PackedStringArray = PackedStringArray([DEFAULT_SCENE])
 var inventory: Dictionary = {}
 ## 跟隨中的寵物 id（空字串代表沒有）。
 var pet_id: String = ""
+## 第幾天（從 1 起）。只有 advance_day() 會改變；切換場景、讀檔、F5 日夜都不會。
+var day: int = 1
+## 當天的亂數種子（每日掉落、裝飾、隨機事件可重現）。
+var day_seed: int = seed_for_day(1)
+## 當天的暫時狀態（每日旗標 → true）；休息進入下一天時整份清空。
+var daily_state: Dictionary = {}
 
 
 func set_flag(flag_name: String, value: bool = true) -> void:
@@ -74,6 +87,44 @@ func has_item(item_id: String) -> bool:
 	return item_count(item_id) > 0
 
 
+# --- 每日系統（Phase 5）------------------------------------------------------
+
+## 進入下一天：只在共享家庭屋休息確認後由 Main 呼叫一次。
+func advance_day() -> void:
+	day += 1
+	day_seed = seed_for_day(day)
+	reset_daily_state()
+	day_advanced.emit(day)
+
+
+## 每日重置 hook：清空 daily_state。永久旗標、任務、背包、寵物都不在這裡，不會被清掉。
+func reset_daily_state() -> void:
+	daily_state = {}
+
+
+func set_daily_flag(flag_name: String, value: bool = true) -> void:
+	if value:
+		daily_state[flag_name] = true
+	else:
+		daily_state.erase(flag_name)
+
+
+func has_daily_flag(flag_name: String) -> bool:
+	return daily_state.get(flag_name, false) == true
+
+
+## 以 day_seed 建立的亂數產生器（同一天每次呼叫序列相同）。
+func daily_rng() -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = day_seed
+	return rng
+
+
+## 第 day 天的種子：確定性雜湊，與存檔內容無關。
+static func seed_for_day(day_number: int) -> int:
+	return int(hash("%d:%d" % [DAY_SEED_BASE, day_number])) & 0x7FFFFFFF
+
+
 func to_dict() -> Dictionary:
 	var positions := {}
 	for id: String in party_positions:
@@ -92,6 +143,9 @@ func to_dict() -> Dictionary:
 		"unlocked_scenes": Array(unlocked_scenes),
 		"inventory": inventory.duplicate(true),
 		"pet_id": pet_id,
+		"day": day,
+		"day_seed": day_seed,
+		"daily_state": daily_state.duplicate(true),
 	}
 
 
@@ -140,6 +194,15 @@ static func from_dict(data: Dictionary) -> Dictionary:
 			if count > 0:
 				state.inventory[item_id] = count
 	state.pet_id = String(data.get("pet_id", ""))
+	# v3 欄位：v1／v2 存檔沒有，補 day 1 與空 daily_state；不合法的值也退回預設
+	state.day = maxi(1, int(data.get("day", 1)))
+	state.day_seed = int(data.get("day_seed", seed_for_day(state.day)))
+	state.daily_state = {}
+	var raw_daily: Variant = data.get("daily_state", {})
+	if typeof(raw_daily) == TYPE_DICTIONARY:
+		for key: String in raw_daily:
+			if raw_daily[key] == true:
+				state.daily_state[key] = true
 	return {"state": state, "error": ""}
 
 

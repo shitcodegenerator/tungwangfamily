@@ -252,12 +252,12 @@
       ]
     },
     {
-      "texture": "house_tree_door",
+      "texture": "town_refresh/shared_family_treehouse_v2",
       "x": 144,
       "y": 672,
       "collision": [
-        84,
-        64
+        150,
+        60
       ]
     },
     {
@@ -357,101 +357,56 @@
       "glow_y": 14
     },
     {
-      "texture": "lamp_post",
-      "x": 272,
-      "y": 864,
-      "collision": [
-        10,
-        8
-      ],
-      "frames": 4,
-      "fps": 5,
-      "glow": true,
-      "glow_y": 14
-    },
-    {
-      "texture": "lamp_post",
-      "x": 720,
+      "texture": "town_refresh/lantern_post_v2",
+      "x": 176,
       "y": 960,
       "collision": [
         10,
         8
       ],
-      "frames": 4,
-      "fps": 5,
+      "foot_x": 60,
       "glow": true,
-      "glow_y": 14
+      "glow_x": 36,
+      "glow_y": 43
     },
     {
-      "texture": "lamp_post",
-      "x": 336,
-      "y": 1024,
-      "collision": [
-        10,
-        8
-      ],
-      "frames": 4,
-      "fps": 5,
-      "glow": true,
-      "glow_y": 14
-    },
-    {
-      "texture": "lamp_post",
-      "x": 624,
-      "y": 1024,
-      "collision": [
-        10,
-        8
-      ],
-      "frames": 4,
-      "fps": 5,
-      "glow": true,
-      "glow_y": 14
-    },
-    {
-      "texture": "crate",
+      "texture": "town_refresh/lantern_post_v2",
       "x": 688,
-      "y": 832,
+      "y": 1056,
       "collision": [
-        26,
-        20
-      ]
+        10,
+        8
+      ],
+      "foot_x": 60,
+      "glow": true,
+      "glow_x": 36,
+      "glow_y": 43
     },
     {
-      "texture": "crate",
-      "x": 720,
-      "y": 832,
+      "texture": "town_refresh/lantern_post_v2",
+      "x": 400,
+      "y": 1088,
       "collision": [
-        26,
-        20
-      ]
+        10,
+        8
+      ],
+      "foot_x": 60,
+      "glow": true,
+      "glow_x": 36,
+      "glow_y": 43
     },
     {
-      "texture": "crate",
-      "x": 176,
-      "y": 864,
+      "texture": "town_refresh/lantern_post_v2",
+      "x": 592,
+      "y": 1056,
       "collision": [
-        26,
-        20
-      ]
-    },
-    {
-      "texture": "crate",
-      "x": 176,
-      "y": 896,
-      "collision": [
-        26,
-        20
-      ]
-    },
-    {
-      "texture": "rock_moss",
-      "x": 240,
-      "y": 832,
-      "collision": [
-        30,
-        18
-      ]
+        10,
+        8
+      ],
+      "foot_x": 60,
+      "glow": true,
+      "glow_x": 36,
+      "glow_y": 43
     },
     {
       "texture": "signpost",
@@ -463,13 +418,14 @@
       ]
     },
     {
-      "texture": "signpost",
-      "x": 720,
+      "texture": "town_refresh/blank_signpost_v2",
+      "x": 736,
       "y": 864,
       "collision": [
         12,
         8
-      ]
+      ],
+      "foot_x": 25
     },
     {
       "texture": "signpost",
@@ -717,12 +673,60 @@
       "fps": 4
     },
     {
-      "texture": "breakfast_stall",
-      "x": 240,
-      "y": 948,
+      "texture": "town_refresh/breakfast_stall_v2",
+      "x": 208,
+      "y": 900,
       "collision": [
-        48,
-        18
+        132,
+        36
+      ]
+    },
+    {
+      "texture": "town_refresh/heart_fountain_v2",
+      "x": 640,
+      "y": 992,
+      "collision": [
+        96,
+        40
+      ]
+    },
+    {
+      "texture": "town_refresh/root_archway_v2",
+      "x": 480,
+      "y": 762,
+      "collision": null,
+      "foot_inset": 38,
+      "collision_boxes": [
+        [
+          49,
+          40,
+          -57,
+          0
+        ],
+        [
+          57,
+          40,
+          62,
+          0
+        ]
+      ]
+    },
+    {
+      "texture": "town_refresh/harbor_crate_barrel_v2",
+      "x": 672,
+      "y": 832,
+      "collision": [
+        88,
+        28
+      ]
+    },
+    {
+      "texture": "town_refresh/flower_herb_bed_v2",
+      "x": 272,
+      "y": 1088,
+      "collision": [
+        100,
+        30
       ]
     }
   ]

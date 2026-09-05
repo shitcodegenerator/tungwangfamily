@@ -39,6 +39,24 @@
         9,
         7
       ]
+    ],
+    "rest": [
+      [
+        2,
+        6
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        4,
+        9
+      ]
     ]
   },
   "zones": [
@@ -158,7 +176,17 @@
       "x": 40,
       "y": 212,
       "collision": null,
-      "z_bias": -1
+      "z_bias": -1,
+      "interact": "family_rest_door",
+      "interact_size": [
+        72,
+        48
+      ],
+      "prompt_icon": "rest_prompt",
+      "prompt_offset": [
+        16,
+        -44
+      ]
     },
     {
       "texture": "int_side_door",

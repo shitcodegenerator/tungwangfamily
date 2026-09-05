@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/characters/party_controller.gd" id="3_party"]
@@ -15,6 +15,8 @@
 [ext_resource type="Script" path="res://scripts/battle/carry_system.gd" id="14_carry"]
 [ext_resource type="Script" path="res://scripts/battle/battle_director.gd" id="15_battle"]
 [ext_resource type="PackedScene" path="res://scenes/ui/battle_hud.tscn" id="16_battle_hud"]
+[ext_resource type="Script" path="res://scripts/ui/day_hud.gd" id="17_day_hud"]
+[ext_resource type="Script" path="res://scripts/ui/rest_transition.gd" id="18_rest"]
 
 [node name="Main" type="Node2D"]
 y_sort_enabled = true
@@ -61,5 +63,13 @@ script = ExtResource("9_dialogue")
 [node name="QuestHud" parent="." instance=ExtResource("13_quest_hud")]
 
 [node name="BattleHud" parent="." instance=ExtResource("16_battle_hud")]
+
+[node name="DayHud" type="CanvasLayer" parent="."]
+layer = 15
+script = ExtResource("17_day_hud")
+
+[node name="RestTransition" type="CanvasLayer" parent="."]
+layer = 45
+script = ExtResource("18_rest")
 
 [node name="DebugHUD" parent="." instance=ExtResource("5_hud")]
