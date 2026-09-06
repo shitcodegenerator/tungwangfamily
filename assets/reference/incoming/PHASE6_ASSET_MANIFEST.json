@@ -1,0 +1,41 @@
+{
+  "phase": 6,
+  "title": "captain_room_first_anomaly",
+  "base_commit": "0a0c0b2b19204ca73ea50051c6ca73dff0da3397",
+  "new_visual_assets": [
+    {
+      "path": "assets/shaders/captain_room_waterlight.gdshader",
+      "type": "canvas_item_shader",
+      "purpose": "船長房間舷窗低強度水光與事件瞬間微脈衝"
+    }
+  ],
+  "event_spec": [
+    {
+      "path": "assets/reference/incoming/PHASE6_EVENT_SPEC.json",
+      "type": "implementation_reference",
+      "purpose": "船長房間物品自行移動的資料規格"
+    }
+  ],
+  "reused_visual_assets": [
+    "assets/props/cap_rope_coil.png",
+    "assets/props/cap_chart_desk.png",
+    "assets/props/cap_porthole.png",
+    "assets/effects/character_shadow.png",
+    "assets/effects/pet_shadow.png",
+    "assets/ui/dialogue_frame.png",
+    "assets/ui/interact_prompt.png",
+    "assets/characters",
+    "assets/portraits"
+  ],
+  "new_character_art": false,
+  "new_npc_art": false,
+  "default_event_target": "cap_rope_coil",
+  "daily_drop_policy": "daily_state resets on confirmed home rest; permanent story flags remain",
+  "quality_gate": [
+    "No whole-scene background PNG replacement",
+    "No character sprite regeneration",
+    "Nearest filtering",
+    "No baked collision or baked character shadows",
+    "Run validate_map, unit tests, route test, and visual snapshots"
+  ]
+}

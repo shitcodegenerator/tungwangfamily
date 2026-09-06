@@ -1,0 +1,90 @@
+{
+  "phase": 6,
+  "title": "captain_room_first_anomaly",
+  "base_commit": "0a0c0b2b19204ca73ea50051c6ca73dff0da3397",
+  "status": "implementation_spec",
+  "event_id": "captain_room_moving_item",
+  "scene_id": "captain_room",
+  "trigger": {
+    "type": "interact_complete",
+    "interactable_id": "captain_chart_table"
+  },
+  "once": true,
+  "requires": {
+    "not_flags": [
+      "captain_room_moving_item_seen"
+    ]
+  },
+  "default_target": {
+    "target_id": "captain_mystery_item",
+    "source_prop": "cap_rope_coil",
+    "note": "技術預設，不代表正式劇情已決定物品名稱；未來可替換為羅盤或紙張。"
+  },
+  "actions": [
+    {
+      "type": "lock_input"
+    },
+    {
+      "type": "wait",
+      "seconds": 0.18
+    },
+    {
+      "type": "tween_node",
+      "target": "captain_mystery_item",
+      "property": "position",
+      "offset": [
+        20,
+        0
+      ],
+      "seconds": 1.0,
+      "ease": "in_out"
+    },
+    {
+      "type": "tween_node",
+      "target": "captain_mystery_item",
+      "property": "rotation",
+      "value": 0.06,
+      "seconds": 0.18,
+      "ease": "out"
+    },
+    {
+      "type": "tween_node",
+      "target": "captain_mystery_item",
+      "property": "rotation",
+      "value": 0.0,
+      "seconds": 0.22,
+      "ease": "in_out"
+    },
+    {
+      "type": "shader_param",
+      "target": "captain_room_waterlight",
+      "parameter": "event_pulse",
+      "value": 1.0,
+      "seconds": 0.8
+    },
+    {
+      "type": "dialogue",
+      "dialogue_id": "captain_room_moving_item_reaction"
+    },
+    {
+      "type": "set_flag",
+      "flag": "captain_room_moving_item_seen"
+    },
+    {
+      "type": "clue",
+      "clue_id": "captain_room_moving_item"
+    },
+    {
+      "type": "unlock_input"
+    }
+  ],
+  "cancel_policy": {
+    "complete_flag_written_after": "all_actions_before_unlock_complete",
+    "if_interrupted": "restore_target_transform_and_leave_flag_unset"
+  },
+  "daily_reset": {
+    "reset": false,
+    "reason": "這是第一章永久線索，不是每日掉落物。"
+  },
+  "temporary_dialogue_note": "四位角色反應先標 TEMP_DEMO_CONTENT；正式文字由作者後續提供。"
+}
