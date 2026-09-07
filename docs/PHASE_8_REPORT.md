@@ -25,6 +25,7 @@
 | 檔案 | 變更 |
 |---|---|
 | assets/maps/family_home_props.json | 7 件家具 collision 高度加深（int_stove 86、int_kitchen_counter 44、int_back_door 72、int_yarn_cabinet 74、int_sewing_table 66、int_dining_table 70、int_kids_corner 58） |
+| assets/maps/tide_root_town_props.json | 作者選 A：封住 4 個大型物件北側口袋——breakfast_stall_v2 119、heart_fountain_v2 96（113 會封掉老龜站位）、harbor_crate_barrel_v2 86、flower_herb_bed_v2 116；validate_map 通過、單元測試 343；依作者指示未重跑 route test |
 | assets/maps/captain_room_props.json | 8 件家具 collision 高度加深（cap_coat_rack 99、cap_rod_rack 149、cap_bookshelf 112、cap_chart_desk 104、cap_chest_bench 54、cap_side_table 112、cap_chest_stack 56、cap_fish_crate 80） |
 | scripts/ui/debug_hud.gd、scripts/main.gd、project.godot | 除錯狀態列預設隱藏；`--route-test`／`--snapshot=`／`--debug-hud` 或 F2（debug_toggle_status）才顯示；對話隱藏／恢復不會把停用的狀態列打開 |
 | tools/build_assets_phase5.py | 新增 `--atlas <path>`、`--frame N`（乾淨版用 0）；預設行為與輸出不變 |
@@ -65,7 +66,7 @@ x、y、貼圖、z_bias、傳送門、出生點、ASCII 地圖、tile_style_rows
 
 ## 仍需作者確認
 
-1. 戶外大型 props 北側口袋（breakfast_stall 第 25～26 列 5 格、heart_fountain、harbor_crate_barrel、flower_herb_bed）：加深碰撞會封掉那些格子。要封（角色不會走進去消失）還是保留可走（接受被蓋）？本批未動。
+1. 戶外大型 props 北側口袋：作者已選封住（已套用，見上表）。
 2. 船長房間家具：作者已決定整批重出 v3（15 張），manifest 已列。
 3. int_kids_corner 與 cap_chest_stack 因保留互動站位只能加深到 58／56，站在它們北側口袋仍會被蓋 47／42px；若要完全解決需微調家具位置（版面決定）。
 

@@ -61,7 +61,7 @@ cap_rope_coil 也一起重出以統一風格，但必須維持 55×40、透明�
 規格：尺寸沿用原檔、底緣＝接地線、真透明、不烙地板、不烙陰影、深靛／暖棕／琥珀色盤、左上光源；碰撞沿用本次修正後的值。
 來源檔放 assets/reference/incoming/PHASE8_interior_furniture_v3_source.png，遊戲讀取的 PNG 用新檔名 `cap_*_v3.png`，props JSON 切換，舊檔保留。
 
-## 4. 戶外 props：不套用，列給作者決定
+## 4. 戶外 props：作者 2026-09-07 決定封住大型物件北側口袋（已套用）
 
 盤點腳本對戶外也算出「北側被蓋」，但這些多屬自然遮擋，且加深碰撞會改變廣場可走區，違反「不因美術修正改可走性」：
 
@@ -69,10 +69,10 @@ cap_rope_coil 也一起重出以統一風格，但必須維持 55×40、透明�
 |---|---:|---|
 | house_*（5 棟，各 32px） | 32 | KEEP：站在房子後面被屋簷蓋腳是正常 RPG 遮擋 |
 | lamp_post×4、lantern_post_v2×4、signpost×2、blank_signpost_v2、flag_banner×4、bulletin_board | 24～73 | KEEP：柱狀薄物件或告示，走到後面自然被擋 |
-| breakfast_stall_v2 | 99 | 待作者確認：第 25～26 列在攤位後方有 5 格草地可走進去消失；碰撞 36→119 會封掉那 5 格 |
-| heart_fountain_v2 | 89 | 待作者確認：噴泉北側第 29 列 |
-| harbor_crate_barrel_v2 | 74 | 待作者確認：木箱北側第 24 列 |
-| flower_herb_bed_v2 | 102 | 待作者確認：花圃北側第 32 列 |
+| breakfast_stall_v2 | 99 | 已套用：碰撞 36→119，第 25～26 列攤位後方 5 格封住 |
+| heart_fountain_v2 | 89→33 | 已套用：碰撞 40→96（碰撞頂對齊 y=896；113 會封掉市集老龜的站位 (20,27)），第 28 列封住 |
+| harbor_crate_barrel_v2 | 74 | 已套用：碰撞 28→86 |
+| flower_herb_bed_v2 | 102 | 已套用：碰撞 30→116 |
 | shared_family_treehouse_v2 | 38 | 隨 v3 素材處理（見計畫 5-1） |
 | root_archway_v2 | 88 | 隨 v3 拆層處理 |
 

@@ -578,6 +578,6 @@
   ],
   "author_decisions_2026_09_07": {
     "captain_room_furniture": "redraw whole set as v3 (15 files)",
-    "outdoor_prop_pockets": "pending"
+    "outdoor_prop_pockets": "sealed by deeper collision (applied in tide_root_town_props.json)"
   }
 }
