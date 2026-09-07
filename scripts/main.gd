@@ -84,12 +84,15 @@ func _ready() -> void:
 		var test: Node = ROUTE_TEST_SCRIPT.new()
 		test.name = "RouteTest"
 		add_child(test)
+	var wants_status_hud := user_args.has("--route-test") or user_args.has("--debug-hud")
 	for arg: String in user_args:
 		if arg.begins_with("--snapshot="):
 			var snapshot: Node = SNAPSHOT_SCRIPT.new()
 			snapshot.name = "Snapshot"
 			add_child(snapshot)
+			wants_status_hud = true
 			break
+	hud.enable_status(wants_status_hud)
 
 
 ## 事件執行器只透過 Callable 認識世界：目標節點由 TownWorld 的 event_id 登錄提供、輸入鎖走 _set_input_locked、

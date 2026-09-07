@@ -98,7 +98,7 @@
       "y": 114,
       "collision": [
         46,
-        30
+        86
       ]
     },
     {
@@ -107,7 +107,7 @@
       "y": 110,
       "collision": [
         108,
-        26
+        44
       ],
       "interact": "kitchen_counter"
     },
@@ -117,7 +117,7 @@
       "y": 96,
       "collision": [
         48,
-        20
+        72
       ]
     },
     {
@@ -126,7 +126,7 @@
       "y": 112,
       "collision": [
         50,
-        26
+        74
       ]
     },
     {
@@ -149,7 +149,7 @@
       "y": 176,
       "collision": [
         76,
-        40
+        66
       ],
       "interact": "sewing_table"
     },
@@ -201,7 +201,7 @@
       "y": 262,
       "collision": [
         112,
-        46
+        70
       ],
       "interact": "family_table",
       "interact_size": [
@@ -215,7 +215,7 @@
       "y": 282,
       "collision": [
         112,
-        50
+        58
       ],
       "interact": "kids_corner"
     }

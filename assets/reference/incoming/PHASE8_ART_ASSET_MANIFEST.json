@@ -237,6 +237,278 @@
       "sha256": null,
       "status": "audit_then_produce_if_needed",
       "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
+    },
+    {
+      "id": "cap_chart_desk_v3",
+      "path": "assets/props/cap_chart_desk_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        178,
+        120
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_side_table_v3",
+      "path": "assets/props/cap_side_table_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        140,
+        128
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_rod_rack_v3",
+      "path": "assets/props/cap_rod_rack_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        108,
+        165
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_bookshelf_v3",
+      "path": "assets/props/cap_bookshelf_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        80,
+        128
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_chest_stack_v3",
+      "path": "assets/props/cap_chest_stack_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        102,
+        98
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_fish_crate_v3",
+      "path": "assets/props/cap_fish_crate_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        102,
+        98
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_coat_rack_v3",
+      "path": "assets/props/cap_coat_rack_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        65,
+        115
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_chest_bench_v3",
+      "path": "assets/props/cap_chest_bench_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        52,
+        70
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_barrel_v3",
+      "path": "assets/props/cap_barrel_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        40,
+        48
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_wall_map_v3",
+      "path": "assets/props/cap_wall_map_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        102,
+        78
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_painting_v3",
+      "path": "assets/props/cap_painting_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        48,
+        40
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_porthole_v3",
+      "path": "assets/props/cap_porthole_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        72,
+        78
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "note": "keeps shader captain_room_waterlight on Sprite2D"
+    },
+    {
+      "id": "cap_hanging_lantern_v3",
+      "path": "assets/props/cap_hanging_lantern_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        45,
+        78
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_rug_v3",
+      "path": "assets/props/cap_rug_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        215,
+        128
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+    },
+    {
+      "id": "cap_rope_coil_v3",
+      "path": "assets/props/cap_rope_coil_v3.png",
+      "kind": "interior_furniture",
+      "size": [
+        55,
+        40
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "embedded_floor_or_wall": false,
+      "preserve": "existing_prop_origin_and_phase8_collision",
+      "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": null,
+      "status": "to_produce",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "note": "event target captain_mystery_item: keep 55x40, transparent, same position; redraw only to match the new set"
     }
   ],
   "conditional_assets": [
@@ -249,13 +521,6 @@
         128
       ],
       "condition": "only_if_phase8_baseline_shows_void_or_platform_gaps_after_gate_cleanup",
-      "status": "audit_required"
-    },
-    {
-      "id": "interior_furniture_v3",
-      "path": "assets/reference/incoming/PHASE8_interior_furniture_v3_source.png",
-      "kind": "source_contact_sheet",
-      "condition": "redraw only the furniture that fails the ART_STYLE_LOCK audit; do not regenerate the entire cast or room blindly",
       "status": "audit_required"
     }
   ],
@@ -310,5 +575,9 @@
   "work_branch": "phase-8-art-complete",
   "unused_assets": [
     "assets/props/house_tree_door.png"
-  ]
+  ],
+  "author_decisions_2026_09_07": {
+    "captain_room_furniture": "redraw whole set as v3 (15 files)",
+    "outdoor_prop_pockets": "pending"
+  }
 }

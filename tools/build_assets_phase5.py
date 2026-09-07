@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import argparse
+
 from PIL import Image
 
 from build_assets import OUT_TILES, ROOT, TILE
@@ -102,17 +104,18 @@ def bridge_east_west(planks: Image.Image) -> tuple[Image.Image, Image.Image]:
     return top, bottom
 
 
-def build_refresh_tiles() -> None:
-    if not is_valid_png(REFRESH_ATLAS):
-        print(f"略過 Phase 5 tile：{REFRESH_ATLAS} 不是合法 PNG")
+def build_refresh_tiles(atlas_path: Path = REFRESH_ATLAS, frame: int = FRAME_PX) -> None:
+    if not is_valid_png(atlas_path):
+        print(f"略過 Phase 5 tile：{atlas_path} 不是合法 PNG")
         return
-    src = Image.open(REFRESH_ATLAS).convert("RGBA")
+    src = Image.open(atlas_path).convert("RGBA")
     if src.size != (8 * TILE, 4 * TILE):
         raise SystemExit(f"城鎮更新 atlas 尺寸應為 256×128，實際 {src.size}")
     fixed: dict[tuple[int, int], Image.Image] = {}
     for row in range(4):
         for column in range(8):
-            fixed[(column, row)] = deframe(src.crop((column * TILE, row * TILE, (column + 1) * TILE, (row + 1) * TILE)))
+            cell = src.crop((column * TILE, row * TILE, (column + 1) * TILE, (row + 1) * TILE))
+            fixed[(column, row)] = deframe(cell, frame) if frame > 0 else cell
     for target, source in FLIPPED_FROM.items():
         fixed[target] = fixed[source].transpose(Image.FLIP_TOP_BOTTOM)
     bridge_top, bridge_bottom = bridge_east_west(fixed[BRIDGE_SOURCE])
@@ -135,7 +138,13 @@ def build_refresh_tiles() -> None:
 
 
 def main() -> None:
-    build_refresh_tiles()
+    """--atlas：來源 atlas 路徑（預設 Phase 5 的 town_visual_refresh_tiles_32.png）。
+    --frame：每格四邊要去掉的格框厚度；Phase 5 交付有 2px 亮暗框，Phase 8 乾淨版 v3 請給 0。"""
+    parser = argparse.ArgumentParser(description="城鎮視覺更新 atlas → tileset 第 6～7 列")
+    parser.add_argument("--atlas", type=Path, default=REFRESH_ATLAS, help="來源 8×4 atlas（256×128）")
+    parser.add_argument("--frame", type=int, default=FRAME_PX, help="每格去框厚度 px，乾淨版 atlas 用 0")
+    args = parser.parse_args()
+    build_refresh_tiles(args.atlas, args.frame)
 
 
 if __name__ == "__main__":

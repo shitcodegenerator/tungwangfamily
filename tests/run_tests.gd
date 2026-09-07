@@ -73,6 +73,7 @@ func _initialize() -> void:
 	test_phase7_props()
 	await test_phase6_runner()
 	await test_phase7_ui()
+	await test_phase8_ui()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -1300,3 +1301,25 @@ func test_phase7_ui() -> void:
 	_assert(hud.is_log_open(), "解鎖後 J 打開日誌")
 	hud.queue_free()
 	quests.free()
+
+
+## Phase 8：除錯狀態列預設隱藏，只在 enable_status(true) 後顯示；對話隱藏／恢復不會把停用的狀態列打開。
+func test_phase8_ui() -> void:
+	await process_frame
+	var hud: DebugHUD = load("res://scenes/ui/debug_hud.tscn").instantiate()
+	root.add_child(hud)
+	await process_frame
+	_assert(not hud.status_panel.visible and not hud.status_enabled, "狀態列預設隱藏")
+	hud.set_status_visible(true)
+	_assert(not hud.status_panel.visible, "未啟用時 set_status_visible(true) 不顯示")
+	hud.enable_status(true)
+	_assert(hud.status_panel.visible and hud.status_enabled, "enable_status(true) 顯示狀態列")
+	hud.set_status_visible(false)
+	_assert(not hud.status_panel.visible, "對話中暫時隱藏")
+	hud.set_status_visible(true)
+	_assert(hud.status_panel.visible, "對話結束恢復顯示")
+	hud.enable_status(false)
+	_assert(not hud.status_panel.visible, "enable_status(false) 關閉狀態列")
+	_assert(InputMap.has_action("debug_toggle_status"), "project.godot 登錄 debug_toggle_status（F2）")
+	_assert(hud.HELP_TEXT.contains("F2"), "測試資訊面板提示 F2")
+	hud.queue_free()

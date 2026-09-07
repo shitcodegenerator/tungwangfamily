@@ -216,6 +216,19 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 
 其他備註：assets/props/house_tree_door.png 沒有任何場景使用，盤點時列為 UNUSED，不重出。
 
+## 5-2. 本地進度（2026-09-07）
+
+| 分段 | 狀態 | 產出 |
+|---|---|---|
+| P8.0 盤點 | 完成 | docs/PHASE_8_ASSET_AUDIT.md、docs/PHASE_8_ASSET_AUDIT_TABLE.md、docs/screenshots/phase8_baseline/（19 張場景截圖＋6 張對照表）、tools/audit_props_phase8.py、tools/contact_sheet_phase8.py、tools/montage_phase8.py |
+| P8.3 室內家具層級 | 完成（資料層） | family_home_props.json／captain_room_props.json 15 件家具碰撞加深；validate_map、343 測試通過；after_collision 截圖 |
+| P8.2 builder 準備 | 完成 | tools/build_assets_phase5.py 支援 `--atlas`／`--frame 0`，預設輸出不變 |
+| P8.5 展示模式 | 完成 | 除錯狀態列預設隱藏，`--route-test`／`--snapshot`／`--debug-hud` 或 F2 才顯示 |
+| P8.1 樹屋 v3／拱門拆層 | 等素材 | 依 manifest：shared_family_treehouse_v3（176×96，底 16px 踏墊）、root_archway_v3_base／canopy（176×166） |
+| P8.2 中層 atlas v3 | 等素材 | town_visual_refresh_tiles_32_v3.png → `python3 tools/build_assets_phase5.py --atlas <path> --frame 0` → tile_style_rows [12,35] |
+| 上層 fill pack | 等素材＋程式 | upper_canopy_fill_pack ＋ tile_library 補 `.`／`T`／`c` |
+| 船長房間家具 v3 | 等素材（作者 2026-09-07 決定整批 15 張重出） | 見盤點第 3 節與 manifest cap_*_v3；尺寸沿用、碰撞沿用本批數值、繩圈維持事件規格 |
+
 ## 5. 不要在 Phase 8 做的事
 
 - 不新增正式劇情、正式 Boss、NPC 或父親離世演出。
