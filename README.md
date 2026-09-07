@@ -1,4 +1,4 @@
-# 山海樹港 RPG — Phase 4：CC 與炸物魔王戰鬥切片
+# 山海樹港 RPG — Phase 6：船長房間的第一個異常事件
 
 Godot 4.7 / GDScript / Compatibility renderer 的 2D 原型。
 Phase 1：可以走、可以切換角色、其他人會跟隨、可以在一張連續的巨大樹洞城裡上下探索。
@@ -7,6 +7,9 @@ Phase 3：集中式 GameState、JSON 存檔（F6／F7）、場景路由（主城
 國王企鵝船長與市集老龜 NPC、資料驅動任務與任務日誌（J）、TEMP_DEMO_CONTENT 測試任務。
 Phase 4：阿嬤早餐攤與 CC、香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、五次命中掉炸雞翅、
 受傷變色、戰敗重來、對話選項（接受／拒絕 CC 加入）、CC 非戰鬥寵物跟隨、弟弟操控時較快。
+Phase 4.6：4 幀行走表與待機表、接地陰影、隊伍分離、洞窟正式 tile。Phase 5：每日循環（休息→隔天早晨、每日旗標、天數 HUD）
+與下層樹根廣場新 atlas。Phase 6：資料驅動的世界事件執行器、船長房間「物品自行移動」事件（輸入鎖、位移、四人反應、
+永久旗標與線索、中斷還原）、舷窗水光 Shader。
 
 ## 執行
 
@@ -53,7 +56,7 @@ godot --headless --path . -s res://tests/run_tests.gd
 caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
 ```
 
-驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_5_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_6_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
 
 美術版面檢查（不做斷言，只截圖）：
 

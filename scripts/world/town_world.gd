@@ -52,6 +52,8 @@ var map_data: Dictionary = {}
 var dialogue_data: Dictionary = {}
 var lamp_props: Array[TownProp] = []
 var npcs: Array[NpcCharacter] = []
+## 事件目標登錄（Phase 6）：props JSON 的 event_id → 節點；WorldEventRunner 以 id 尋找要移動或改 Shader 的節點。
+var event_targets: Dictionary = {}
 
 
 ## 在 add_child 之前呼叫：依場景登錄表設定資料檔路徑與 tile 選項。
@@ -153,10 +155,25 @@ func _build_props() -> void:
 			_register_prop_blocking(Vector2(rect.get_center().x, rect.end.y), rect.size)
 		if prop.has_glow():
 			lamp_props.append(prop)
+		if entry.has("event_id"):
+			_register_event_target(String(entry["event_id"]), prop)
 		if entry.has("interact"):
 			var size := _vector_from(entry.get("interact_size"), collision_size + INTERACT_PADDING)
 			var center := prop.position + Vector2(0.0, -size.y / 2.0 + 4.0)
 			_add_interactable(StringName(String(entry["interact"])), center, size, entry)
+
+
+func _register_event_target(id: String, node: Node) -> void:
+	if event_targets.has(id):
+		push_error("事件目標 id 重複：%s（%s）" % [id, props_path])
+		return
+	event_targets[id] = node
+
+
+## 事件目標節點；沒有登錄或已釋放時回傳 null。
+func get_event_target(id: String) -> Node:
+	var node: Variant = event_targets.get(id)
+	return node if node is Node and is_instance_valid(node) else null
 
 
 ## 建立可互動 Area2D（物理層 3）；對話內容從 dialogue JSON 依 id 取得（可為版本陣列）。

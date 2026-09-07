@@ -27,6 +27,8 @@ const BattleHudScript := preload("res://scripts/ui/battle_hud.gd")
 const TownWorldScript := preload("res://scripts/world/town_world.gd")
 const RestTransitionScript := preload("res://scripts/ui/rest_transition.gd")
 const DayHudScript := preload("res://scripts/ui/day_hud.gd")
+const WorldEventRunnerScript := preload("res://scripts/events/world_event_runner.gd")
+const WorldEventLibraryScript := preload("res://scripts/events/world_event_library.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -66,6 +68,9 @@ func _initialize() -> void:
 	test_daily_flags_in_dialogue()
 	test_phase5_props()
 	test_phase5_ui()
+	test_phase6_event_data()
+	test_phase6_clues()
+	await test_phase6_runner()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -951,3 +956,218 @@ func test_phase5_ui() -> void:
 	_assert(frame.region == Rect2(192, 0, 64, 64) and RestTransitionScript.frame_texture(9).region.position.x == 192, "日出第 4 幀取自 x=192，超出範圍夾到最後一幀")
 	_assert(RestTransitionScript.day_label(7) == "第 7 天" and DayHudScript.text_for(3, "早晨") == "第 3 天・早晨", "轉場與 HUD 的天數文字")
 	_assert(DayHudScript.icon_texture(2).region == Rect2(48, 0, 24, 24), "HUD 圖示取自圖示表第 3 格")
+
+
+## Phase 6：事件資料、觸發條件、對話段落、Shader 與 props 登錄（純資料，不需要場景樹）。
+func test_phase6_event_data() -> void:
+	var library: WorldEventLibrary = WorldEventLibraryScript.new()
+	library.load_all()
+	_assert(library.events.has("captain_room_moving_item"), "事件庫載入 captain_room_moving_item")
+	var event: Dictionary = library.events.get("captain_room_moving_item", {})
+	_assert(WorldEventLibraryScript.validate(event).is_empty(), "船長房間事件資料通過驗證（%s）" % ", ".join(WorldEventLibraryScript.validate(event)))
+	_assert(not WorldEventLibraryScript.validate({"event_id": "x"}).is_empty(), "缺少 scene_id／trigger／actions 的事件驗證失敗")
+	var bad_once := {"event_id": "x", "scene_id": "captain_room", "trigger": {"type": "interact_complete", "interactable_id": "a"}, "once": true, "actions": [{"type": "unlock_input"}]}
+	_assert(not WorldEventLibraryScript.validate(bad_once).is_empty(), "once 事件缺少 complete_flag 或 set_flag 動作時驗證失敗")
+	var types: Array[String] = []
+	for action: Dictionary in event["actions"]:
+		types.append(String(action["type"]))
+	_assert(types[0] == "lock_input" and types.back() == "unlock_input" and types.find("set_flag") < types.find("unlock_input") and types.find("tween_node") > 0, "動作順序：先鎖輸入，set_flag 在 unlock_input 之前")
+	var offset_action: Dictionary = {}
+	for action: Dictionary in event["actions"]:
+		if String(action["type"]) == "tween_node" and String(action.get("property", "")) == "position":
+			offset_action = action
+	var dx := float(offset_action.get("offset", [0, 0])[0])
+	_assert(dx >= 16.0 and dx <= 24.0 and float(offset_action.get("seconds", 0.0)) >= 0.8, "物件位移 16～24px、耗時約 1 秒")
+
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	var found := library.find_triggered("interact_complete", "captain_chart_table", "captain_room", state, quests)
+	_assert(String(found.get("event_id", "")) == "captain_room_moving_item", "航海圖桌互動結束會找到船長房間事件")
+	_assert(library.find_triggered("interact_complete", "captain_chart_table", "tide_root_town", state, quests).is_empty(), "其他場景不會觸發")
+	_assert(library.find_triggered("interact_complete", "captain_porthole", "captain_room", state, quests).is_empty(), "其他互動點不會觸發")
+	state.set_flag("captain_room_moving_item_seen")
+	_assert(library.find_triggered("interact_complete", "captain_chart_table", "captain_room", state, quests).is_empty(), "已有完成旗標時不再觸發（once）")
+	state.advance_day()
+	_assert(state.has_flag("captain_room_moving_item_seen") and state.daily_state.is_empty(), "換日不會清除事件永久旗標")
+	state.set_flag("captain_room_moving_item_seen", false)
+	state.set_daily_flag("demo_counter_checked_today")
+	state.advance_day()
+	_assert(not state.has_daily_flag("demo_counter_checked_today") and not library.find_triggered("interact_complete", "captain_chart_table", "captain_room", state, quests).is_empty(), "每日旗標照常重置；旗標清除後事件可再觸發")
+
+	var dialogue: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/dialogue/captain_room.json"))
+	var reaction: Variant = dialogue.get("captain_room_moving_item_reaction")
+	var segments := WorldEventLibraryScript.dialogue_segments(reaction, state, quests)
+	_assert(segments.size() == 4, "四位角色各一段反應（CC 未加入時 %d 段）" % segments.size())
+	var speakers := PackedStringArray()
+	var all_temp := true
+	for segment: Dictionary in segments:
+		speakers.append(String(segment["speaker"]))
+		all_temp = all_temp and String(segment["lines"][0]).contains("TEMP_DEMO_CONTENT")
+	_assert(speakers == PackedStringArray(["哥哥", "冷靜哥", "弟弟", "妹妹"]) and all_temp, "反應順序哥哥→冷靜哥→弟弟→妹妹，且都標 TEMP_DEMO_CONTENT")
+	state.set_flag("cc_joined")
+	var with_cc := WorldEventLibraryScript.dialogue_segments(reaction, state, quests)
+	var cc_line := String(with_cc.back()["lines"][0]) if with_cc.size() == 5 else ""
+	_assert(with_cc.size() == 5 and String(with_cc.back()["speaker"]) == "CC" and cc_line.ends_with("です。") and cc_line.length() < 24, "CC 在隊伍時多一段短句反應、句尾です")
+	var plain := WorldEventLibraryScript.dialogue_segments(dialogue["captain_chart_table"], state, quests)
+	_assert(plain.size() == 1 and not plain[0]["lines"].is_empty(), "沒有 segments 的一般對話視為單一段落")
+	var seen: Dictionary = DialogueResolverScript.resolve(dialogue["captain_chart_table"], state, quests)
+	state.set_flag("captain_room_moving_item_seen")
+	var after: Dictionary = DialogueResolverScript.resolve(dialogue["captain_chart_table"], state, quests)
+	_assert(after["lines"] != seen["lines"], "事件完成後航海圖桌顯示「已觀察」版本")
+
+	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/captain_room_props.json"))
+	var rope: Dictionary = {}
+	var porthole: Dictionary = {}
+	for entry: Dictionary in props["props"]:
+		if String(entry.get("texture", "")) == "cap_rope_coil":
+			rope = entry
+		if String(entry.get("texture", "")) == "cap_porthole":
+			porthole = entry
+	_assert(String(rope.get("event_id", "")) == "captain_mystery_item" and rope.get("collision") == null, "cap_rope_coil 登錄為事件目標 captain_mystery_item 且沒有碰撞")
+	_assert(String(porthole.get("event_id", "")) == "captain_room_waterlight" and String(porthole.get("shader", "")) == "captain_room_waterlight", "舷窗登錄水光 Shader 與事件目標")
+	var shader: Shader = load("res://assets/shaders/captain_room_waterlight.gdshader")
+	_assert(shader != null and shader.code.contains("uniform float event_pulse") and shader.code.contains("uniform float strength"), "舷窗水光 Shader 可載入且有 event_pulse／strength uniform")
+	_assert(shader != null and TownPropScript.shader_default(shader.code, "event_pulse") == 0.0 and TownPropScript.shader_default(shader.code, "strength") == 0.08 and TownPropScript.shader_default(shader.code, "water_tint") == null, "Shader 預設值：event_pulse 0、strength 0.08（低強度）")
+	_assert(WorldEventRunnerScript.final_value(Vector2(10, 20), {"offset": [20, 0]}) == Vector2(30, 20) and WorldEventRunnerScript.final_value(0.0, {"value": 0.06}) == 0.06, "tween 目標值：offset 相對、value 絕對")
+	_assert(WorldEventRunnerScript.final_value(Vector2(1, 1), {"value": [2, 3]}) == Vector2(2, 3) and WorldEventRunnerScript.final_value(0.5, {"offset": -0.5}) == 0.0, "tween 目標值支援 Vector2 與 float")
+	quests.free()
+
+
+func test_phase6_clues() -> void:
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	var state: GameState = GameStateScript.new()
+	quests.bind(state)
+	_assert(quests.clue_definitions.has("captain_room_moving_item"), "線索定義載入 captain_room_moving_item")
+	_assert(not quests.has_clue("captain_room_moving_item") and quests.list_clues().is_empty(), "初始沒有線索")
+	var added: Array[String] = []
+	quests.clue_added.connect(func(id: String) -> void: added.append(id))
+	quests.add_clue("captain_room_moving_item")
+	_assert(quests.has_clue("captain_room_moving_item") and added == ["captain_room_moving_item"] and state.has_flag(QuestManagerScript.clue_flag("captain_room_moving_item")), "add_clue 寫入永久旗標並發出 clue_added")
+	quests.add_clue("captain_room_moving_item")
+	_assert(added.size() == 1 and quests.list_clues().size() == 1, "重複加入同一線索不重複記錄")
+	state.advance_day()
+	_assert(quests.has_clue("captain_room_moving_item"), "換日不會清除線索")
+	var restored: GameState = GameStateScript.from_dict(JSON.parse_string(JSON.stringify(state.to_dict())))["state"]
+	var quests_b: QuestManager = QuestManagerScript.new()
+	quests_b.load_all_definitions()
+	quests_b.bind(restored)
+	_assert(quests_b.has_clue("captain_room_moving_item"), "線索隨存檔旗標保留（schema 不變）")
+	var text := QuestHudScript.build_log_text(quests.list_quests(), quests.list_clues())
+	_assert(text.contains("[線索]") and text.contains("TEMP_DEMO_CONTENT"), "任務日誌顯示線索段落")
+	_assert(not QuestHudScript.build_log_text(quests.list_quests(), []).contains("[線索]"), "沒有線索時日誌不顯示線索段落")
+	quests.free()
+	quests_b.free()
+
+
+## Phase 6：事件執行器在場景樹中實際跑一次（加速 20 倍）：輸入鎖、位移、旋轉回正、Shader 脈衝還原、旗標與線索；
+## 中斷時還原 transform、不寫旗標、解鎖輸入；之後可重播。
+func test_phase6_runner() -> void:
+	# _initialize 時 root 尚未進入場景樹（@onready 不會執行），先等一個 frame。
+	await process_frame
+	var runner: WorldEventRunner = WorldEventRunnerScript.new()
+	runner.speed_scale = 5.0
+	root.add_child(runner)
+	var target := Node2D.new()
+	target.position = Vector2(118, 262)
+	root.add_child(target)
+	var porthole: TownProp = load("res://scenes/props/town_prop.tscn").instantiate()
+	root.add_child(porthole)
+	porthole.setup(load("res://assets/props/cap_porthole.png"), Vector2.ZERO, 1.0, -1, {"shader": "captain_room_waterlight"})
+	_assert(porthole.has_shader() and float(porthole.get_shader_param("event_pulse")) == 0.0, "舷窗 TownProp 套用 Shader，event_pulse 預設 0")
+	var missing: TownProp = load("res://scenes/props/town_prop.tscn").instantiate()
+	root.add_child(missing)
+	missing.setup(load("res://assets/props/cap_porthole.png"), Vector2.ZERO, 1.0, -1, {"shader": "does_not_exist"})
+	_assert(not missing.has_shader() and missing.get_shader_param("event_pulse") == null, "Shader 不存在時道具仍可建立（水光只是附加氣氛）")
+	var targets := {"captain_mystery_item": target, "captain_room_waterlight": porthole}
+	var locks: Array[bool] = []
+	var flags: Array[String] = []
+	var clues: Array[String] = []
+	var dialogues: Array[String] = []
+	var pulse_seen: Array[float] = []
+	runner.resolve_target = func(id: String) -> Node: return targets.get(id)
+	runner.lock_input = func(locked: bool) -> void: locks.append(locked)
+	runner.set_flag = func(flag: String) -> void: flags.append(flag)
+	runner.add_clue = func(id: String) -> void: clues.append(id)
+	runner.start_dialogue = func(id: String) -> bool:
+		dialogues.append(id)
+		pulse_seen.append(float(porthole.get_shader_param("event_pulse")))
+		runner.notify_dialogue_finished.call_deferred()
+		return true
+	var library: WorldEventLibrary = WorldEventLibraryScript.new()
+	library.load_all()
+	var event: Dictionary = library.events["captain_room_moving_item"]
+	var finished: Array[String] = []
+	runner.event_finished.connect(func(id: String) -> void: finished.append(id))
+	# run() 是協程：用 lambda 包起來收集回傳值，避免 await 已完成的協程狀態而卡住。
+	var results: Array = []
+	var launch := func() -> void: results.append(await runner.run(event))
+	launch.call()
+	var second_run_rejected := not await runner.run(event)
+	# 逐 frame 取樣：headless 的 frame 間隔不固定，不能靠固定秒數抓「位移中」的瞬間。
+	var moved_mid := false
+	var locked_mid := false
+	var samples := 0
+	while results.is_empty() and samples < 600:
+		if runner.is_running() and target.position.x > 118.0 and target.position.x < 138.0:
+			moved_mid = true
+			locked_mid = locked_mid or (runner.is_input_locked() and locks == [true])
+		samples += 1
+		await process_frame
+	_assert(results.size() == 1, "事件在時限內結束")
+	var completed: bool = results.size() == 1 and results[0] == true
+	_assert(moved_mid and locked_mid, "事件進行中：物件位移中、輸入已鎖定")
+	_assert(second_run_rejected, "事件進行中不能再次啟動同一事件")
+	_assert(completed and finished == ["captain_room_moving_item"] and not runner.is_running(), "事件完整跑完並發出 event_finished")
+	_assert(target.position == Vector2(138, 262) and is_zero_approx(target.rotation), "物件停在 +20px 並回正")
+	_assert(locks == [true, false] and not runner.is_input_locked(), "輸入鎖：事件開始鎖定、結束解鎖")
+	_assert(dialogues == ["captain_room_moving_item_reaction"] and pulse_seen.size() == 1 and pulse_seen[0] == 0.0, "反應對話在舷窗脈衝結束後播放（脈衝已還原）")
+	_assert(flags == ["captain_room_moving_item_seen"] and clues == ["captain_room_moving_item"], "完成後寫入永久旗標與線索各一次")
+	_assert(float(porthole.get_shader_param("event_pulse")) == 0.0, "事件結束後 event_pulse 還原為 0")
+
+	# 中斷：位移到一半取消
+	target.position = Vector2(118, 262)
+	locks.clear()
+	flags.clear()
+	clues.clear()
+	var cancelled: Array[String] = []
+	runner.event_cancelled.connect(func(id: String) -> void: cancelled.append(id))
+	results.clear()
+	launch.call()
+	_assert(await _until(func() -> bool: return target.position.x > 118.0, 300), "重播後物件開始位移")
+	var was_moving := target.position.x > 118.0 and target.position.x < 138.0
+	runner.cancel()
+	var cancelled_result: bool = results.size() == 1 and results[0] == true
+	_assert(was_moving and results.size() == 1 and not cancelled_result and cancelled == ["captain_room_moving_item"] and not runner.is_running(), "中斷：run 回傳 false 並發出 event_cancelled")
+	_assert(target.position == Vector2(118, 262) and is_zero_approx(target.rotation) and target.scale == Vector2.ONE, "中斷後物件 position／rotation／scale 還原")
+	_assert(flags.is_empty() and clues.is_empty() and locks == [true, false] and not runner.is_input_locked(), "中斷不寫旗標與線索，並清除輸入鎖")
+	_assert(float(porthole.get_shader_param("event_pulse")) == 0.0, "中斷後 event_pulse 還原")
+	runner.cancel()
+	_assert(not runner.is_running() and locks.size() == 2, "沒有事件時 cancel 不做事")
+
+	# 中斷後可重播並完成
+	flags.clear()
+	completed = await runner.run(event)
+	_assert(completed and flags == ["captain_room_moving_item_seen"] and target.position == Vector2(138, 262), "中斷後可安全重播並完成")
+
+	# 缺少目標與未知動作：略過但不中斷
+	var odd := {"event_id": "odd", "scene_id": "x", "trigger": {}, "actions": [{"type": "lock_input"}, {"type": "tween_node", "target": "nope", "offset": [5, 0], "seconds": 0.1}, {"type": "dance"}, {"type": "unlock_input"}]}
+	completed = await runner.run(odd)
+	_assert(completed and not runner.is_input_locked(), "找不到目標或未知動作時略過，事件仍能結束並解鎖")
+	var no_unlock := {"event_id": "stuck", "scene_id": "x", "trigger": {}, "actions": [{"type": "lock_input"}, {"type": "wait", "seconds": 0.05}]}
+	completed = await runner.run(no_unlock)
+	_assert(completed and not runner.is_input_locked(), "資料忘記 unlock_input 時，事件結束仍會解鎖")
+	runner.queue_free()
+	target.queue_free()
+	porthole.queue_free()
+	missing.queue_free()
+
+
+func _until(predicate: Callable, max_frames: int) -> bool:
+	for _i: int in range(max_frames):
+		if bool(predicate.call()):
+			return true
+		await process_frame
+	return bool(predicate.call())

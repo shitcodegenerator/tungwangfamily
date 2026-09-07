@@ -26,6 +26,7 @@ func bind(quest_manager: QuestManager) -> void:
 	quests.quest_started.connect(_on_quest_started)
 	quests.quest_updated.connect(func(_id: String) -> void: refresh())
 	quests.quest_completed.connect(_on_quest_completed)
+	quests.clue_added.connect(_on_clue_added)
 	refresh()
 
 
@@ -42,7 +43,11 @@ func refresh() -> void:
 	objective_label.text = "目標：" + summary
 	objective_label.visible = not summary.is_empty()
 	if log_panel.visible:
-		log_label.text = build_log_text(quests.list_quests())
+		log_label.text = build_log_text(quests.list_quests(), quests.list_clues())
+
+
+func log_text() -> String:
+	return log_label.text
 
 
 func show_toast(text: String) -> void:
@@ -82,12 +87,18 @@ func _on_quest_completed(quest_id: String) -> void:
 	show_toast("任務完成：%s" % _title(quest_id))
 
 
+func _on_clue_added(clue_id: String) -> void:
+	show_toast("新線索：%s" % quests.clue_title(clue_id))
+	refresh()
+
+
 func _title(quest_id: String) -> String:
 	return String(quests.definitions.get(quest_id, {}).get("title", quest_id))
 
 
-static func build_log_text(entries: Array[Dictionary]) -> String:
-	if entries.is_empty():
+## clues：已取得的線索（Phase 6），有才顯示「[線索]」段落。
+static func build_log_text(entries: Array[Dictionary], clues: Array[Dictionary] = []) -> String:
+	if entries.is_empty() and clues.is_empty():
 		return "[任務日誌]\n目前沒有任務。"
 	var lines := PackedStringArray(["[任務日誌]　J：關閉"])
 	for entry: Dictionary in entries:
@@ -98,4 +109,11 @@ static func build_log_text(entries: Array[Dictionary]) -> String:
 		for objective: Dictionary in entry["objectives"]:
 			var mark := "✔" if objective["done"] else ("▶" if objective["current"] else "・")
 			lines.append("　%s %s" % [mark, objective["text"]])
+	if not clues.is_empty():
+		lines.append("")
+		lines.append("[線索]")
+		for clue: Dictionary in clues:
+			lines.append("　・%s" % clue["title"])
+			if not String(clue.get("text", "")).is_empty():
+				lines.append("　　%s" % clue["text"])
 	return "\n".join(lines)

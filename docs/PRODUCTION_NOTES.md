@@ -1,4 +1,4 @@
-# 製作注意事項（Phase 1～5 踩過的坑與之後產出的檢查清單）
+# 製作注意事項（Phase 1～6 踩過的坑與之後產出的檢查清單）
 
 整理日期：2026-09-05。這份文件記錄實際發生過的問題與教訓，之後要新增角色、NPC、場景、對話、任務、Boss、道具、特效或 UI 時，先對照最後一節的檢查清單。
 
@@ -50,6 +50,10 @@
 | B16 | route test 把角色推到流理台前後，腳落在道具封鎖格裡，BFS 找不到起點。 | 推牆／推道具後先 `_push_for` 反方向 0.25 秒再 `_walk_to`。 |
 | B17 | 舊測試寫死「版本 3 存檔被拒絕」「schema 為 2」，升 v3 就壞。 | 版本斷言用 `SCHEMA_VERSION + 1`／`SCHEMA_VERSION`，不寫數字。 |
 | B18 | 每日系統很容易把 day 散到多處（切場景、讀檔、F5）。 | day 只在 `advance_day()` 改，而且只由休息流程呼叫一次；用 `_resting` 旗標擋重複觸發；route test 在轉場中故意重複呼叫確認只加 1。 |
+| B19 | Phase 6 單元測試裡 `await` 一個「已經因 cancel 同步結束」的協程狀態，測試永遠卡住（headless 沒有任何錯誤訊息）。 | 協程（`run()`）用 lambda 包起來把回傳值塞進陣列，之後只 `await` 計時器／`process_frame` 輪詢結果；`_initialize` 內要 `await process_frame` 後 root 才會進場景樹（`@onready` 才會執行）。 |
+| B20 | headless 的 frame 間隔不固定，以「固定秒數後取樣位置」判斷 tween 進行中會誤判（5× 加速下 0.08 秒已跑完）。 | 逐 frame 取樣直到事件結束，記錄「曾經介於起點與終點之間」；route test 也用 `_wait_until(位移 > 4px)` 而不是固定秒數。 |
+| B21 | Godot 4.7 呼叫協程不 `await` 是 parse error；headless 的 `ShaderMaterial.get_shader_parameter` 對未覆寫的 uniform 回傳 null（RenderingServer 也查不到預設值）。 | 不需要等待的協程用 `node.call("run", event)`；Shader 預設值由 `TownProp.shader_default` 直接從 `.gdshader` 原始碼解析 `uniform float x = 值;`。 |
+| B22 | 事件在對話結束的同一個 callback 內啟動，若 `_on_dialogue_finished` 先解鎖再啟動事件，會閃一個 frame 可以移動；事件的反應對話結束又會走一次一般的解鎖流程。 | `_set_input_locked` 的 busy 條件加入 `events.is_running()`；事件對話用 `_event_segments` 標記，結束時只通知執行器、不觸發新的事件。 |
 
 ## C. 流程與協作
 
@@ -113,6 +117,16 @@
 2. 新樣式一律用 `tile_style` + `tile_style_rows` 先套一個區域，ASCII 與碰撞不動，跑 `validate_map.py` 確認可走性沒變。
 3. props：先在 `assets/maps/*_props.json` 放進去，用 `--snapshot` 截圖看接地、Y-sort、與 NPC／出生點／路線的關係；碰撞盒不超出貼圖、留出通道；燈籠用 `foot_x`＋`glow_x`；有地面的物件用 `foot_inset`；多腳物件用 `collision_boxes`。
 4. 大型物件會遮到北邊的走道是 Y-sort 的正常結果，不要切碎片、不要改 z_index；寫進報告請作者決定要縮圖還是移位置。
+
+### D6.6 世界事件（Phase 6 起）
+1. 事件資料只放 `assets/events/<event_id>.json`（`WorldEventLibrary.EVENT_PATHS` 登錄）；必填 `event_id`、`scene_id`、`trigger`、`actions`；`once` 事件要有 `complete_flag`，且 actions 內 `set_flag` 該旗標必須在 `unlock_input` 之前。
+2. 動作固定以 `lock_input` 開始、`unlock_input` 結束；位移用 `tween_node`（`offset` 相對、`value` 絕對，只支援 position／rotation／scale），環境效果用 `shader_param`（維持 `seconds` 後自動還原）。
+3. 事件目標在該場景的 props JSON 用 `event_id` 登錄，程式與事件 JSON 都只認 id；換成羅盤、紙張只改 props 的 `event_id` 對應。
+4. 事件對話放場景的 dialogue JSON，多人反應用 `segments`（每段 speaker／portrait／lines，可帶 `requires`）；先標 `TEMP_DEMO_CONTENT`，CC 段句尾「です」。
+5. 線索定義在 `assets/events/clues.json`，取得狀態是永久旗標 `clue_<id>`；不要為了線索升 schema。
+6. Shader 只套環境道具（props `shader`），uniform 要有低強度預設；事件結束與中斷都要還原（執行器負責）。
+7. 測試：單元測試用 `speed_scale` 加速跑一次完整事件與一次中斷；route test 在第一次互動時驗證位移、輸入鎖、脈衝、反應段數、旗標與線索，之後驗證不重播、中斷還原、重播完成、可離開場景。
+8. `validate_map.py` 會檢查事件的場景、觸發互動點、目標 `event_id`、對話 id 與線索 id 都存在。
 
 ### D7 每次收工
 1. `godot --headless --path . --import`（改過素材時）。

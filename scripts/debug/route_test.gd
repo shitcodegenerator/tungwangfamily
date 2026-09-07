@@ -104,6 +104,7 @@ func _run() -> void:
 	await _phase4_checks()
 	await _phase46_checks()
 	await _phase5_checks()
+	await _phase6_checks()
 	while switches_done < SWITCH_TARGET:
 		party.cycle_leader()
 		switches_done += 1
@@ -231,7 +232,11 @@ func _phase3_checks() -> void:
 	_check(await _interact_and_close(&"king_penguin_captain"), "國王企鵝船長可互動")
 	_check(await _walk_to(Vector2i(9, 7)), "走到航海圖桌下方")
 	await _face(Vector2i.UP)
+	await _screenshot("25_captain_room_before_event")
+	var mystery_origin := _event_target_position("captain_mystery_item")
 	_check(await _interact_and_close(&"captain_chart_table"), "航海圖桌互動")
+	# Phase 6：第一次查看航海圖桌後觸發「物品自行移動」事件
+	await _phase6_event_checks(mystery_origin)
 	_check(quests.is_objective_current(quest_id, "report"), "航海圖桌完成後目標更新為回報")
 	_check(await _walk_to(Vector2i(9, 9)), "走到船長房間出口上方")
 	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "走出船長房間回到主城")
@@ -649,6 +654,114 @@ func _phase5_checks() -> void:
 	await _screenshot("24_plaza_night")
 	await _tap_action("debug_cycle_daytime")
 	_check(day_night.index == 0 and main_node.state.day == 1, "F5 切回白天，day 不變")
+
+
+const EVENT_FLAG := "captain_room_moving_item_seen"
+const EVENT_CLUE := "captain_room_moving_item"
+const EVENT_OFFSET := Vector2(20, 0)
+
+
+func _event_target_position(id: String) -> Vector2:
+	var node: Node = world.get_event_target(id)
+	return (node as Node2D).position if node is Node2D else Vector2.INF
+
+
+func _porthole_pulse() -> float:
+	var porthole: Node = world.get_event_target("captain_room_waterlight")
+	if porthole == null or not porthole.has_method("get_shader_param"):
+		return -1.0
+	var value: Variant = porthole.call("get_shader_param", "event_pulse")
+	return float(value) if value != null else -1.0
+
+
+## 把事件的反應對話（多段）一路按 E 播完，直到事件結束；回傳出現過的說話者。
+func _play_event_dialogue(seconds: float) -> PackedStringArray:
+	var events: Node = main_node.get("events")
+	var speakers := PackedStringArray()
+	var elapsed := 0.0
+	while events.call("is_running") and elapsed < seconds:
+		if dialogue.is_active:
+			if not speakers.has(dialogue.current_speaker):
+				speakers.append(dialogue.current_speaker)
+			await _tap_action("interact")
+			elapsed += 0.1
+		else:
+			await get_tree().physics_frame
+			elapsed += get_physics_process_delta_time()
+	return speakers
+
+
+## Phase 6（在 Phase 3 的航海圖桌互動之後）：事件觸發、輸入鎖、物件位移、舷窗脈衝、四段反應、旗標與線索、還原。
+func _phase6_event_checks(origin: Vector2) -> void:
+	var events: Node = main_node.get("events")
+	var state: GameState = main_node.state
+	var target: Node2D = world.get_event_target("captain_mystery_item") as Node2D
+	_check(target != null and origin != Vector2.INF, "船長房間登錄事件目標 captain_mystery_item（目前為 cap_rope_coil）")
+	_check(events.call("is_running") and String(events.get("current_event_id")) == "captain_room_moving_item", "航海圖桌對話結束後觸發船長房間事件")
+	_check(party.input_locked and not interaction.prompt_visible(), "事件期間玩家輸入鎖定、互動提示隱藏")
+	var leader_before := party.get_leader().global_position
+	await _push_for(Vector2i.RIGHT, 0.3)
+	_check(party.get_leader().global_position.distance_to(leader_before) < 1.0, "事件期間按方向鍵角色不會移動")
+	_check(await _wait_until(func() -> bool: return target != null and target.position.distance_to(origin) > 4.0, 2.5), "物件開始位移（不是只改顏色）")
+	await _screenshot_quick("26_captain_room_item_moving")
+	_check(await _wait_until(func() -> bool: return _porthole_pulse() > 0.5, 3.0), "舷窗水光在事件中短暫變亮（event_pulse > 0.5）")
+	_check(await _wait_until(func() -> bool: return dialogue.is_active, 3.0), "事件播放角色反應對話")
+	var speakers := await _play_event_dialogue(20.0)
+	_check(not events.call("is_running"), "事件在反應對話結束後完成")
+	_check(speakers.size() == 4 and speakers[0] == "哥哥" and speakers[3] == "妹妹", "四位角色各一段反應（%s）" % "、".join(speakers))
+	_check(state.has_flag(EVENT_FLAG), "事件完成後寫入永久旗標 %s" % EVENT_FLAG)
+	_check(quests.has_clue(EVENT_CLUE), "事件完成後寫入線索 %s" % EVENT_CLUE)
+	_check(target.position.distance_to(origin + EVENT_OFFSET) < 1.0 and is_zero_approx(target.rotation), "物件停在位移 20px 處並回正")
+	_check(is_zero_approx(_porthole_pulse()), "事件結束後 event_pulse 還原為 0")
+	_check(not party.input_locked and not dialogue.is_active, "事件結束後輸入解鎖")
+	_check(_all_members_in_world() and _max_chain_gap() < 140.0, "事件結束後隊伍完整且跟隨鏈正常")
+	await _screenshot("27_captain_room_event_complete")
+
+
+## Phase 6（在 Phase 5 之後）：旗標經過休息換日與讀檔仍在；再進船長房間不重播；中斷還原；中斷後可重播；線索在日誌；可離開。
+func _phase6_checks() -> void:
+	var events: Node = main_node.get("events")
+	var state: GameState = main_node.state
+	_check(state.has_flag(EVENT_FLAG) and quests.has_clue(EVENT_CLUE), "休息換日與讀檔後，船長房間事件旗標與線索仍保留")
+	_check(await _walk_to(Vector2i(25, 21)), "走到船長房間門口")
+	_check(await _enter_portal(Vector2i.UP, "captain_room"), "再次進入船長房間")
+	var target: Node2D = world.get_event_target("captain_mystery_item") as Node2D
+	var origin := target.position
+	_check(await _walk_to(Vector2i(9, 7)), "走到航海圖桌下方")
+	await _face(Vector2i.UP)
+	var seen_target := interaction.current_target
+	var seen: Dictionary = DialogueResolver.resolve(seen_target.dialogue_entry, state, quests) if seen_target != null else {"lines": PackedStringArray()}
+	_check(seen_target != null and String(seen["lines"][0]).contains("已觀察") == false and String(seen["lines"][1]).contains("已觀察"), "航海圖桌顯示「已觀察」版本對話")
+	_check(await _interact_and_close(&"captain_chart_table"), "再次互動航海圖桌")
+	await _wait_frames(8)
+	_check(not events.call("is_running") and not party.input_locked and target.position == origin, "已看過的事件不會重播，可直接繼續探索")
+
+	# 中斷：清掉旗標重新觸發，位移到一半時模擬中斷
+	state.set_flag(EVENT_FLAG, false)
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"captain_chart_table"), "清除旗標後再次互動")
+	_check(await _wait_until(func() -> bool: return target.position.distance_to(origin) > 4.0, 2.5), "事件重播並開始位移")
+	events.call("cancel")
+	await _wait_frames(2)
+	_check(not events.call("is_running") and target.position == origin and is_zero_approx(target.rotation), "中斷後物件還原原始位置與角度")
+	_check(not state.has_flag(EVENT_FLAG) and not party.input_locked and not dialogue.is_active, "中斷後不寫入完成旗標且輸入解鎖")
+	_check(is_zero_approx(_porthole_pulse()), "中斷後舷窗 event_pulse 還原")
+
+	# 中斷後重播到完成
+	await _face(Vector2i.UP)
+	_check(await _interact_and_close(&"captain_chart_table"), "中斷後可再次觸發")
+	_check(await _wait_until(func() -> bool: return dialogue.is_active, 5.0), "重播進行到反應對話")
+	var speakers := await _play_event_dialogue(20.0)
+	_check(not events.call("is_running") and state.has_flag(EVENT_FLAG) and speakers.size() == 5 and speakers[4] == "CC", "重播完整完成後寫入旗標；CC 在隊伍時多一段反應")
+	_check(target.position.distance_to(origin + EVENT_OFFSET) < 1.0, "重播後物件再次停在位移處")
+	await _tap_action("quest_log")
+	var quest_hud: Node = main_node.get("quest_hud")
+	_check(quest_hud.call("is_log_open") and String(quest_hud.call("log_text")).contains("[線索]"), "任務日誌顯示線索段落")
+	await _screenshot("28_quest_log_clue")
+	await _tap_action("quest_log")
+	_check(await _walk_to(Vector2i(9, 9)), "走到船長房間出口上方")
+	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "事件完成後可離開船長房間")
+	_check(await _walk_to(Vector2i(14, 29)), "回到出生點")
 
 
 ## 隊伍成員（含 CC）兩兩之間的最小距離。

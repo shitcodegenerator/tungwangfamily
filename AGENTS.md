@@ -8,9 +8,12 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、對話選項、CC 寵物跟隨；Phase 4.6 完成 4 幀行走表、
 待機表、接地陰影、隊伍分離、洞窟正式 tile、Boss 上緣限制與對話框 💢 圖片；Phase 5 完成每日循環
 （schema v3：day／day_seed／daily_state、家庭屋臥室門休息→隔天早晨、自動存檔、每日旗標重置、天數 HUD）
-與下層樹根廣場的新 atlas 垂直切片（tile_style "town_refresh"、八個 v2 大型 props）。
+與下層樹根廣場的新 atlas 垂直切片（tile_style "town_refresh"、八個 v2 大型 props）；Phase 6 完成資料驅動的
+世界事件執行器（`WorldEventRunner`：lock_input／wait／tween_node／dialogue／shader_param／clue／set_flag／unlock_input）、
+船長房間「物品自行移動」第一個事件（航海圖桌互動結束觸發、四人短反應、永久旗標與線索、中斷還原）與舷窗水光 Shader。
 規劃文件：`docs/PHASE_1_PROJECT_PLAN.md`、`docs/PHASE_2_PLAN.md`、`docs/PHASE_3_PLAN.md`、`docs/PHASE_3_DECISIONS.md`、
-`docs/PHASE_4_PLAN.md`、`docs/PHASE_4_6_ANIMATION_AND_CAVE_ASSETS.md`、`docs/PHASE_5_PLAN.md`、
+`docs/PHASE_4_PLAN.md`、`docs/PHASE_4_6_ANIMATION_AND_CAVE_ASSETS.md`、`docs/PHASE_5_PLAN.md`、`docs/PHASE_6_PLAN.md`、
+`docs/ART_STYLE_LOCK.md`、`docs/HOW_TO_EDIT_SCENES_AND_MAP_ASSETS.md`、
 `docs/TILEMAP_AND_MAP_ASSET_TUTORIAL.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
 父親離世演出、乾媽家庭傷痛或真實回憶；測試內容一律標記 `TEMP_DEMO_CONTENT` 或 `demo_` 前綴；
 父親原型是「國王企鵝船長」；媽媽與乾媽共用 `family_home`。炸物魔王只能是純幻想、搞笑的一次性教學 Boss，
@@ -64,6 +67,8 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 | `scripts/ui/day_hud.gd` | 畫面上方中央的天數與時段圖示 |
 | `scripts/ui/rest_transition.gd` | 休息→早晨的全螢幕轉場（淡黑、日出卡、淡入），全黑時呼叫回呼 |
 | `scripts/debug/snapshot.gd` | `--snapshot=<scene>:<x>,<y>:<png>` 版面截圖工具（美術檢查用，不做斷言） |
+| `scripts/events/world_event_library.gd` | 載入 `assets/events/*.json`、驗證格式、依「場景 + 觸發 + requires + once」找事件、拆解 `segments` 多段對話 |
+| `scripts/events/world_event_runner.gd` | 依 actions 順序執行事件；外部能力全靠注入的 Callable；`cancel()` 還原 transform／Shader 並解鎖；暫態不進 GameState |
 
 不要把劇情、戰鬥與移動耦合進同一支腳本；不要為了「泛用」建立難以除錯的框架。
 Boss 戰邏輯只能在 `scripts/battle/`；主城、CC、物品、角色腳本不得知道戰鬥存在。戰鬥暫態不進 `GameState`。
@@ -73,10 +78,14 @@ Boss 戰邏輯只能在 `scripts/battle/`；主城、CC、物品、角色腳本�
 生命感動畫與日夜只能改視覺節點（Sprite2D、CanvasModulate、粒子），不得改碰撞、角色座標或 Y-sort 基準。
 `day` 只能由 `GameState.advance_day()` 改變，而且只在共享家庭屋休息確認後由 `Main.rest_until_morning` 呼叫一次；
 切場景、讀檔、F5 都不得動 day。每日旗標放 `daily_state`（對話用 `set_daily_flag`／`requires.daily_flags`），永久旗標放 `flags`。
+世界事件只放 `assets/events/*.json`，執行器不得知道哥哥、CC、船長或任何特定物件；事件的完成旗標由 actions 的 `set_flag`
+在 `unlock_input` 之前寫入（中斷就不會留下旗標），是永久旗標、不放 `daily_state`。事件目標以 props JSON 的 `event_id` 登錄，
+不要把 `cap_rope_coil` 這類名稱寫進程式。線索是永久旗標 `clue_<id>`（定義在 `assets/events/clues.json`），schema 不變。
+Shader（`assets/shaders/`）只能套在環境道具的 Sprite2D（props JSON `shader`），不得套在角色、陰影、碰撞或互動區；載入失敗只警告。
 
 ## 開工前先讀
 
-`docs/PRODUCTION_NOTES.md`：Phase 1～4.6 踩過的坑與新增角色／場景／對話／道具／Boss／UI 的檢查清單。
+`docs/PRODUCTION_NOTES.md`：Phase 1～6 踩過的坑與新增角色／場景／對話／道具／Boss／UI／世界事件的檢查清單。
 
 ## 每次修改後必跑
 
@@ -98,6 +107,8 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
   （`validate_map.py` 與單元測試都會檢查）。可加 `prompt_icon: <assets/ui 檔名>` 換提示圖示（臥室門用 `rest_prompt`）。
 - 大型 props（`assets/props/town_refresh/`）：`foot_x` 接地點距貼圖左緣像素（燈籠柱在右側）、`foot_inset` 接地線距貼圖底緣像素
   （拱門的石板地面）、`glow_x`／`glow_y` 光暈中心、`collision_boxes: [[寬, 高, dx, dy], ...]` 多個碰撞盒（拱門兩腳）。
+- 道具加 `event_id: <id>` 即登錄為世界事件目標（`TownWorld.get_event_target`）；加 `shader: <assets/shaders 檔名>` 只在 Sprite2D 套 ShaderMaterial。
+  事件 JSON 的 `tween_node`／`shader_param` 只能指向同場景已登錄的 `event_id`（`validate_map.py` 會檢查）。
 - `scenes.json` 的 `tile_style: "town_refresh"` + `tile_style_rows: [first, last]` 只把新 atlas 套在部分列；
   下層樹根廣場用第 23～35 列，中層與上層仍是舊 atlas。換樣式不得改 ASCII 地圖與可走性。
 

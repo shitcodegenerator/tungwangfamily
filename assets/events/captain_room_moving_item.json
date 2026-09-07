@@ -1,0 +1,27 @@
+{
+  "event_id": "captain_room_moving_item",
+  "scene_id": "captain_room",
+  "trigger": {
+    "type": "interact_complete",
+    "interactable_id": "captain_chart_table"
+  },
+  "once": true,
+  "complete_flag": "captain_room_moving_item_seen",
+  "clue_id": "captain_room_moving_item",
+  "requires": {
+    "not_flags": ["captain_room_moving_item_seen"]
+  },
+  "note": "TEMP：預設目標 captain_mystery_item 目前由 captain_room_props.json 指到 cap_rope_coil；正式物品名稱待作者決定，只需改 props 的 event_id 對應，不必改事件系統。",
+  "actions": [
+    {"type": "lock_input"},
+    {"type": "wait", "seconds": 0.18},
+    {"type": "tween_node", "target": "captain_mystery_item", "property": "position", "offset": [20, 0], "seconds": 1.0, "ease": "in_out"},
+    {"type": "tween_node", "target": "captain_mystery_item", "property": "rotation", "value": 0.06, "seconds": 0.18, "ease": "out"},
+    {"type": "tween_node", "target": "captain_mystery_item", "property": "rotation", "value": 0.0, "seconds": 0.22, "ease": "in_out"},
+    {"type": "shader_param", "target": "captain_room_waterlight", "parameter": "event_pulse", "value": 1.0, "seconds": 0.8},
+    {"type": "dialogue", "dialogue_id": "captain_room_moving_item_reaction"},
+    {"type": "set_flag", "flag": "captain_room_moving_item_seen"},
+    {"type": "clue", "clue_id": "captain_room_moving_item"},
+    {"type": "unlock_input"}
+  ]
+}

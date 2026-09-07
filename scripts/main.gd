@@ -3,7 +3,8 @@ extends Node2D
 ## 撿取／投擲、炸物魔王戰鬥與寵物。這裡只做接線：
 ##   可互動物件 → 對話（依狀態挑版本）→ 任務動作；地上的投擲物 → CarrySystem；傳送門 → 路由；
 ##   對話與轉場 → 輸入鎖；F6／F7 → SaveManager；戰鬥勝負 → 旗標、任務事件、回到 CC 身邊；
-##   休息確認（對話 rest 動作）→ 淡出 → day +1 → 回到家庭屋 → 存檔 → 早晨轉場（Phase 5）。
+##   休息確認（對話 rest 動作）→ 淡出 → day +1 → 回到家庭屋 → 存檔 → 早晨轉場（Phase 5）；
+##   互動對話結束 → WorldEventLibrary 找事件 → WorldEventRunner 執行（輸入鎖、位移、多段反應對話、旗標、線索）（Phase 6）。
 ## 帶 `-- --route-test` 參數啟動時執行自動化驗證。
 
 const ROUTE_TEST_SCRIPT := preload("res://scripts/debug/route_test.gd")
@@ -19,6 +20,7 @@ const CC_NPC_ID := "cc_penguin"
 const CC_PET_ID := "cc_penguin"
 const REST_SCENE_ID := "family_home"
 const REST_ENTRY := "rest"
+const EVENT_TRIGGER_INTERACT := WorldEventLibrary.TRIGGER_INTERACT_COMPLETE
 
 @onready var world_parent: Node2D = $World
 @onready var day_night: DayNightController = $World/DayNight
@@ -39,12 +41,17 @@ const REST_ENTRY := "rest"
 
 var state: GameState = GameState.new()
 var world: TownWorld
+var events: WorldEventRunner
+var event_library: WorldEventLibrary = WorldEventLibrary.new()
 
 var _pending_actions: Array = []
 var _pending_interactable_id: String = ""
 var _ambient_ready: bool = false
 var _returning: bool = false
 var _resting: bool = false
+## 事件對話（多段反應）的播放進度；空陣列代表目前不是事件對話。
+var _event_segments: Array[Dictionary] = []
+var _event_segment_index: int = 0
 
 
 func _ready() -> void:
@@ -63,6 +70,7 @@ func _ready() -> void:
 	dialogue.choice_selected.connect(_on_choice_selected)
 	day_night.state_changed.connect(_on_daytime_changed)
 
+	_setup_events()
 	router.bind(state, party, camera, world_parent)
 	router.scene_changed.connect(_on_scene_changed)
 	router.transition_started.connect(_on_transition_started)
@@ -84,7 +92,25 @@ func _ready() -> void:
 			break
 
 
+## 事件執行器只透過 Callable 認識世界：目標節點由 TownWorld 的 event_id 登錄提供、輸入鎖走 _set_input_locked、
+## 對話走 _start_event_dialogue（支援 segments 多段反應）、旗標與線索寫進 GameState／QuestManager。
+func _setup_events() -> void:
+	events = WorldEventRunner.new()
+	events.name = "WorldEvents"
+	add_child(events)
+	events.resolve_target = func(id: String) -> Node: return world.get_event_target(id) if world != null else null
+	events.lock_input = func(locked: bool) -> void: _set_input_locked(locked)
+	events.start_dialogue = _start_event_dialogue
+	events.set_flag = func(flag: String) -> void: state.set_flag(flag, true)
+	events.add_clue = func(clue_id: String) -> void: quests.add_clue(clue_id)
+	events.event_finished.connect(func(_id: String) -> void: _set_input_locked(false))
+	event_library.load_all()
+
+
 func _on_transition_started(_scene_id: String) -> void:
+	# 轉場（讀檔、休息）會重建世界：進行中的事件先中斷還原，不留下完成旗標。
+	events.cancel()
+	_event_segments = []
 	_set_input_locked(true)
 	carry.clear_all()
 
@@ -122,7 +148,7 @@ func _on_leader_changed(leader: PlayableCharacter, _roster_index: int) -> void:
 
 ## E：地上的投擲物 → 撿起；其他 → 依狀態挑對話版本。
 func _on_interacted(interactable: Interactable) -> void:
-	if dialogue.is_active or router.is_transitioning:
+	if dialogue.is_active or router.is_transitioning or events.is_running():
 		return
 	if interactable is CarryableItem:
 		carry.pick_up(interactable as CarryableItem)
@@ -168,17 +194,73 @@ func _on_choice_selected(option: Dictionary) -> void:
 
 
 func _on_dialogue_finished() -> void:
+	if _advance_event_segment():
+		return
 	_set_input_locked(false)
 	hud.set_status_visible(true)
 	var actions: Array = _pending_actions + dialogue.take_chosen_actions()
 	var target := _pending_interactable_id
+	var was_event_dialogue := not _event_segments.is_empty()
 	_pending_actions = []
 	_pending_interactable_id = ""
+	_event_segments = []
 	quests.apply_actions(actions)
 	if not target.is_empty():
 		quests.notify_interact(target)
 	_apply_scene_actions(actions)
 	_sync_pet()
+	if was_event_dialogue:
+		events.notify_dialogue_finished()
+	elif not target.is_empty():
+		_try_trigger_event(EVENT_TRIGGER_INTERACT, target)
+
+
+# --- 世界事件（Phase 6）------------------------------------------------------
+
+## 互動對話結束後：依場景與互動 id 找事件，符合條件（requires、once 未完成）就交給執行器；不等待它結束。
+func _try_trigger_event(trigger_type: String, trigger_id: String) -> void:
+	if world == null or events.is_running() or router.is_transitioning or _resting:
+		return
+	var event := event_library.find_triggered(trigger_type, trigger_id, world.scene_id, state, quests)
+	if event.is_empty():
+		return
+	events.call("run", event)
+
+
+## 事件動作 dialogue：從目前場景的對話 JSON 取 id，支援 segments（多人依序反應，每段可帶 requires）。
+## 回傳 false 代表沒有可播放的內容，執行器會直接跳過。
+func _start_event_dialogue(dialogue_id: String) -> bool:
+	if world == null or dialogue.is_active:
+		return false
+	var entry: Variant = world.dialogue_data.get(dialogue_id)
+	if entry == null:
+		push_warning("事件對話缺少 id：%s（%s）" % [dialogue_id, world.dialogue_path])
+		return false
+	_event_segments = WorldEventLibrary.dialogue_segments(entry, state, quests)
+	if _event_segments.is_empty():
+		return false
+	_event_segment_index = 0
+	_play_event_segment(0)
+	return true
+
+
+func _play_event_segment(index: int) -> void:
+	var segment: Dictionary = _event_segments[index]
+	_pending_actions = segment["on_complete"]
+	_pending_interactable_id = ""
+	dialogue.start(segment["speaker"], segment["lines"], load_portrait(segment["portrait"]), segment["choice"])
+
+
+## 事件對話還有下一段時接著播（不解鎖、不套用動作）；沒有下一段回傳 false，交回一般結束流程。
+func _advance_event_segment() -> bool:
+	if _event_segments.is_empty():
+		return false
+	_event_segment_index += 1
+	if _event_segment_index >= _event_segments.size():
+		return false
+	quests.apply_actions(_pending_actions)
+	_play_event_segment(_event_segment_index)
+	return true
 
 
 ## 場景層級的動作：teleport（CC 傳送到洞窟，記住返回點）、show_anger（NPC 頭上的 💢）、rest（休息到隔天早晨）。
@@ -290,7 +372,7 @@ func _sync_pet() -> void:
 
 
 func _set_input_locked(locked: bool) -> void:
-	var busy := locked or dialogue.is_active or router.is_transitioning or _resting
+	var busy := locked or dialogue.is_active or router.is_transitioning or _resting or events.is_running()
 	party.set_input_locked(busy)
 	quest_hud.set_input_blocked(busy)
 
@@ -314,8 +396,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## 把隊伍與時段寫回狀態後存檔；失敗只提示，不影響遊戲。
 func save_game() -> String:
-	if dialogue.is_active or router.is_transitioning or _resting:
-		quest_hud.show_toast("對話或轉場中無法存檔")
+	if dialogue.is_active or router.is_transitioning or _resting or events.is_running():
+		quest_hud.show_toast("對話、事件或轉場中無法存檔")
 		return "busy"
 	capture_runtime_state()
 	var error := SaveManager.save_state(state)
@@ -325,8 +407,8 @@ func save_game() -> String:
 
 ## 讀檔失敗時保留目前狀態並提示；成功則還原場景、隊伍、日夜、旗標、任務、物品與寵物。
 func load_game() -> String:
-	if dialogue.is_active or router.is_transitioning or _resting:
-		quest_hud.show_toast("對話或轉場中無法讀檔")
+	if dialogue.is_active or router.is_transitioning or _resting or events.is_running():
+		quest_hud.show_toast("對話、事件或轉場中無法讀檔")
 		return "busy"
 	var result := SaveManager.load_state()
 	if result["state"] == null:

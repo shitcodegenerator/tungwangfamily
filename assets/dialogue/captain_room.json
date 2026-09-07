@@ -1,7 +1,11 @@
 {
   "king_penguin_captain": [
     {
-      "requires": {"quest": {"demo_town_orientation": "completed"}},
+      "requires": {
+        "quest": {
+          "demo_town_orientation": "completed"
+        }
+      },
       "speaker": "國王企鵝船長",
       "portrait": "king_penguin_captain",
       "lines": [
@@ -19,13 +23,27 @@
       ]
     }
   ],
-  "captain_chart_table": {
-    "speaker": "航海圖桌",
-    "lines": [
-      "【TEMP_DEMO_CONTENT】攤開的海圖上用炭筆畫了幾條航線，最外側那條被反覆擦掉又畫上。",
-      "（測試互動點：正式描述待作者提供）"
-    ]
-  },
+  "captain_chart_table": [
+    {
+      "requires": {
+        "flags": [
+          "captain_room_moving_item_seen"
+        ]
+      },
+      "speaker": "航海圖桌",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】海圖還攤在桌上。剛才那個東西，現在安安靜靜地待在新的位置。",
+        "（已觀察版本：正式描述待作者提供）"
+      ]
+    },
+    {
+      "speaker": "航海圖桌",
+      "lines": [
+        "【TEMP_DEMO_CONTENT】攤開的海圖上用炭筆畫了幾條航線，最外側那條被反覆擦掉又畫上。",
+        "（測試互動點：正式描述待作者提供）"
+      ]
+    }
+  ],
   "captain_rod_rack": {
     "speaker": "船具架",
     "lines": [
@@ -45,6 +63,51 @@
     "lines": [
       "【TEMP_DEMO_CONTENT】一個上了鎖的小箱子。",
       "（系統插槽：內容、圖片與觸發條件待作者提供；請勿自行填入）"
+    ]
+  },
+  "captain_room_moving_item_reaction": {
+    "note": "TEMP_DEMO_CONTENT：事件反應先用暫時台詞，正式文字由作者提供。segments 依序播放，每段可帶 requires。",
+    "segments": [
+      {
+        "speaker": "哥哥",
+        "portrait": "big_brother",
+        "lines": [
+          "【TEMP_DEMO_CONTENT】認真了認真了！剛剛它是不是動了？"
+        ]
+      },
+      {
+        "speaker": "冷靜哥",
+        "portrait": "calm_brother",
+        "lines": [
+          "【TEMP_DEMO_CONTENT】超智障的……但我記得它剛剛不在那裡。"
+        ]
+      },
+      {
+        "speaker": "弟弟",
+        "portrait": "younger_brother",
+        "lines": [
+          "【TEMP_DEMO_CONTENT】它是不是想出去玩？"
+        ]
+      },
+      {
+        "speaker": "妹妹",
+        "portrait": "sister_sheep",
+        "lines": [
+          "【TEMP_DEMO_CONTENT】先不要碰它。"
+        ]
+      },
+      {
+        "requires": {
+          "flags": [
+            "cc_joined"
+          ]
+        },
+        "speaker": "CC",
+        "portrait": "cc_penguin",
+        "lines": [
+          "……動いた、です。"
+        ]
+      }
     ]
   }
 }

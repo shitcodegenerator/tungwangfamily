@@ -56,7 +56,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_prompt(delta: float) -> void:
-	var show_prompt := current_target != null and not is_dialogue_active() and not is_leader_carrying()
+	# 對話、轉場與世界事件期間（隊伍輸入鎖定）不顯示提示，避免事件中物件旁還浮著「E」。
+	var show_prompt := current_target != null and not is_dialogue_active() and not is_leader_carrying() and not party.input_locked
 	_prompt.visible = show_prompt
 	if not show_prompt:
 		return

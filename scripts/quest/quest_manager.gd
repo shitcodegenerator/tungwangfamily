@@ -9,6 +9,8 @@ signal quest_updated(quest_id: String)
 signal quest_completed(quest_id: String)
 signal item_received(item_id: String)
 signal item_removed(item_id: String)
+## 新線索寫入時發出（Phase 6）；重複加入同一線索不會再發。
+signal clue_added(clue_id: String)
 
 const QUEST_PATH := "res://assets/quests/phase3_demo_quest.json"
 ## 所有任務定義檔（依序載入；同 id 後者覆蓋）。
@@ -16,12 +18,16 @@ const QUEST_PATHS: Array[String] = [
 	"res://assets/quests/phase3_demo_quest.json",
 	"res://assets/quests/phase4_cc_quest.json",
 ]
+## 線索定義（Phase 6）：id、title、text。取得狀態以永久旗標 clue_<id> 保存，不動 schema、不受每日重置影響。
+const CLUE_PATH := "res://assets/events/clues.json"
+const CLUE_FLAG_PREFIX := "clue_"
 const STATE_AVAILABLE := "available"
 const STATE_ACTIVE := "active"
 const STATE_COMPLETED := "completed"
 const STATE_FAILED := "failed"  # 保留相容性，本階段不使用
 
 var definitions: Dictionary = {}
+var clue_definitions: Dictionary = {}
 var state: GameState
 
 
@@ -37,6 +43,9 @@ func load_all_definitions() -> void:
 		if parsed.is_empty():
 			push_error("任務定義為空或無法解析：%s" % path)
 		definitions.merge(parsed, true)
+	clue_definitions = parse_clues(FileAccess.get_file_as_string(CLUE_PATH))
+	if clue_definitions.is_empty():
+		push_error("線索定義為空或無法解析：%s" % CLUE_PATH)
 
 
 func load_definitions(path: String) -> void:
@@ -53,6 +62,17 @@ static func parse_definitions(text: String) -> Dictionary:
 	for quest: Variant in parsed.get("quests", []):
 		if typeof(quest) == TYPE_DICTIONARY and quest.has("id"):
 			result[String(quest["id"])] = quest
+	return result
+
+
+static func parse_clues(text: String) -> Dictionary:
+	var parsed: Variant = JSON.parse_string(text)
+	var result := {}
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return result
+	for clue: Variant in parsed.get("clues", []):
+		if typeof(clue) == TYPE_DICTIONARY and clue.has("id"):
+			result[String(clue["id"])] = clue
 	return result
 
 
@@ -194,6 +214,45 @@ func apply_actions(actions: Array) -> void:
 			if is_objective_current(quest_id, objective_id):
 				var objective := current_objective(quest_id)
 				_add_progress(quest_id, objective_id, int(objective.get("count", 1)))
+
+
+# --- 線索（Phase 6）------------------------------------------------------------
+
+static func clue_flag(clue_id: String) -> String:
+	return CLUE_FLAG_PREFIX + clue_id
+
+
+func has_clue(clue_id: String) -> bool:
+	return state != null and state.has_flag(clue_flag(clue_id))
+
+
+## 寫入線索（永久旗標）；未定義的 id 仍會記錄但提出警告。已擁有時不重複發 signal。
+func add_clue(clue_id: String) -> void:
+	if state == null or clue_id.is_empty() or has_clue(clue_id):
+		return
+	if not clue_definitions.has(clue_id):
+		push_warning("線索未定義：%s" % clue_id)
+	state.set_flag(clue_flag(clue_id), true)
+	clue_added.emit(clue_id)
+
+
+## 任務日誌用：已取得的線索（依定義順序），每筆 {id, title, text}。
+func list_clues() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for clue_id: String in clue_definitions:
+		if not has_clue(clue_id):
+			continue
+		var definition: Dictionary = clue_definitions[clue_id]
+		result.append({
+			"id": clue_id,
+			"title": String(definition.get("title", clue_id)),
+			"text": String(definition.get("text", "")),
+		})
+	return result
+
+
+func clue_title(clue_id: String) -> String:
+	return String(clue_definitions.get(clue_id, {}).get("title", clue_id))
 
 
 ## HUD 一行摘要：第一個進行中的主線任務與目前目標。

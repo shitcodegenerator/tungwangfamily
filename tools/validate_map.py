@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """驗證所有場景（assets/maps/scenes.json）的 ASCII 地圖：尺寸、圖例、道具落點、入口可站、
-主要路線可走通（BFS）、傳送門與互動點可達、互動 id 都有對話、任務目標都指向存在的互動 id。
+主要路線可走通（BFS）、傳送門與互動點可達、互動 id 都有對話、任務目標都指向存在的互動 id、
+世界事件（assets/events/*.json）的場景、觸發互動點、目標節點、對話 id 與線索 id 都存在（Phase 6）。
 
 執行：python3 tools/validate_map.py
 """
@@ -14,6 +15,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCENES_PATH = ROOT / "assets" / "maps" / "scenes.json"
 QUEST_DIR = ROOT / "assets" / "quests"
+EVENT_DIR = ROOT / "assets" / "events"
+CLUES_PATH = EVENT_DIR / "clues.json"
+EVENT_REQUIRED_KEYS = ("event_id", "scene_id", "trigger", "actions")
+TARGET_ACTIONS = ("tween_node", "shader_param")
 TILE = 32
 
 WALKABLE = set("gdrpbsm=|w")
@@ -224,6 +229,62 @@ def validate_scene(scene_id: str, info: dict, quest_targets: set[str]) -> tuple[
     return errors, interact_ids
 
 
+def dialogue_has_lines(entry) -> bool:
+    """一般對話（字典或版本陣列）每個版本都要有 lines；事件對話可用 segments（每段都要有 lines）。"""
+    if isinstance(entry, dict) and isinstance(entry.get("segments"), list):
+        return bool(entry["segments"]) and all(isinstance(seg, dict) and seg.get("lines") for seg in entry["segments"])
+    variants = entry if isinstance(entry, list) else [entry]
+    return bool(entry) and all(isinstance(v, dict) and v.get("lines") for v in variants)
+
+
+def validate_events(scenes: dict, interacts_by_scene: dict[str, set[str]]) -> list[str]:
+    errors: list[str] = []
+    clues = json.loads(CLUES_PATH.read_text(encoding="utf-8")) if CLUES_PATH.exists() else {"clues": []}
+    clue_ids = {clue["id"] for clue in clues.get("clues", [])}
+    count = 0
+    for event_path in sorted(EVENT_DIR.glob("*.json")):
+        if event_path == CLUES_PATH:
+            continue
+        event = json.loads(event_path.read_text(encoding="utf-8"))
+        label = f"[event:{event_path.stem}]"
+        missing = [key for key in EVENT_REQUIRED_KEYS if key not in event]
+        if missing:
+            errors.append(f"{label} 缺少欄位 {missing}")
+            continue
+        scene_id = event["scene_id"]
+        if scene_id not in scenes:
+            errors.append(f"{label} 指向未知場景 {scene_id}")
+            continue
+        info = scenes[scene_id]
+        props = json.loads(res_path(info["props"]).read_text(encoding="utf-8"))
+        dialogue = json.loads(res_path(info["dialogue"]).read_text(encoding="utf-8"))
+        target_ids = {prop["event_id"] for prop in props.get("props", []) if prop.get("event_id")}
+        trigger = event["trigger"]
+        if trigger.get("type") == "interact_complete" and trigger.get("interactable_id") not in interacts_by_scene.get(scene_id, set()):
+            errors.append(f"{label} 觸發互動點 {trigger.get('interactable_id')} 不在場景 {scene_id}")
+        types = [action.get("type") for action in event["actions"]]
+        for action in event["actions"]:
+            kind = action.get("type")
+            if kind in TARGET_ACTIONS and action.get("target") not in target_ids:
+                errors.append(f"{label} 動作 {kind} 的目標 {action.get('target')} 沒有在 {scene_id} 的 props 以 event_id 登錄")
+            if kind == "dialogue" and not dialogue_has_lines(dialogue.get(action.get("dialogue_id"))):
+                errors.append(f"{label} 對話 {action.get('dialogue_id')} 不存在或沒有句子")
+            if kind == "clue" and action.get("clue_id") not in clue_ids:
+                errors.append(f"{label} 線索 {action.get('clue_id')} 未在 clues.json 定義")
+        if event.get("once"):
+            flag = event.get("complete_flag")
+            unlock_at = types.index("unlock_input") if "unlock_input" in types else len(types)
+            sets = [i for i, action in enumerate(event["actions"]) if action.get("type") == "set_flag" and action.get("flag") == flag]
+            if not flag or not sets or sets[0] > unlock_at:
+                errors.append(f"{label} once 事件必須在 unlock_input 之前 set_flag {flag}")
+        if types and (types[0] != "lock_input" or types[-1] != "unlock_input"):
+            errors.append(f"{label} 動作應以 lock_input 開始、unlock_input 結束")
+        count += 1
+        print(f"OK  {label} 場景 {scene_id}、{len(types)} 個動作、目標 {sorted(target_ids)}")
+    print(f"OK  世界事件 {count} 個資料齊全")
+    return errors
+
+
 def main() -> int:
     scenes = json.loads(SCENES_PATH.read_text(encoding="utf-8"))
     quest_targets: set[str] = set()
@@ -232,6 +293,7 @@ def main() -> int:
         quest_targets |= {o["target"] for q in quests["quests"] for o in q["objectives"] if o.get("kind") == "interact"}
     errors: list[str] = []
     all_interacts: set[str] = set()
+    interacts_by_scene: dict[str, set[str]] = {}
     for scene_id, info in scenes.items():
         missing_files = [key for key in ("map", "props", "dialogue") if not res_path(info[key]).exists()]
         if missing_files:
@@ -240,6 +302,7 @@ def main() -> int:
         scene_errors, interacts = validate_scene(scene_id, info, quest_targets)
         errors += scene_errors
         all_interacts |= interacts
+        interacts_by_scene[scene_id] = interacts
         for portal in json.loads(res_path(info["props"]).read_text(encoding="utf-8")).get("portals", []):
             target = portal.get("target")
             if target != "return" and target not in scenes:
@@ -248,6 +311,7 @@ def main() -> int:
         if target not in all_interacts:
             errors.append(f"任務目標 {target} 不是任何場景的互動 id")
     print(f"OK  任務目標 {len(quest_targets)} 個皆對應互動物件")
+    errors += validate_events(scenes, interacts_by_scene)
 
     if errors:
         print("\n".join(errors))

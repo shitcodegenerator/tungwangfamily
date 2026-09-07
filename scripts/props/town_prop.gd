@@ -6,8 +6,11 @@ extends Node2D
 ## foot_inset（接地線距貼圖底緣的像素，例如拱門的石板地面）、glow_x（光暈中心距貼圖左緣）、
 ## collision_boxes（多個碰撞盒 [寬, 高, dx, dy]，例如拱門的兩隻腳）。
 ## 這些選項只改變 Sprite2D 子節點，不移動道具本體、碰撞盒或 Y-sort 基準。
+## Phase 6 增加 shader（assets/shaders/<名稱>.gdshader 套在 Sprite2D 的 ShaderMaterial，只作環境氣氛：
+## 不套在碰撞、互動區或光暈；載入失敗只警告，道具照常運作）。
 
 const GLOW_TEXTURE := preload("res://assets/effects/lamp_glow.png")
+const SHADER_DIR := "res://assets/shaders/"
 ## 光暈隨燈籠幀數微微呼吸，讓夜晚的燈光不會死板。
 const GLOW_FLICKER: Array[float] = [1.0, 0.85, 1.1, 0.92]
 
@@ -25,6 +28,7 @@ var extra_collision_rects: Array[Rect2] = []
 var _time: float = 0.0
 var _drift_phase: float = 0.0
 var _glow_strength: float = 0.0
+var _shader_name: String = ""
 
 
 ## collision_size 為 Vector2.ZERO 且沒有 collision_boxes 時不建立碰撞（純裝飾）。
@@ -48,6 +52,8 @@ func setup(texture: Texture2D, collision_size: Vector2, alpha: float = 1.0, z_bi
 		drift_amplitude = float(drift[0])
 		drift_period = maxf(0.1, float(drift[1]))
 		_drift_phase = fmod(position.x * 0.013 + position.y * 0.007, TAU)
+	if options.has("shader"):
+		_apply_shader(String(options["shader"]))
 	if bool(options.get("glow", false)):
 		var glow_offset := Vector2(float(options.get("glow_x", foot_x)) - foot_x, -(height - float(options.get("glow_y", 14.0))) + foot_inset)
 		_add_glow(glow_offset)
@@ -87,6 +93,47 @@ func _add_glow(offset: Vector2) -> void:
 	add_child(glow)
 
 
+func _apply_shader(shader_name: String) -> void:
+	var path := SHADER_DIR + shader_name + ".gdshader"
+	if not ResourceLoader.exists(path):
+		push_warning("找不到道具 Shader：%s（略過，道具照常顯示）" % path)
+		return
+	var shader: Shader = load(path)
+	if shader == null:
+		push_warning("道具 Shader 無法載入：%s" % path)
+		return
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	sprite.material = material
+	_shader_name = shader_name
+
+
+func has_shader() -> bool:
+	return sprite.material is ShaderMaterial
+
+
+func shader_name() -> String:
+	return _shader_name
+
+
+## 事件執行器用：暫時改 Shader uniform（例如舷窗 event_pulse）。沒有 Shader 時回傳 null／不做事。
+func get_shader_param(parameter: String) -> Variant:
+	if not has_shader():
+		return null
+	var material := sprite.material as ShaderMaterial
+	var value: Variant = material.get_shader_parameter(parameter)
+	if value == null:
+		# 尚未覆寫過的 uniform：從 Shader 原始碼讀宣告的預設值（headless 沒有 RenderingServer 可查）。
+		value = shader_default(material.shader.code, parameter)
+	return value
+
+
+func set_shader_param(parameter: String, value: Variant) -> void:
+	if not has_shader():
+		return
+	(sprite.material as ShaderMaterial).set_shader_parameter(parameter, value)
+
+
 func has_glow() -> bool:
 	return glow != null
 
@@ -110,6 +157,13 @@ func _process(delta: float) -> void:
 	if drift_amplitude > 0.0:
 		# 只位移 Sprite2D，道具本體座標不變，因此 Y-sort 與（若有）碰撞都不受影響。
 		sprite.position.x = roundf(sin(_time * TAU / drift_period + _drift_phase) * drift_amplitude)
+
+
+## 純函式：從 Shader 原始碼找 `uniform float <name> ... = <值>;` 的預設值；找不到或不是 float 回傳 null。
+static func shader_default(code: String, parameter: String) -> Variant:
+	var pattern := RegEx.create_from_string("uniform\\s+float\\s+%s\\b[^;=]*=\\s*([-+0-9.eE]+)\\s*;" % parameter)
+	var found := pattern.search(code)
+	return float(found.get_string(1)) if found != null else null
 
 
 ## 純函式：貼圖左上角相對於原點（接地點）的位移。接地點在貼圖的 (foot_x, height - foot_inset)。
