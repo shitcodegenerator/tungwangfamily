@@ -3,7 +3,7 @@
   "title": "Art completion and presentable vertical slice",
   "base_branch": "master",
   "base_commit": "20689ba (fb3c947 + full scene tutorial)",
-  "status": "planned",
+  "status": "assets_delivered_pending_local_wiring",
   "policy": {
     "no_character_redraw": true,
     "preserve_old_assets": true,
@@ -113,8 +113,13 @@
       "anchor": "bottom_ground_line",
       "embedded_shadow": false,
       "source_path": "assets/reference/incoming/PHASE8_shared_family_treehouse_v3_source.png",
-      "sha256": null,
-      "status": "to_produce"
+      "sha256": "838c7b8cdedc813aa430ba95762d3c6a77e7e8fcdaf8ec82d7f0c9446d6e3148",
+      "status": "delivered_to_branch",
+      "verified_dimensions": [
+        176,
+        96
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "root_archway_v3_base",
@@ -129,8 +134,13 @@
       "collision": "keeps_two_collision_boxes",
       "embedded_shadow": false,
       "source_path": "assets/reference/incoming/PHASE8_root_archway_v3_source.png",
-      "sha256": null,
-      "status": "to_produce"
+      "sha256": "36c66c1e5c49ab7d85bdd646656ddff303371cb941705072d8790be3fec45ff5",
+      "status": "delivered_to_branch",
+      "verified_dimensions": [
+        176,
+        166
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "root_archway_v3_canopy",
@@ -145,8 +155,13 @@
       "collision": null,
       "embedded_shadow": false,
       "source_path": "assets/reference/incoming/PHASE8_root_archway_v3_source.png",
-      "sha256": null,
-      "status": "to_produce"
+      "sha256": "7baf6209e3874c4fc001c40fbd9d2aa1c7db7c4485baae55a67cf4a54342fbcb",
+      "status": "delivered_to_branch",
+      "verified_dimensions": [
+        176,
+        166
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "town_visual_refresh_tiles_32_v3",
@@ -159,9 +174,14 @@
       "layout": "8_columns_x_4_rows",
       "alpha": "opaque_tile_pixels_with_no_gutters",
       "source_path": "assets/reference/incoming/PHASE8_town_visual_refresh_tiles_32_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "builder_note": "tools/build_assets_phase5.py needs --atlas <path> and --frame 0 (clean atlas, no 2px gutters)"
+      "sha256": "9d34655b04239ad2767c58b7f8532e9f5d46eea7300ba5ef0e9c6ea6ee6c4356",
+      "status": "delivered_to_branch",
+      "builder_note": "tools/build_assets_phase5.py needs --atlas <path> and --frame 0 (clean atlas, no 2px gutters)",
+      "verified_dimensions": [
+        256,
+        128
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "house_window_lantern_v3",
@@ -252,9 +272,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "608269e4140952d69bd878a63a7908b22c82aa1392ef4d4180003bf15637b440",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        178,
+        120
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_side_table_v3",
@@ -270,9 +295,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "78cda2396a08ed32319117b744e00c06cf29317d14333701e46914384db3b779",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        140,
+        128
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_rod_rack_v3",
@@ -288,9 +318,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "13cbcffe6734d42eac29f0300f0d52cbcf2c86aeb28d23c9f0029ce8493cbf3f",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        108,
+        165
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_bookshelf_v3",
@@ -306,9 +341,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "dbc7f8c629b845978889dd073a1f1963e29923e5a469837f42e39266b09ef1e4",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        80,
+        128
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_chest_stack_v3",
@@ -324,9 +364,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "881efc3a28d0b1b05414dea609f0b800d0f5c1c77005964fb3c5b47bb2263764",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        102,
+        98
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_fish_crate_v3",
@@ -342,9 +387,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "4b8797446efbc8942e495bf83b9e2ec58a6e113c2311b668aff74900f07705b0",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        102,
+        98
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_coat_rack_v3",
@@ -360,9 +410,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "0e4a03afefeea24cc1cba9b9e4371de916cd2fc193fa65420407457d7155e37a",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        65,
+        115
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_chest_bench_v3",
@@ -378,9 +433,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "8867d2ce5eb332ff14e601a598cfdd8cc37435182f97e8acf1a388cf9422de88",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        52,
+        70
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_barrel_v3",
@@ -396,9 +456,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "a02631ba5259fd99802a4a0bce10c650c156cb0915e195e0106403f7e7b7c707",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        40,
+        48
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_wall_map_v3",
@@ -414,9 +479,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "df4da1b97cc3b38f187b4d72c4d8470ecfd8108e01c274042ebc5f44ade39d9c",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        102,
+        78
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_painting_v3",
@@ -432,9 +502,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "3d9bc0ad736b8162d2e2ccdd80f7c4016a446881357de5bc92c192fae1be73e6",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        48,
+        40
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_porthole_v3",
@@ -450,10 +525,15 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
+      "sha256": "cefb1c7170607d90fa04c7b23fe49aac8bcebc36800102e09c38b04e576ed82f",
+      "status": "delivered_to_branch",
       "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
-      "note": "keeps shader captain_room_waterlight on Sprite2D"
+      "note": "keeps shader captain_room_waterlight on Sprite2D",
+      "verified_dimensions": [
+        72,
+        78
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_hanging_lantern_v3",
@@ -469,9 +549,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "dd9bf53b1f49b395dc5e787d587e998cff4d0e7c84706c55177593ad9718f47f",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        45,
+        78
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_rug_v3",
@@ -487,9 +572,14 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
-      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)"
+      "sha256": "c9a688fa20c0fb014a96b0ef5b35bc52e1eae3f4e5af8074721f214f7f960ab4",
+      "status": "delivered_to_branch",
+      "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
+      "verified_dimensions": [
+        215,
+        128
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     },
     {
       "id": "cap_rope_coil_v3",
@@ -505,10 +595,15 @@
       "embedded_floor_or_wall": false,
       "preserve": "existing_prop_origin_and_phase8_collision",
       "source_path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
-      "sha256": null,
-      "status": "to_produce",
+      "sha256": "b69f1dff070b3f340b9040857d1dca24cfe1d121944fb156394149abae3df820",
+      "status": "delivered_to_branch",
       "reason": "author decision 2026-09-07: redraw the whole captain room set for one consistent style (audit: 25-67% semi-alpha, baked floor, density mismatch with characters)",
-      "note": "event target captain_mystery_item: keep 55x40, transparent, same position; redraw only to match the new set"
+      "note": "event target captain_mystery_item: keep 55x40, transparent, same position; redraw only to match the new set",
+      "verified_dimensions": [
+        55,
+        40
+      ],
+      "verified_alpha": "binary_alpha_or_opaque"
     }
   ],
   "conditional_assets": [
@@ -521,7 +616,14 @@
         128
       ],
       "condition": "only_if_phase8_baseline_shows_void_or_platform_gaps_after_gate_cleanup",
-      "status": "audit_required"
+      "status": "delivered_to_branch",
+      "sha256": "4d99a9f7fa3ed6b499fe3ddcf8612084790a293a5c5e61a9e2ac163dbb24ea0b",
+      "source_path": "assets/reference/incoming/PHASE8_upper_canopy_fill_pack_source.png",
+      "verified_dimensions": [
+        256,
+        128
+      ],
+      "verified_alpha": "opaque_tiles"
     }
   ],
   "audit_targets": {
@@ -579,5 +681,62 @@
   "author_decisions_2026_09_07": {
     "captain_room_furniture": "redraw whole set as v3 (15 files)",
     "outdoor_prop_pockets": "sealed by deeper collision (applied in tide_root_town_props.json)"
-  }
+  },
+  "delivery_branch": "codex/phase-8-art-assets-v3",
+  "delivery_base_commit": "31d898c958a530d145893a945844947e455ac512",
+  "delivery_notes": {
+    "captain_room": "15 cap_*_v3 PNG files; original dimensions; true binary alpha; no baked floor, wall or cast shadow",
+    "treehouse": "176x96; y=80 threshold line; y=80..95 is the 16px doormat; use foot_inset 16",
+    "root_archway": "base and canopy are both 176x166 with the same bottom-center anchor; canopy has no ground pixels",
+    "town_atlas": "clean 8x4 atlas; existing Phase 5 semantic slot order retained; no 2px frame",
+    "upper_fill": "8x4 pack: row0 c0-3 canopy fill, row0 c4-7 fog fill, row1 edge variants, row2 c0-3 root wall, row2 c4-7 root caps, row3 c0-3 cloud lower edge, row3 c4-7 root caps",
+    "house_facades": "audit result KEEP; no v3 redraw included"
+  },
+  "source_files": [
+    {
+      "path": "assets/reference/incoming/PHASE8_captain_room_furniture_v3_source.png",
+      "sha256": "5947f89f387c4cf4e435b18b37339465a07c63bc2c5ef3063db52d0808203958",
+      "size": [
+        1200,
+        570
+      ],
+      "alpha": "binary_alpha_or_opaque"
+    },
+    {
+      "path": "assets/reference/incoming/PHASE8_root_archway_v3_source.png",
+      "sha256": "ef6801bccbcf2daa09403325b95302f1f4f6126c3640b2112f349610b6ccadc2",
+      "size": [
+        352,
+        332
+      ],
+      "alpha": "binary_alpha_or_opaque"
+    },
+    {
+      "path": "assets/reference/incoming/PHASE8_shared_family_treehouse_v3_source.png",
+      "sha256": "e5e56a68921ed49631f13837fc1734fd974077d8107a7641918fcf6ea798c7f9",
+      "size": [
+        352,
+        192
+      ],
+      "alpha": "binary_alpha_or_opaque"
+    },
+    {
+      "path": "assets/reference/incoming/PHASE8_town_visual_refresh_tiles_32_v3_source.png",
+      "sha256": "9d34655b04239ad2767c58b7f8532e9f5d46eea7300ba5ef0e9c6ea6ee6c4356",
+      "size": [
+        256,
+        128
+      ],
+      "alpha": "binary_alpha_or_opaque"
+    },
+    {
+      "path": "assets/reference/incoming/PHASE8_upper_canopy_fill_pack_source.png",
+      "sha256": "4d99a9f7fa3ed6b499fe3ddcf8612084790a293a5c5e61a9e2ac163dbb24ea0b",
+      "size": [
+        256,
+        128
+      ],
+      "alpha": "binary_alpha_or_opaque"
+    }
+  ]
 }
