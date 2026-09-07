@@ -7,6 +7,7 @@ extends Node
 ## 結束時列印報告並以 exit code 0（通過）／1（失敗）離開。
 
 const TILE_TIMEOUT := 4.0
+const DOOR_STOP_OFFSET := Vector2(0.0, 6.0)
 const SWITCH_TARGET := 20
 const SWITCH_EVERY_TILES := 5
 const AXIS_ACTIONS := {
@@ -84,8 +85,9 @@ func _run() -> void:
 	_check(await _push_against(Vector2i.UP, 1.0, func(p: Vector2) -> bool: return p.y >= 508.0), "房屋外牆阻擋，不可進入")
 	_check(await _walk_to(Vector2i(22, 30)), "走到深水邊")
 	_check(await _push_against(Vector2i.RIGHT, 1.0, func(p: Vector2) -> bool: return p.x <= 734.0), "深水阻擋")
-	_check(await _walk_to(Vector2i(4, 25)), "走到樹皮牆邊")
-	_check(await _push_against(Vector2i.LEFT, 1.0, func(p: Vector2) -> bool: return p.x >= 132.0), "樹皮牆阻擋")
+	# Phase 8：(4,25) 已被早餐攤北側口袋的碰撞封住（作者決定封口袋），改用樓梯西側第 24 列的樹根牆
+	_check(await _walk_to(Vector2i(11, 24)), "走到樹皮牆邊")
+	_check(await _push_against(Vector2i.LEFT, 1.0, func(p: Vector2) -> bool: return p.x >= 356.0), "樹皮牆阻擋")
 	_check(await _walk_to(Vector2i(14, 34)), "走到地圖下緣")
 	_check(await _push_against(Vector2i.DOWN, 1.0, func(p: Vector2) -> bool: return p.y <= 1122.0), "地圖外圍阻擋")
 
@@ -213,7 +215,7 @@ func _phase3_checks() -> void:
 	_check(not hud_early.is_log_open(), "J 關閉任務日誌")
 
 	# 共享家庭屋
-	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口")
+	_check(await _walk_to_door(Vector2i(4, 21)), "走到共享家庭屋門口")
 	_check(await _enter_portal(Vector2i.UP, "family_home"), "走進門口轉場到共享家庭屋")
 	_check(party.order.size() == 4 and _all_members_in_world(), "進入家庭屋後四人都在室內")
 	await _screenshot("09_family_home")
@@ -228,7 +230,7 @@ func _phase3_checks() -> void:
 	_check(_all_members_in_world(), "返回後隊伍完整")
 
 	# 船長房間
-	_check(await _walk_to(Vector2i(25, 21)), "走到船長房間門口")
+	_check(await _walk_to_door(Vector2i(25, 21)), "走到船長房間門口")
 	_check(await _enter_portal(Vector2i.UP, "captain_room"), "走進門口轉場到船長房間")
 	await _screenshot("10_captain_room")
 	_check(await _walk_to(Vector2i(12, 8)), "走到國王企鵝船長面前")
@@ -536,8 +538,9 @@ func _phase5_checks() -> void:
 	_check(world.prop_blocked_tiles.has(Vector2i(13, 23)) and world.prop_blocked_tiles.has(Vector2i(16, 23)) and not world.prop_blocked_tiles.has(Vector2i(14, 23)) and not world.prop_blocked_tiles.has(Vector2i(15, 23)), "拱門兩腳封鎖第 13／16 欄，中央第 14～15 欄可通行")
 	_check(await _walk_to(Vector2i(14, 25)), "走到拱門下方")
 	_check(await _walk_to(Vector2i(14, 22)), "穿過拱門走上樓梯")
-	var archway: TownProp = _find_prop("root_archway_v2")
-	_check(archway != null and archway.z_index < 0, "根拱門 z_index 低於角色（Phase 7：隊伍穿過時不被樹冠遮住）")
+	var archway: TownProp = _find_prop("root_archway_v3_base")
+	var archway_canopy: TownProp = _find_prop("root_archway_v3_canopy")
+	_check(archway != null and archway.z_index == 0 and archway_canopy != null and archway_canopy.z_index > 0 and archway_canopy.position == archway.position, "根拱門拆成 base（Y-sort）與 canopy（前景 z_index）兩層，同一錨點（Phase 8）")
 	await _screenshot("29_root_archway_party")
 	_check(await _walk_to(Vector2i(14, 25)), "穿過拱門回到廣場")
 	_check(await _followers_catch_up(3.0, 110.0), "穿過拱門後跟隨者 3 秒內追上")
@@ -549,9 +552,9 @@ func _phase5_checks() -> void:
 	_check(interaction.current_target != null and interaction.current_target.interactable_id == &"grandma_turtle", "新早餐攤前仍可鎖定阿嬤互動")
 
 	# 家庭屋：休息點提示、取消休息
-	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口（新樹屋外觀）")
-	var treehouse: TownProp = _find_prop("shared_family_treehouse_v2")
-	_check(treehouse != null and treehouse.position.y + treehouse.sprite.offset.y >= 574.0 and treehouse.z_index == 0, "樹屋貼圖頂端不高於 y=574（第 16～17 列街道不被屋頂遮住）且仍走 Y-sort")
+	_check(await _walk_to_door(Vector2i(4, 21)), "走到共享家庭屋門口（新樹屋外觀）")
+	var treehouse: TownProp = _find_prop("shared_family_treehouse_v3")
+	_check(treehouse != null and treehouse.position.y + treehouse.sprite.offset.y == 592.0 and treehouse.z_index == 0, "樹屋 v3 貼圖頂端 y=592（第 18 列，第 16～17 列街道不被屋頂遮住）且仍走 Y-sort")
 	await _screenshot("30_treehouse_party")
 	_check(await _enter_portal(Vector2i.UP, "family_home"), "新樹屋門口仍可進入家庭屋")
 	state = main_node.state
@@ -628,7 +631,7 @@ func _phase5_checks() -> void:
 	# 切換場景不增加 day；讀檔保留 day；v2 存檔遷移
 	_check(await _walk_to(Vector2i(9, 9)), "走到家庭屋出口上方")
 	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "走出家庭屋回到主城")
-	_check(await _walk_to(Vector2i(4, 21)), "再走到家庭屋門口")
+	_check(await _walk_to_door(Vector2i(4, 21)), "再走到家庭屋門口")
 	_check(await _enter_portal(Vector2i.UP, "family_home"), "再次進入家庭屋")
 	state = main_node.state
 	_check(state.day == day_before + 1, "連續切換場景不會增加 day")
@@ -706,7 +709,7 @@ func _phase6_event_checks(origin: Vector2) -> void:
 	var events: Node = main_node.get("events")
 	var state: GameState = main_node.state
 	var target: Node2D = world.get_event_target("captain_mystery_item") as Node2D
-	_check(target != null and origin != Vector2.INF, "船長房間登錄事件目標 captain_mystery_item（目前為 cap_rope_coil）")
+	_check(target != null and origin != Vector2.INF, "船長房間登錄事件目標 captain_mystery_item（目前為 cap_rope_coil_v3）")
 	_check(events.call("is_running") and String(events.get("current_event_id")) == "captain_room_moving_item", "航海圖桌對話結束後觸發船長房間事件")
 	_check(party.input_locked and not interaction.prompt_visible(), "事件期間玩家輸入鎖定、互動提示隱藏")
 	var leader_before := party.get_leader().global_position
@@ -733,7 +736,7 @@ func _phase6_checks() -> void:
 	var events: Node = main_node.get("events")
 	var state: GameState = main_node.state
 	_check(state.has_flag(EVENT_FLAG) and quests.has_clue(EVENT_CLUE), "休息換日與讀檔後，船長房間事件旗標與線索仍保留")
-	_check(await _walk_to(Vector2i(25, 21)), "走到船長房間門口")
+	_check(await _walk_to_door(Vector2i(25, 21)), "走到船長房間門口")
 	_check(await _enter_portal(Vector2i.UP, "captain_room"), "再次進入船長房間")
 	var target: Node2D = world.get_event_target("captain_mystery_item") as Node2D
 	var origin := target.position
@@ -952,7 +955,13 @@ func _physics_process(_delta: float) -> void:
 			boss_bound_violations.append("Boss y=%.1f 高於 min_y=%.1f" % [battle.boss.global_position.y, battle.boss.min_y])
 
 
-func _walk_to(goal: Vector2i) -> bool:
+## 走到門口格：最後一步的目標往南偏 DOOR_STOP_OFFSET，避免停在格中心偏北時角色碰撞盒（頂端 y=中心-10）
+## 碰到門口傳送門（底緣 y=中心-11）而提早轉場；之後由 _enter_portal(UP) 正式走進門。
+func _walk_to_door(goal: Vector2i) -> bool:
+	return await _walk_to(goal, DOOR_STOP_OFFSET)
+
+
+func _walk_to(goal: Vector2i, final_offset: Vector2 = Vector2.ZERO) -> bool:
 	var tiles_since_switch := 0
 	while true:
 		if router != null and router.is_transitioning:
@@ -963,7 +972,7 @@ func _walk_to(goal: Vector2i) -> bool:
 			world = main_node.get("world")
 		var leader := party.get_leader()
 		var start := world.world_to_tile(leader.global_position)
-		if start == goal and leader.global_position.distance_to(world.tile_to_world(goal)) < 6.0:
+		if start == goal and leader.global_position.distance_to(world.tile_to_world(goal) + final_offset) < 6.0:
 			_release_all()
 			return true
 		var path := world.find_tile_path(start, goal)
@@ -973,7 +982,7 @@ func _walk_to(goal: Vector2i) -> bool:
 			return false
 		var replan := false
 		for index: int in range(1, path.size()):
-			if not await _step_to_tile(path[index]):
+			if not await _step_to_tile(path[index], final_offset if index == path.size() - 1 else Vector2.ZERO):
 				_release_all()
 				return false
 			tiles_since_switch += 1
@@ -989,8 +998,8 @@ func _walk_to(goal: Vector2i) -> bool:
 	return false
 
 
-func _step_to_tile(tile: Vector2i) -> bool:
-	var target := world.tile_to_world(tile)
+func _step_to_tile(tile: Vector2i, offset: Vector2 = Vector2.ZERO) -> bool:
+	var target := world.tile_to_world(tile) + offset
 	var elapsed := 0.0
 	while elapsed < TILE_TIMEOUT:
 		var leader := party.get_leader()

@@ -224,10 +224,10 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 | P8.3 室內家具層級 | 完成（資料層） | family_home_props.json／captain_room_props.json 15 件家具碰撞加深；validate_map、343 測試通過；after_collision 截圖 |
 | P8.2 builder 準備 | 完成 | tools/build_assets_phase5.py 支援 `--atlas`／`--frame 0`，預設輸出不變 |
 | P8.5 展示模式 | 完成 | 除錯狀態列預設隱藏，`--route-test`／`--snapshot`／`--debug-hud` 或 F2 才顯示 |
-| P8.1 樹屋 v3／拱門拆層 | 等素材 | 依 manifest：shared_family_treehouse_v3（176×96，底 16px 踏墊）、root_archway_v3_base／canopy（176×166） |
-| P8.2 中層 atlas v3 | 等素材 | town_visual_refresh_tiles_32_v3.png → `python3 tools/build_assets_phase5.py --atlas <path> --frame 0` → tile_style_rows [12,35] |
-| 上層 fill pack | 等素材＋程式 | upper_canopy_fill_pack ＋ tile_library 補 `.`／`T`／`c` |
-| 船長房間家具 v3 | 等素材（作者 2026-09-07 決定整批 15 張重出） | 見盤點第 3 節與 manifest cap_*_v3；尺寸沿用、碰撞沿用本批數值、繩圈維持事件規格 |
+| P8.1 樹屋 v3／拱門拆層 | 完成（第二批） | shared_family_treehouse_v3 + foot_inset 16（頂端 y=592）；root_archway_v3_base（Y-sort、兩腳碰撞）＋ root_archway_v3_canopy（z_bias 1、無碰撞）；截圖 docs/screenshots/phase8_v3/ |
+| P8.2 中層 atlas v3 | 完成（第二批） | builder 預設改 v3／frame 0；tile_style_rows [23,35] → [12,35]（截圖確認）→ [0,35] |
+| 上層 fill pack | 完成（第二批） | upper_canopy_fill_tiles_32_v1 → tileset 第 8～9 列；tile_library `.`／`T`／`c` 分支（孤立 c 畫樹冠，見報告待確認 4） |
+| 船長房間家具 v3 | 完成（第二批） | 15 件 cap_*_v3 接線，x／y／碰撞／互動／事件／shader 沿用；舊檔保留可回退 |
 
 ## 5. 不要在 Phase 8 做的事
 

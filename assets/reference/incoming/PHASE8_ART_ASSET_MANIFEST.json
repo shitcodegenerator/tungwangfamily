@@ -3,7 +3,7 @@
   "title": "Art completion and presentable vertical slice",
   "base_branch": "master",
   "base_commit": "20689ba (fb3c947 + full scene tutorial)",
-  "status": "assets_delivered_pending_local_wiring",
+  "status": "wired_locally_pending_route_test_report",
   "policy": {
     "no_character_redraw": true,
     "preserve_old_assets": true,
@@ -738,5 +738,61 @@
       ],
       "alpha": "binary_alpha_or_opaque"
     }
-  ]
+  ],
+  "local_wiring_2026_09_07": {
+    "branch": "phase-8-art-complete",
+    "merged_delivery": "codex/phase-8-art-assets-v3@3847042",
+    "tileset": "assets/tilesets/tide_root_town_tileset.png rebuilt 576x320 (rows 6-7 v3 atlas frame 0, rows 8-9 upper fill pack)",
+    "tile_style_rows": [
+      0,
+      35
+    ],
+    "tile_library_upper_rules": {
+      ".": "UP_CANOPY_FILL (weighted pattern) / UP_CANOPY_EDGE_S when south is not sky",
+      "c": "UP_MIST_FILL / UP_CLOUD_EDGE_S only when at least one 4-neighbour is c; isolated c renders as canopy",
+      "T": "UP_ROOT_WALL / UP_ROOT_CAP when north is not T"
+    },
+    "treehouse": {
+      "texture": "town_refresh/shared_family_treehouse_v3",
+      "foot_inset": 16,
+      "image_top_y": 592
+    },
+    "root_archway": {
+      "base": {
+        "texture": "town_refresh/root_archway_v3_base",
+        "z_bias": 0,
+        "collision_boxes": [
+          [
+            49,
+            40,
+            -57,
+            0
+          ],
+          [
+            57,
+            40,
+            62,
+            0
+          ]
+        ]
+      },
+      "canopy": {
+        "texture": "town_refresh/root_archway_v3_canopy",
+        "z_bias": 1,
+        "collision": null
+      },
+      "foot_inset": 38,
+      "anchor": [
+        480,
+        762
+      ]
+    },
+    "captain_room": "all 15 props switched to cap_*_v3; positions, collision, interact, event_id, shader unchanged",
+    "house_facades": "kept v2 (audit KEEP, not delivered)",
+    "open_for_author": [
+      "isolated c cells render as canopy (no transparent mist overlay in pack)",
+      "archway canopy z_bias 1 covers bodies of characters standing on row 21",
+      "cap_*_v3 colour counts far above a limited pixel palette"
+    ]
+  }
 }

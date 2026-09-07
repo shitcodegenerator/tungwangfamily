@@ -72,7 +72,7 @@ cap_rope_coil 也一起重出以統一風格，但必須維持 55×40、透明�
 | breakfast_stall_v2 | 99 | 已套用：碰撞 36→119，第 25～26 列攤位後方 5 格封住 |
 | heart_fountain_v2 | 89→33 | 已套用：碰撞 40→96（碰撞頂對齊 y=896；113 會封掉市集老龜的站位 (20,27)），第 28 列封住 |
 | harbor_crate_barrel_v2 | 74 | 已套用：碰撞 28→86 |
-| flower_herb_bed_v2 | 102 | 已套用：碰撞 30→116 |
+| flower_herb_bed_v2 | 102 | 已套用：碰撞 30→116 → 第二批改 96（116 封掉第 30 列阿嬤／CC 對話站位；北側口袋因互動站位必須開放） |
 | shared_family_treehouse_v2 | 38 | 隨 v3 素材處理（見計畫 5-1） |
 | root_archway_v2 | 88 | 隨 v3 拆層處理 |
 

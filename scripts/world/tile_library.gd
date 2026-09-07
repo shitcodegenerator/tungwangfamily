@@ -20,7 +20,8 @@ extends RefCounted
 const TILE_SIZE := 32
 const TILE_VECTOR := Vector2i(TILE_SIZE, TILE_SIZE)
 const ATLAS_COLUMNS := 18
-const ATLAS_ROWS := 8
+## 第 0～5 列舊 atlas、第 6～7 列 Phase 5／8 城鎮更新 tile、第 8～9 列 Phase 8 上層填充包（tools/build_assets_phase5.py）
+const ATLAS_ROWS := 10
 const UPPER_ZONE_LAST_ROW := 11
 const WATER_FRAMES := 4
 const WATER_FRAME_SECONDS := 0.28
@@ -109,6 +110,19 @@ const TR_BRIDGE_SIDE := Vector2i(11, 7)
 const TR_WATER := Vector2i(12, 7)
 const TR_BRIDGE_EW_TOP := Vector2i(16, 7)
 const TR_BRIDGE_EW_BOTTOM := Vector2i(17, 7)
+## 第 8～9 列：Phase 8 上層填充包（upper_canopy_fill_tiles_32_v1.png，8×4 摺成 16 欄 × 2 列）。
+## 主城第 0～11 列的 .（樹冠）、c（霧）、T（樹根）在 town_refresh 樣式下用這些 tile，不再退回星空虛空或樹根牆。
+const UP_CANOPY_FILL: Array[Vector2i] = [Vector2i(0, 8), Vector2i(1, 8), Vector2i(2, 8), Vector2i(3, 8)]
+const UP_MIST_FILL: Array[Vector2i] = [Vector2i(4, 8), Vector2i(5, 8), Vector2i(6, 8), Vector2i(7, 8), Vector2i(12, 8), Vector2i(13, 8), Vector2i(14, 8), Vector2i(15, 8)]
+const UP_CANOPY_EDGE_S: Array[Vector2i] = [Vector2i(8, 8), Vector2i(9, 8), Vector2i(10, 8), Vector2i(11, 8)]
+const UP_ROOT_WALL: Array[Vector2i] = [Vector2i(0, 9), Vector2i(1, 9), Vector2i(2, 9), Vector2i(3, 9)]
+const UP_ROOT_CAP: Array[Vector2i] = [Vector2i(4, 9), Vector2i(5, 9), Vector2i(6, 9), Vector2i(7, 9), Vector2i(12, 9), Vector2i(13, 9), Vector2i(14, 9), Vector2i(15, 9)]
+const UP_CLOUD_EDGE_S: Array[Vector2i] = [Vector2i(8, 9), Vector2i(9, 9), Vector2i(10, 9), Vector2i(11, 9)]
+## 上層「天空」字元：樹冠與霧；下方不是天空（平台 b、牆 #）時改用下緣變體。
+const SKY_CHARS := ".c"
+## 樹冠變體週期：填充包第 0、2 格較亮、第 1、3 格較暗；以亮格為主、暗格零星出現，避免 mod 4 雜湊變成棋盤格。
+const UP_CANOPY_PATTERN: Array[int] = [0, 2, 0, 0, 2, 1, 0, 2, 0, 3, 2, 0, 0, 2, 1, 0, 2]
+const UP_CANOPY_EDGE_PATTERN: Array[int] = [0, 2, 0, 1, 2, 0, 3, 0, 2]
 ## 草地變體週期：7 格裡 4 格 A、2 格 B、1 格花草，依座標雜湊選取（可重現）。
 const TR_GRASS_PATTERN: Array[Vector2i] = [TR_GRASS_A, TR_GRASS_A, TR_GRASS_B, TR_GRASS_A, TR_GRASS_FLOWERS, TR_GRASS_A, TR_GRASS_B]
 const TR_STONE_PATTERN: Array[Vector2i] = [TR_STONE_A, TR_STONE_B, TR_STONE_A, TR_STONE_A, TR_STONE_B]
@@ -228,10 +242,22 @@ static func uses_town_refresh(options: Dictionary, y: int) -> bool:
 ##   g → 草地變體；s／m → 石板，與草地相鄰的邊用 edge／corner（草地那側）；
 ##   ,／~ → 水，與陸地相鄰的邊用水岸 edge／corner（陸地那側），其餘 ~ 為動畫水面、, 為靜態深水；
 ##   = → 東西向木橋：上方不是橋的列用上列、下方不是橋的列用下列；
-##   # → 下方可走用草崖，其餘樹根牆；| 與其他圖例退回舊 atlas。
+##   # → 下方可走用草崖，其餘樹根牆；
+##   .／c／T → Phase 8 上層填充包：樹冠／霧的下方不是天空時用下緣變體，樹根上方不是樹根時用根牆頂；
+##   | 與其他圖例退回舊 atlas。
 static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
 	var ch := parser.char_at(x, y)
 	match ch:
+		".":
+			return upper_canopy_atlas_for(parser, x, y)
+		"c":
+			# 霧只在成片（至少一個四方鄰居也是 c）時畫霧層；孤立的 c 畫成樹冠，否則會像一格藍色破洞
+			if neighbor_mask(parser, x, y, "c") == 0:
+				return upper_canopy_atlas_for(parser, x, y)
+			var sky_below := SKY_CHARS.contains(parser.char_at(x, y + 1))
+			return pick_variant(UP_MIST_FILL if sky_below else UP_CLOUD_EDGE_S, x, y)
+		"T":
+			return pick_variant(UP_ROOT_WALL if parser.char_at(x, y - 1) == "T" else UP_ROOT_CAP, x, y)
 		"g":
 			return TR_GRASS_PATTERN[posmod(x * 5 + y * 11, TR_GRASS_PATTERN.size())]
 		"s", "m":
@@ -263,6 +289,19 @@ static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2
 	if SIMPLE_LEGEND.has(ch):
 		return SIMPLE_LEGEND[ch]
 	return TR_ROOT_WALL
+
+
+## 依座標雜湊從變體池挑一格（確定性，截圖可重現）。
+static func pick_variant(pool: Array[Vector2i], x: int, y: int) -> Vector2i:
+	return pool[posmod(x * 5 + y * 11, pool.size())]
+
+
+## 上層樹冠：下方仍是天空用填充變體，否則用樹冠下緣；變體依週期表以亮格為主。
+static func upper_canopy_atlas_for(parser: MapParser, x: int, y: int) -> Vector2i:
+	var sky_below := SKY_CHARS.contains(parser.char_at(x, y + 1))
+	if sky_below:
+		return UP_CANOPY_FILL[UP_CANOPY_PATTERN[posmod(x * 7 + y * 13, UP_CANOPY_PATTERN.size())]]
+	return UP_CANOPY_EDGE_S[UP_CANOPY_EDGE_PATTERN[posmod(x * 7 + y * 13, UP_CANOPY_EDGE_PATTERN.size())]]
 
 
 ## 四方鄰居中屬於 chars 的位元組合（N=1、S=2、W=4、E=8）。

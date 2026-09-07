@@ -2,6 +2,7 @@ extends SceneTree
 ## 純邏輯單元測試，不需要視窗：
 ##   godot --headless --path . -s res://tests/run_tests.gd
 
+const SKY_TEST := ".c"
 const MapParserScript := preload("res://scripts/world/map_parser.gd")
 const TileLibraryScript := preload("res://scripts/world/tile_library.gd")
 const PartyTrailScript := preload("res://scripts/characters/party_trail.gd")
@@ -577,7 +578,7 @@ func test_phase4_assets() -> void:
 	_assert(throw_frame.region == Rect2(48, 128, 48, 64), "throw_right 取自行動表第 1 欄第 2 列")
 	_assert(PlayerScript.build_sprite_frames(sheet).get_animation_names().size() == 8, "沒有行動表時只有 8 個動畫")
 	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
-	_assert(tileset != null and tileset.get_size() == Vector2(576, 256), "tileset 擴充為 8 列（第 6～7 列為 Phase 5 城鎮更新）")
+	_assert(tileset != null and tileset.get_size() == Vector2(576, 320), "tileset 擴充為 10 列（第 6～7 列為 Phase 5 城鎮更新、第 8～9 列為 Phase 8 上層填充）")
 	for name: String in ["fx_teleport", "fx_hit_sparkle", "fx_poof", "fx_victory", "fx_chicken_wing"]:
 		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
 	var grandma: Texture2D = load("res://assets/characters/npcs/grandma_turtle_sheet.png")
@@ -715,11 +716,32 @@ func test_phase5_tiles() -> void:
 		TileLibraryScript.TILE_STYLE_ROWS_KEY: registry["tide_root_town"].get("tile_style_rows", []),
 	}
 	var rows: Array = options[TileLibraryScript.TILE_STYLE_ROWS_KEY]
-	_assert(String(options[TileLibraryScript.TILE_STYLE_KEY]) == "town_refresh" and int(rows[0]) == 23 and int(rows[1]) == 35, "主城以 tile_style = town_refresh 只套用第 23～35 列")
+	_assert(String(options[TileLibraryScript.TILE_STYLE_KEY]) == "town_refresh" and int(rows[0]) == 0 and int(rows[1]) == 35, "Phase 8：主城以 tile_style = town_refresh 套用整張地圖第 0～35 列")
 	var parser := _load_map()
 	var tl := TileLibraryScript
-	_assert(tl.ground_atlas_for(parser, 5, 22, options) == tl.GRASS and tl.ground_atlas_for(parser, 13, 22, options) == tl.STAIRS, "第 22 列（中層）仍用舊 atlas")
+	_assert(tl.TR_GRASS_PATTERN.has(tl.ground_atlas_for(parser, 5, 22, options)) and tl.ground_atlas_for(parser, 13, 22, options) == tl.STAIRS, "第 22 列（中層）也用更新草地，樓梯仍退回舊 atlas")
 	_assert(tl.ground_atlas_for(parser, 13, 23, options) == tl.STAIRS, "更新列裡的樓梯退回舊 atlas 的樓梯")
+	_assert(tl.UP_CANOPY_FILL.has(tl.ground_atlas_for(parser, 7, 3, options)) and tl.UP_CANOPY_EDGE_S.has(tl.ground_atlas_for(parser, 7, 1, options)), "上層 . 用填充包樹冠；下方是平台 b 時用樹冠下緣")
+	_assert(tl.UP_MIST_FILL.has(tl.ground_atlas_for(parser, 2, 1, options)) and tl.UP_CANOPY_EDGE_S.has(tl.ground_atlas_for(parser, 9, 5, options)), "成片的 c 用填充包霧層；孤立的 c 畫成樹冠（下方是平台時用樹冠下緣）")
+	var light_canopy := 0
+	var canopy_cells := 0
+	for y: int in range(1, 11):
+		for x: int in range(parser.width):
+			if parser.char_at(x, y) != "." or not SKY_TEST.contains(parser.char_at(x, y + 1)):
+				continue
+			canopy_cells += 1
+			var tile := tl.ground_atlas_for(parser, x, y, options)
+			if tile == tl.UP_CANOPY_FILL[0] or tile == tl.UP_CANOPY_FILL[2]:
+				light_canopy += 1
+	_assert(canopy_cells > 20 and light_canopy * 10 >= canopy_cells * 6, "樹冠填充以亮格為主（%d／%d 格亮），不是棋盤格" % [light_canopy, canopy_cells])
+	_assert(tl.UP_ROOT_CAP.has(tl.ground_atlas_for(parser, 12, 12, options)) and tl.UP_ROOT_WALL.has(tl.ground_atlas_for(parser, 12, 13, options)), "T 上方不是 T 用根牆頂，其餘用根牆")
+	var upper_void := 0
+	for y: int in range(0, 12):
+		for x: int in range(parser.width):
+			if tl.VOID_VARIANTS.has(tl.ground_atlas_for(parser, x, y, options)) or tl.ground_atlas_for(parser, x, y, options) == tl.BARK:
+				upper_void += 1
+	_assert(upper_void == 0, "上層第 0～11 列不再出現星空虛空或樹皮 fallback（%d 格）" % upper_void)
+	_assert(tl.pick_variant(tl.UP_CANOPY_FILL, 3, 4) == tl.pick_variant(tl.UP_CANOPY_FILL, 3, 4) and tl.UP_CANOPY_FILL.has(tl.pick_variant(tl.UP_CANOPY_FILL, 3, 4)), "pick_variant 依座標確定性選取")
 	_assert(tl.ground_atlas_for(parser, 5, 24, options) == tl.TR_GRASS_CLIFF and tl.ground_atlas_for(parser, 0, 24, options) == tl.TR_ROOT_WALL, "牆：下方可走用草崖、其餘樹根牆")
 	_assert(tl.ground_atlas_for(parser, 14, 29, options) == tl.TR_STONE_B, "廣場中心 m 用石板 B")
 	_assert(tl.TR_STONE_PATTERN.has(tl.ground_atlas_for(parser, 11, 24, options)), "沒有草地鄰居的石板用 A／B 變體")
@@ -754,6 +776,9 @@ func test_phase5_tiles() -> void:
 	var tile_set: TileSet = TileLibraryScript.build_ground_tileset(ImageTexture.create_from_image(big))
 	var source: TileSetAtlasSource = tile_set.get_source(0)
 	_assert(source.get_tile_animation_frames_count(tl.TR_WATER) == tl.WATER_FRAMES and not source.has_tile(Vector2i(13, 7)) and source.has_tile(tl.TR_BRIDGE_EW_BOTTOM), "更新水面 4 幀動畫、幀格不獨立成 tile、東西向木橋 tile 存在")
+	_assert(tl.ATLAS_ROWS == 10 and source.has_tile(tl.UP_CANOPY_FILL[0]) and source.has_tile(tl.UP_ROOT_CAP[7]), "tileset 擴為 10 列，第 8～9 列的上層填充 tile 存在")
+	var tileset_texture: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
+	_assert(tileset_texture != null and tileset_texture.get_size() == Vector2(576, 320), "正式 tileset 貼圖為 576×320（10 列）")
 
 
 func _ring_brightness(cell: Image, ring: int) -> float:
@@ -896,16 +921,16 @@ func test_phase5_props() -> void:
 			if box.size.x > texture.get_width() or box.end.y > 0.0:
 				collision_fits = false
 	_assert(collision_fits, "更新 props 的碰撞盒不超出貼圖，額外碰撞盒都在接地線之上")
-	for name: String in ["shared_family_treehouse_v2", "breakfast_stall_v2", "lantern_post_v2", "heart_fountain_v2", "root_archway_v2"]:
+	for name: String in ["shared_family_treehouse_v3", "breakfast_stall_v2", "lantern_post_v2", "heart_fountain_v2", "root_archway_v3_base", "root_archway_v3_canopy"]:
 		_assert(uses.has("town_refresh/" + name), "主城使用 %s" % name)
 	var treehouse := {}
 	var arch := {}
 	var lantern := {}
 	for entry: Dictionary in refresh_entries:
 		match String(entry["texture"]):
-			"town_refresh/shared_family_treehouse_v2":
+			"town_refresh/shared_family_treehouse_v3":
 				treehouse = entry
-			"town_refresh/root_archway_v2":
+			"town_refresh/root_archway_v3_base":
 				arch = entry
 			"town_refresh/lantern_post_v2":
 				lantern = entry
@@ -1024,9 +1049,9 @@ func test_phase6_event_data() -> void:
 	var rope: Dictionary = {}
 	var porthole: Dictionary = {}
 	for entry: Dictionary in props["props"]:
-		if String(entry.get("texture", "")) == "cap_rope_coil":
+		if String(entry.get("texture", "")) == "cap_rope_coil_v3":
 			rope = entry
-		if String(entry.get("texture", "")) == "cap_porthole":
+		if String(entry.get("texture", "")) == "cap_porthole_v3":
 			porthole = entry
 	_assert(String(rope.get("event_id", "")) == "captain_mystery_item" and rope.get("collision") == null, "cap_rope_coil 登錄為事件目標 captain_mystery_item 且沒有碰撞")
 	_assert(String(porthole.get("event_id", "")) == "captain_room_waterlight" and String(porthole.get("shader", "")) == "captain_room_waterlight", "舷窗登錄水光 Shader 與事件目標")
@@ -1198,20 +1223,23 @@ func test_phase7_props() -> void:
 	var captain: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/captain_room_props.json"))
 	var rope_entry := {}
 	for entry: Dictionary in captain["props"]:
-		if String(entry["texture"]) == "cap_rope_coil":
+		if String(entry["texture"]) == "cap_rope_coil_v3":
 			rope_entry = entry
-	_assert(String(rope_entry.get("event_id", "")) == "captain_mystery_item" and float(rope_entry["x"]) == 176 and float(rope_entry["y"]) == 176, "繩圈仍用同名貼圖、event_id captain_mystery_item、位置 (176,176)")
+	_assert(String(rope_entry.get("event_id", "")) == "captain_mystery_item" and float(rope_entry["x"]) == 176 and float(rope_entry["y"]) == 176, "繩圈改用 v3 貼圖後 event_id captain_mystery_item、位置 (176,176) 不變")
 
 	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/tide_root_town_props.json"))
 	var treehouse := {}
 	var arch := {}
+	var canopy := {}
 	for entry: Dictionary in props["props"]:
 		match String(entry["texture"]):
-			"town_refresh/shared_family_treehouse_v2":
+			"town_refresh/shared_family_treehouse_v3":
 				treehouse = entry
-			"town_refresh/root_archway_v2":
+			"town_refresh/root_archway_v3_base":
 				arch = entry
-	var tree_texture: Texture2D = load("res://assets/props/town_refresh/shared_family_treehouse_v2.png")
+			"town_refresh/root_archway_v3_canopy":
+				canopy = entry
+	var tree_texture: Texture2D = load("res://assets/props/town_refresh/shared_family_treehouse_v3.png")
 	var tree_offset := TownPropScript.sprite_offset_for(tree_texture.get_width(), tree_texture.get_height(), float(treehouse.get("foot_x", tree_texture.get_width() / 2.0)), float(treehouse.get("foot_inset", 0.0)))
 	var tree_top := float(treehouse["y"]) + tree_offset.y
 	var tree_bottom := tree_top + tree_texture.get_height()
@@ -1219,7 +1247,9 @@ func test_phase7_props() -> void:
 	_assert(tree_bottom <= 23 * 32, "樹屋貼圖底緣不低於第 23 列的樹根牆（底緣 y=%.0f）" % tree_bottom)
 	var tree_collision: Array = treehouse["collision"]
 	_assert(int(treehouse.get("z_bias", 0)) == 0 and float(tree_collision[0]) == 150 and float(tree_collision[1]) == 60, "樹屋仍走 Y-sort，碰撞盒 150×60 不變")
-	_assert(int(arch.get("z_bias", 0)) < 0, "根拱門以較低 z_bias 繪製在角色後方：隊伍穿過與在北側街道時不被樹冠或根系遮住")
+	_assert(tree_texture.get_size() == Vector2(176, 96) and float(treehouse.get("foot_inset", 0)) == 16 and tree_top == 18 * 32 + 16, "Phase 8：樹屋 v3 176×96、foot_inset 16，貼圖頂端 y=592（第 18 列角色原點）")
+	_assert(int(arch.get("z_bias", 0)) == 0 and arch.get("collision") == null and TownPropScript.collision_boxes_from(arch.get("collision_boxes")).size() == 2, "Phase 8：拱門 base 走 Y-sort（render_mode split），只有 base 保留兩隻腳的碰撞盒")
+	_assert(int(canopy.get("z_bias", 0)) > 0 and canopy.get("collision") == null and not canopy.has("collision_boxes") and float(canopy["x"]) == float(arch["x"]) and float(canopy["y"]) == float(arch["y"]) and float(canopy.get("foot_inset", 0)) == float(arch.get("foot_inset", 0)), "拱門 canopy 與 base 同錨點、同 foot_inset、沒有碰撞、z_bias 正值畫在前景")
 	_assert(float(arch.get("foot_inset", 0)) == 38 and float(arch["x"]) == 480 and float(arch["y"]) == 762, "根拱門接地線、位置不變")
 	var state: GameState = GameStateScript.new()
 	_assert(not JSON.stringify(state.to_dict()).contains("scroll"), "存檔資料不含 UI 捲動位置")

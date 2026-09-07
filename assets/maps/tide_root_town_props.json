@@ -252,15 +252,15 @@
       ]
     },
     {
-      "texture": "town_refresh/shared_family_treehouse_v2",
+      "texture": "town_refresh/shared_family_treehouse_v3",
       "x": 144,
       "y": 672,
       "collision": [
         150,
         60
       ],
-      "foot_inset": 64,
-      "note": "Phase 7：貼圖下移 64px（頂端 y=574），西橋頭與第 16～17 列街道不再被屋頂遮住；門口傳送門 (144,674) 與返回點 (144,702) 落在門檻與踏墊上。碰撞盒、出口、傳送門不變"
+      "foot_inset": 16,
+      "note": "Phase 8：v3 176×96，y=80 是門檻線、最下 16px 是踏墊（foot_inset 16 讓踏墊畫在接地線以下，貼圖頂端 y=592 不蓋第 16～17 列街道）。門口傳送門 (144,674) 與返回點 (144,702)、碰撞盒 150×60 不變。render_mode: back"
     },
     {
       "texture": "house_tree_window",
@@ -693,13 +693,12 @@
       ]
     },
     {
-      "texture": "town_refresh/root_archway_v2",
+      "texture": "town_refresh/root_archway_v3_base",
       "x": 480,
       "y": 762,
       "collision": null,
       "foot_inset": 38,
-      "z_bias": -1,
-      "note": "Phase 7：z_bias -1 讓拱門整張畫在角色後方，隊伍在北側街道與穿過拱門時不被樹冠、根系遮住；碰撞盒不變",
+      "note": "Phase 8：拆成 base／canopy 兩層（render_mode: split）。base 只有兩隻拱腳與石板，保留兩個碰撞盒並走 Y-sort；接地線 foot_inset 38 與位置不變",
       "collision_boxes": [
         [
           49,
@@ -716,6 +715,15 @@
       ]
     },
     {
+      "texture": "town_refresh/root_archway_v3_canopy",
+      "x": 480,
+      "y": 762,
+      "collision": null,
+      "foot_inset": 38,
+      "z_bias": 1,
+      "note": "Phase 8：拱門樹冠層，與 base 同一個底部中央錨點，沒有地面像素、沒有碰撞，z_bias 1 固定畫在角色前方"
+    },
+    {
       "texture": "town_refresh/harbor_crate_barrel_v2",
       "x": 672,
       "y": 832,
@@ -730,8 +738,9 @@
       "y": 1088,
       "collision": [
         100,
-        116
-      ]
+        96
+      ],
+      "note": "Phase 8 第二批：116 會封掉第 30 列第 6～10 格（玩家站著和阿嬤／CC 對話的格子），route test 整串 CC 任務失敗；改 96（頂端對齊 y=992）。第 30 列北側口袋因互動站位必須保持開放，花圃圖頂 y=956 仍會蓋到站在該列角色的腿，見報告待確認"
     }
   ]
 }

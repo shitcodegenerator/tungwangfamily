@@ -8,10 +8,7 @@
     "dark_wall_last_row": 11,
     "legend_overrides": {},
     "tile_style": "town_refresh",
-    "tile_style_rows": [
-      23,
-      35
-    ]
+    "tile_style_rows": [0, 35]
   },
   "family_home": {
     "name": "共享家庭屋",
