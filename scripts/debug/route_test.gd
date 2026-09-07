@@ -32,6 +32,7 @@ var passes: PackedStringArray = PackedStringArray()
 var follower_violations: PackedStringArray = PackedStringArray()
 var boss_bound_violations: PackedStringArray = PackedStringArray()
 var switches_done: int = 0
+var _leader_pos_before_log: Vector2 = Vector2.ZERO
 var _running: bool = false
 
 
@@ -204,9 +205,12 @@ func _phase3_checks() -> void:
 	_check(quests.quest_state(quest_id) == "active" and quests.is_objective_current(quest_id, "visit_family_table"), "再次互動不會重複接任務")
 	_check(quests.active_summary() == "查看共享家庭屋的餐桌", "任務 HUD 摘要更新為目前目標")
 	await _tap_action("quest_log")
-	_check(main_node.get("quest_hud").is_log_open(), "J 開啟任務日誌")
+	var hud_early: Node = main_node.get("quest_hud")
+	_check(hud_early.is_log_open(), "J 開啟任務日誌")
+	_check(hud_early.call("log_scroll_offset") == 0, "日誌打開時從頂端開始")
 	await _screenshot("11_quest_log")
 	await _tap_action("quest_log")
+	_check(not hud_early.is_log_open(), "J 關閉任務日誌")
 
 	# 共享家庭屋
 	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口")
@@ -532,6 +536,9 @@ func _phase5_checks() -> void:
 	_check(world.prop_blocked_tiles.has(Vector2i(13, 23)) and world.prop_blocked_tiles.has(Vector2i(16, 23)) and not world.prop_blocked_tiles.has(Vector2i(14, 23)) and not world.prop_blocked_tiles.has(Vector2i(15, 23)), "拱門兩腳封鎖第 13／16 欄，中央第 14～15 欄可通行")
 	_check(await _walk_to(Vector2i(14, 25)), "走到拱門下方")
 	_check(await _walk_to(Vector2i(14, 22)), "穿過拱門走上樓梯")
+	var archway: TownProp = _find_prop("root_archway_v2")
+	_check(archway != null and archway.z_index < 0, "根拱門 z_index 低於角色（Phase 7：隊伍穿過時不被樹冠遮住）")
+	await _screenshot("29_root_archway_party")
 	_check(await _walk_to(Vector2i(14, 25)), "穿過拱門回到廣場")
 	_check(await _followers_catch_up(3.0, 110.0), "穿過拱門後跟隨者 3 秒內追上")
 	_check(await _walk_to(Vector2i(14, 28)), "走到廣場中央上方")
@@ -543,6 +550,9 @@ func _phase5_checks() -> void:
 
 	# 家庭屋：休息點提示、取消休息
 	_check(await _walk_to(Vector2i(4, 21)), "走到共享家庭屋門口（新樹屋外觀）")
+	var treehouse: TownProp = _find_prop("shared_family_treehouse_v2")
+	_check(treehouse != null and treehouse.position.y + treehouse.sprite.offset.y >= 574.0 and treehouse.z_index == 0, "樹屋貼圖頂端不高於 y=574（第 16～17 列街道不被屋頂遮住）且仍走 Y-sort")
+	await _screenshot("30_treehouse_party")
 	_check(await _enter_portal(Vector2i.UP, "family_home"), "新樹屋門口仍可進入家庭屋")
 	state = main_node.state
 	_check(await _walk_to(Vector2i(2, 6)), "走到臥室門旁")
@@ -754,10 +764,23 @@ func _phase6_checks() -> void:
 	var speakers := await _play_event_dialogue(20.0)
 	_check(not events.call("is_running") and state.has_flag(EVENT_FLAG) and speakers.size() == 5 and speakers[4] == "CC", "重播完整完成後寫入旗標；CC 在隊伍時多一段反應")
 	_check(target.position.distance_to(origin + EVENT_OFFSET) < 1.0, "重播後物件再次停在位移處")
+	_leader_pos_before_log = party.get_leader().global_position
 	await _tap_action("quest_log")
 	var quest_hud: Node = main_node.get("quest_hud")
 	_check(quest_hud.call("is_log_open") and String(quest_hud.call("log_text")).contains("[線索]"), "任務日誌顯示線索段落")
+	_check(quest_hud.call("can_scroll_log") and quest_hud.call("log_scroll_offset") == 0, "兩個任務加線索超出面板：可捲動，打開時在頂端")
+	var taps := 0
+	while not bool(quest_hud.call("is_log_at_end")) and taps < 10:
+		await _tap_action("quest_log_next_page")
+		taps += 1
+	_check(bool(quest_hud.call("is_log_at_end")) and int(quest_hud.call("log_scroll_offset")) > 0, "> 翻到日誌最後一頁（%d 頁）" % taps)
+	_check(party.get_leader().velocity.is_zero_approx() and party.get_leader().global_position.distance_to(_leader_pos_before_log) < 2.0, "翻頁不會移動角色")
 	await _screenshot("28_quest_log_clue")
+	await _tap_action("quest_log_prev_page")
+	_check(not bool(quest_hud.call("is_log_at_end")), "< 翻回上一頁")
+	await _tap_action("quest_log")
+	await _tap_action("quest_log")
+	_check(quest_hud.call("is_log_open") and quest_hud.call("log_scroll_offset") == 0, "關閉再打開日誌回到頂端")
 	await _tap_action("quest_log")
 	_check(await _walk_to(Vector2i(9, 9)), "走到船長房間出口上方")
 	_check(await _enter_portal(Vector2i.DOWN, "tide_root_town"), "事件完成後可離開船長房間")
@@ -1069,6 +1092,17 @@ func _screenshot(file_name: String) -> void:
 		failures.append("截圖失敗：%s（%d）" % [path, error])
 	else:
 		passes.append("截圖：%s" % path)
+
+
+## 依貼圖檔名找目前場景的 TownProp（Phase 7 視覺檢查用）。
+func _find_prop(texture_suffix: String) -> TownProp:
+	if world == null:
+		return null
+	for child: Node in world.props.get_children():
+		var prop := child as TownProp
+		if prop != null and prop.sprite.texture != null and prop.sprite.texture.resource_path.ends_with(texture_suffix + ".png"):
+			return prop
+	return null
 
 
 func _check(condition: bool, label: String) -> void:

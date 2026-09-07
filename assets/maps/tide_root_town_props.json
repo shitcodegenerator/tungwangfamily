@@ -258,7 +258,9 @@
       "collision": [
         150,
         60
-      ]
+      ],
+      "foot_inset": 64,
+      "note": "Phase 7：貼圖下移 64px（頂端 y=574），西橋頭與第 16～17 列街道不再被屋頂遮住；門口傳送門 (144,674) 與返回點 (144,702) 落在門檻與踏墊上。碰撞盒、出口、傳送門不變"
     },
     {
       "texture": "house_tree_window",
@@ -696,6 +698,8 @@
       "y": 762,
       "collision": null,
       "foot_inset": 38,
+      "z_bias": -1,
+      "note": "Phase 7：z_bias -1 讓拱門整張畫在角色後方，隊伍在北側街道與穿過拱門時不被樹冠、根系遮住；碰撞盒不變",
       "collision_boxes": [
         [
           49,

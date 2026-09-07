@@ -1,4 +1,4 @@
-# 製作注意事項（Phase 1～6 踩過的坑與之後產出的檢查清單）
+# 製作注意事項（Phase 1～7 踩過的坑與之後產出的檢查清單）
 
 整理日期：2026-09-05。這份文件記錄實際發生過的問題與教訓，之後要新增角色、NPC、場景、對話、任務、Boss、道具、特效或 UI 時，先對照最後一節的檢查清單。
 
@@ -54,6 +54,7 @@
 | B20 | headless 的 frame 間隔不固定，以「固定秒數後取樣位置」判斷 tween 進行中會誤判（5× 加速下 0.08 秒已跑完）。 | 逐 frame 取樣直到事件結束，記錄「曾經介於起點與終點之間」；route test 也用 `_wait_until(位移 > 4px)` 而不是固定秒數。 |
 | B21 | Godot 4.7 呼叫協程不 `await` 是 parse error；headless 的 `ShaderMaterial.get_shader_parameter` 對未覆寫的 uniform 回傳 null（RenderingServer 也查不到預設值）。 | 不需要等待的協程用 `node.call("run", event)`；Shader 預設值由 `TownProp.shader_default` 直接從 `.gdshader` 原始碼解析 `uniform float x = 值;`。 |
 | B22 | 事件在對話結束的同一個 callback 內啟動，若 `_on_dialogue_finished` 先解鎖再啟動事件，會閃一個 frame 可以移動；事件的反應對話結束又會走一次一般的解鎖流程。 | `_set_input_locked` 的 busy 條件加入 `events.is_running()`；事件對話用 `_event_segments` 標記，結束時只通知執行器、不觸發新的事件。 |
+| B23 | Phase 7 單元測試假設新 GameState 的日誌「沒有任務」，實際 `list_quests()` 會列出所有可接取任務，內容已超出面板。 | 測 UI 版面用 `display_log_text` 指定確定長度的文字，不要依賴任務資料的行數；headless 的 Control 版面與字型度量正常，可以直接斷言 `get_global_rect`。 |
 
 ## C. 流程與協作
 
@@ -116,7 +117,9 @@
 1. atlas：`file` 確認 PNG → 量每格外圈／內圈亮度 → 逐格用像素統計判方向 → 進 `tools/build_assets_phase5.py`（或新 phase 的切割器）→ tileset 空列 → `TileLibrary` 常數 + 鄰接函式 + 單元測試（無格線、方向、鄰接例子）。
 2. 新樣式一律用 `tile_style` + `tile_style_rows` 先套一個區域，ASCII 與碰撞不動，跑 `validate_map.py` 確認可走性沒變。
 3. props：先在 `assets/maps/*_props.json` 放進去，用 `--snapshot` 截圖看接地、Y-sort、與 NPC／出生點／路線的關係；碰撞盒不超出貼圖、留出通道；燈籠用 `foot_x`＋`glow_x`；有地面的物件用 `foot_inset`；多腳物件用 `collision_boxes`。
-4. 大型物件會遮到北邊的走道是 Y-sort 的正常結果，不要切碎片、不要改 z_index；寫進報告請作者決定要縮圖還是移位置。
+4. 大型物件會遮到北邊的走道是 Y-sort 的正常結果，不要切碎片；先寫進報告請作者決定。Phase 7 作者決定後才用 props JSON 的視覺欄位修：
+   貼圖比地圖佔位高很多的「立面」（樹屋）用 `foot_inset` 把貼圖往下移到主要走道之外；角色必須穿過的純裝飾（根拱門）才用 `z_bias -1`。
+   兩者都會留下「角色畫在貼圖上方」的邊角案例，要截圖寫進報告。試值用 `tools/snapshot_props_trial.py`（改 JSON → snapshot → 還原）。
 
 ### D6.6 世界事件（Phase 6 起）
 1. 事件資料只放 `assets/events/<event_id>.json`（`WorldEventLibrary.EVENT_PATHS` 登錄）；必填 `event_id`、`scene_id`、`trigger`、`actions`；`once` 事件要有 `complete_flag`，且 actions 內 `set_flag` 該旗標必須在 `unlock_input` 之前。

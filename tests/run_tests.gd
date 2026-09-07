@@ -70,7 +70,9 @@ func _initialize() -> void:
 	test_phase5_ui()
 	test_phase6_event_data()
 	test_phase6_clues()
+	test_phase7_props()
 	await test_phase6_runner()
+	await test_phase7_ui()
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -1171,3 +1173,130 @@ func _until(predicate: Callable, max_frames: int) -> bool:
 			return true
 		await process_frame
 	return bool(predicate.call())
+
+
+## Phase 7：透明繩圈、樹屋接地、拱門顯示層級（純資料，不需要場景樹）。
+func test_phase7_props() -> void:
+	var rope: Texture2D = load("res://assets/props/cap_rope_coil.png")
+	_assert(rope != null and rope.get_size() == Vector2(55, 40), "繩圈貼圖 55×40")
+	var image := rope.get_image()
+	var transparent := 0
+	var opaque := 0
+	var colors := {}
+	for y: int in range(image.get_height()):
+		for x: int in range(image.get_width()):
+			var pixel := image.get_pixel(x, y)
+			if pixel.a < 0.5:
+				transparent += 1
+			else:
+				opaque += 1
+				colors[pixel.to_html(false)] = true
+	var corners_clear := image.get_pixel(0, 0).a == 0.0 and image.get_pixel(54, 0).a == 0.0 and image.get_pixel(0, 39).a == 0.0 and image.get_pixel(54, 39).a == 0.0
+	_assert(transparent > 0 and opaque > 0 and corners_clear, "繩圈是透明背景、四角透明、不是整張不透明（透明 %d、實心 %d）" % [transparent, opaque])
+	_assert(colors.size() <= 24, "繩圈實心像素色數不超過 24（實際 %d）" % colors.size())
+	var captain: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/captain_room_props.json"))
+	var rope_entry := {}
+	for entry: Dictionary in captain["props"]:
+		if String(entry["texture"]) == "cap_rope_coil":
+			rope_entry = entry
+	_assert(String(rope_entry.get("event_id", "")) == "captain_mystery_item" and float(rope_entry["x"]) == 176 and float(rope_entry["y"]) == 176, "繩圈仍用同名貼圖、event_id captain_mystery_item、位置 (176,176)")
+
+	var props: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/maps/tide_root_town_props.json"))
+	var treehouse := {}
+	var arch := {}
+	for entry: Dictionary in props["props"]:
+		match String(entry["texture"]):
+			"town_refresh/shared_family_treehouse_v2":
+				treehouse = entry
+			"town_refresh/root_archway_v2":
+				arch = entry
+	var tree_texture: Texture2D = load("res://assets/props/town_refresh/shared_family_treehouse_v2.png")
+	var tree_offset := TownPropScript.sprite_offset_for(tree_texture.get_width(), tree_texture.get_height(), float(treehouse.get("foot_x", tree_texture.get_width() / 2.0)), float(treehouse.get("foot_inset", 0.0)))
+	var tree_top := float(treehouse["y"]) + tree_offset.y
+	var tree_bottom := tree_top + tree_texture.get_height()
+	_assert(tree_top >= 18 * 32 - 2, "樹屋貼圖頂端不高於第 18 列：西橋頭與第 16～17 列街道不被屋頂遮住（頂端 y=%.0f）" % tree_top)
+	_assert(tree_bottom <= 23 * 32, "樹屋貼圖底緣不低於第 23 列的樹根牆（底緣 y=%.0f）" % tree_bottom)
+	var tree_collision: Array = treehouse["collision"]
+	_assert(int(treehouse.get("z_bias", 0)) == 0 and float(tree_collision[0]) == 150 and float(tree_collision[1]) == 60, "樹屋仍走 Y-sort，碰撞盒 150×60 不變")
+	_assert(int(arch.get("z_bias", 0)) < 0, "根拱門以較低 z_bias 繪製在角色後方：隊伍穿過與在北側街道時不被樹冠或根系遮住")
+	_assert(float(arch.get("foot_inset", 0)) == 38 and float(arch["x"]) == 480 and float(arch["y"]) == 762, "根拱門接地線、位置不變")
+	var state: GameState = GameStateScript.new()
+	_assert(not JSON.stringify(state.to_dict()).contains("scroll"), "存檔資料不含 UI 捲動位置")
+
+
+## Phase 7：任務日誌可捲動（需要場景樹計算版面）。
+func test_phase7_ui() -> void:
+	await process_frame
+	var hud: QuestHud = load("res://scenes/ui/quest_hud.tscn").instantiate()
+	root.add_child(hud)
+	var state: GameState = GameStateScript.new()
+	var quests: QuestManager = QuestManagerScript.new()
+	quests.load_all_definitions()
+	quests.bind(state)
+	hud.bind(quests)
+	await process_frame
+	_assert(hud.log_scroll is ScrollContainer and hud.log_label.get_parent() == hud.log_scroll, "日誌文字放在 ScrollContainer 內")
+	_assert(hud.toggle_log() and hud.is_log_open(), "toggle_log 打開日誌")
+	await process_frame
+	await process_frame
+	var panel_rect: Rect2 = hud.log_panel.get_global_rect()
+	_assert(panel_rect.position.y >= 60.0 and panel_rect.end.y <= 322.0 and panel_rect.position.x >= 0.0 and panel_rect.end.x <= 640.0, "日誌面板在 640×360 內，不與 Toast（y≤58）、底部除錯列（y≥322）重疊（%s）" % panel_rect)
+	_assert(hud.log_text().contains("[任務日誌]") and hud.log_text().contains("TEMP_DEMO_CONTENT"), "打開時日誌顯示既有任務文字（格式不變）")
+	hud.display_log_text("[任務日誌]\n目前沒有任務。")
+	await process_frame
+	await process_frame
+	_assert(not hud.can_scroll_log() and not hud.log_scroll.get_v_scroll_bar().visible, "內容不足時不能捲動、不顯示捲軸")
+	var lines := PackedStringArray()
+	for i: int in range(40):
+		lines.append("第 %d 行 TEMP_DEMO_CONTENT" % i)
+	hud.display_log_text("\n".join(lines))
+	await process_frame
+	await process_frame
+	_assert(hud.can_scroll_log() and hud.log_scroll.get_v_scroll_bar().visible, "內容超出面板時可捲動且顯示捲軸")
+	_assert(hud.log_label.get_global_rect().size.y > panel_rect.size.y and hud.log_scroll.get_global_rect().end.y <= panel_rect.end.y, "文字比面板高，但可視範圍被裁在面板內")
+	var page := hud.page_height()
+	hud.page_log(1)
+	_assert(page > 100 and hud.log_scroll_offset() == page, "page_log(1) 往下翻一頁（一頁 = 可視高度 %d）" % page)
+	hud.page_log(-5)
+	_assert(hud.log_scroll_offset() == 0, "往上翻不會超過頂端")
+	for _i: int in range(20):
+		hud.page_log(1)
+	_assert(hud.log_scroll_offset() > 0 and hud.is_log_at_end(), "往下翻夾在底部")
+	for _i: int in range(20):
+		hud.page_log(-1)
+	var next_page := InputEventAction.new()
+	next_page.action = "quest_log_next_page"
+	next_page.pressed = true
+	hud._unhandled_input(next_page)
+	_assert(hud.log_scroll_offset() == page, "> 事件（quest_log_next_page）翻到下一頁")
+	var prev_page := InputEventAction.new()
+	prev_page.action = "quest_log_prev_page"
+	prev_page.pressed = true
+	hud._unhandled_input(prev_page)
+	_assert(hud.log_scroll_offset() == 0, "< 事件（quest_log_prev_page）翻回上一頁")
+	var down := InputEventAction.new()
+	down.action = "ui_down"
+	down.pressed = true
+	hud._unhandled_input(down)
+	_assert(hud.log_scroll_offset() == 0, "方向鍵不捲動日誌（保留給角色移動）")
+	_assert(InputMap.has_action("quest_log_next_page") and InputMap.has_action("quest_log_prev_page"), "project.godot 登錄 quest_log_prev_page／quest_log_next_page")
+	_assert(QuestHudScript.build_log_text(quests.list_quests(), []).contains("<／>：上下頁"), "日誌標題列提示 <／> 翻頁")
+	for _i: int in range(20):
+		hud.page_log(1)
+	hud.toggle_log()
+	_assert(not hud.is_log_open(), "toggle_log 關閉日誌")
+	hud.toggle_log()
+	await process_frame
+	_assert(hud.is_log_open() and hud.log_scroll_offset() == 0, "重新打開回到頂端（捲動位置不保存）")
+	hud.set_input_blocked(true)
+	_assert(not hud.is_log_open() and not hud.toggle_log() and not hud.is_log_open(), "輸入鎖定時日誌關閉且不能打開")
+	var log_key := InputEventAction.new()
+	log_key.action = "quest_log"
+	log_key.pressed = true
+	hud._unhandled_input(log_key)
+	_assert(not hud.is_log_open(), "輸入鎖定時 J 也不能打開")
+	hud.set_input_blocked(false)
+	hud._unhandled_input(log_key)
+	_assert(hud.is_log_open(), "解鎖後 J 打開日誌")
+	hud.queue_free()
+	quests.free()

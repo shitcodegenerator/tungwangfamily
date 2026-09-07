@@ -10,9 +10,12 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 （schema v3：day／day_seed／daily_state、家庭屋臥室門休息→隔天早晨、自動存檔、每日旗標重置、天數 HUD）
 與下層樹根廣場的新 atlas 垂直切片（tile_style "town_refresh"、八個 v2 大型 props）；Phase 6 完成資料驅動的
 世界事件執行器（`WorldEventRunner`：lock_input／wait／tween_node／dialogue／shader_param／clue／set_flag／unlock_input）、
-船長房間「物品自行移動」第一個事件（航海圖桌互動結束觸發、四人短反應、永久旗標與線索、中斷還原）與舷窗水光 Shader。
+船長房間「物品自行移動」第一個事件（航海圖桌互動結束觸發、四人短反應、永久旗標與線索、中斷還原）與舷窗水光 Shader；
+Phase 7 完成視覺基礎修正：透明繩圈 PNG 同名替換、任務／線索日誌改為 ScrollContainer 可捲動（滾輪，<／> 切換上下頁；方向鍵保留給移動，
+捲動位置不存檔）、樹屋 `foot_inset 64` 與根拱門 `z_bias -1` 的顯示修正（碰撞、出口、ASCII 地圖不變）。
 規劃文件：`docs/PHASE_1_PROJECT_PLAN.md`、`docs/PHASE_2_PLAN.md`、`docs/PHASE_3_PLAN.md`、`docs/PHASE_3_DECISIONS.md`、
 `docs/PHASE_4_PLAN.md`、`docs/PHASE_4_6_ANIMATION_AND_CAVE_ASSETS.md`、`docs/PHASE_5_PLAN.md`、`docs/PHASE_6_PLAN.md`、
+`docs/PHASE_7_PLAN.md`、`docs/PHASE_7_SCENE_EDIT_TUTORIAL.md`、
 `docs/ART_STYLE_LOCK.md`、`docs/HOW_TO_EDIT_SCENES_AND_MAP_ASSETS.md`、
 `docs/TILEMAP_AND_MAP_ASSET_TUTORIAL.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
 父親離世演出、乾媽家庭傷痛或真實回憶；測試內容一律標記 `TEMP_DEMO_CONTENT` 或 `demo_` 前綴；
@@ -56,7 +59,7 @@ Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換�
 | `scripts/dialogue/dialogue_resolver.gd` | 依狀態挑對話版本 |
 | `scripts/world/scene_router.gd` | 場景建立、轉場、傳送門、讀檔還原 |
 | `scripts/characters/npc_character.gd` | 站立 NPC 外觀與轉向 |
-| `scripts/ui/quest_hud.gd` | 任務摘要、日誌、提示 |
+| `scripts/ui/quest_hud.gd` | 任務摘要、日誌（ScrollContainer 捲動：滾輪、`<`／`>` 翻頁；每次打開回到頂端，不抓焦點、不存捲動位置）、提示 |
 | `scripts/battle/carryable_item.gd` | 地上的投擲物（Interactable 子類），只帶 item_id 與原位 |
 | `scripts/battle/carry_system.gd` | 領頭者撿起／舉著／投擲；換場景清空 |
 | `scripts/battle/thrown_projectile.gd` | 飛行、拋物線、落點截短、命中／落地 signal |
@@ -107,6 +110,9 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
   （`validate_map.py` 與單元測試都會檢查）。可加 `prompt_icon: <assets/ui 檔名>` 換提示圖示（臥室門用 `rest_prompt`）。
 - 大型 props（`assets/props/town_refresh/`）：`foot_x` 接地點距貼圖左緣像素（燈籠柱在右側）、`foot_inset` 接地線距貼圖底緣像素
   （拱門的石板地面）、`glow_x`／`glow_y` 光暈中心、`collision_boxes: [[寬, 高, dx, dy], ...]` 多個碰撞盒（拱門兩腳）。
+- 大型 props 的視覺修正（Phase 7）只改 props JSON 的 `foot_x`／`foot_inset`／`z_bias`，不改 `x`／`y`、碰撞、出口與 ASCII 地圖：
+  樹屋 `foot_inset 64`（貼圖下移，讓第 16～17 列街道不被屋頂遮住）、根拱門 `z_bias -1`（整張畫在角色後方）。
+  `z_bias` 只用於「純視覺、角色必須永遠看得到」的大型裝飾，不得用來掩蓋碰撞錯誤；試值用 `tools/snapshot_props_trial.py` 截圖比較。
 - 道具加 `event_id: <id>` 即登錄為世界事件目標（`TownWorld.get_event_target`）；加 `shader: <assets/shaders 檔名>` 只在 Sprite2D 套 ShaderMaterial。
   事件 JSON 的 `tween_node`／`shader_param` 只能指向同場景已登錄的 `event_id`（`validate_map.py` 會檢查）。
 - `scenes.json` 的 `tile_style: "town_refresh"` + `tile_style_rows: [first, last]` 只把新 atlas 套在部分列；
