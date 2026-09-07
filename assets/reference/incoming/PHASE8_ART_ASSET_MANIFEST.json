@@ -1,0 +1,281 @@
+{
+  "phase": "8",
+  "title": "Art completion and presentable vertical slice",
+  "base_branch": "codex/phase-7-visual-foundation",
+  "base_commit": "fb3c947437a45786c45168b663a45b581cffa133",
+  "status": "planned",
+  "policy": {
+    "no_character_redraw": true,
+    "preserve_old_assets": true,
+    "source_files_directory": "assets/reference/incoming/",
+    "runtime_png_directories": [
+      "assets/props/",
+      "assets/tilesets/",
+      "assets/effects/"
+    ],
+    "required_import": "godot --headless --path . --import",
+    "tile_size": [
+      32,
+      32
+    ],
+    "logical_viewport": [
+      640,
+      360
+    ],
+    "filter": "Nearest",
+    "mipmaps": false,
+    "no_antialiasing": true
+  },
+  "chosen_layout_decisions": {
+    "treehouse": {
+      "asset_id": "shared_family_treehouse_v3",
+      "size": [
+        176,
+        96
+      ],
+      "foot_inset": 0,
+      "keep_position": [
+        144,
+        672
+      ],
+      "keep_collision": [
+        150,
+        60
+      ],
+      "keep_portal": "family_home_door"
+    },
+    "root_archway": {
+      "base_asset_id": "root_archway_v3_base",
+      "canopy_asset_id": "root_archway_v3_canopy",
+      "size_each": [
+        176,
+        166
+      ],
+      "anchor": [
+        480,
+        762
+      ],
+      "foot_inset": 38,
+      "canopy_z_bias": 1,
+      "keep_collision_boxes": [
+        [
+          49,
+          40,
+          -57,
+          0
+        ],
+        [
+          57,
+          40,
+          62,
+          0
+        ]
+      ]
+    },
+    "interior_occlusion": {
+      "default_furniture_z_bias": -1,
+      "foreground_rule": "split base and transparent front overlay; never put a whole opaque furniture image above characters"
+    }
+  },
+  "required_assets": [
+    {
+      "id": "shared_family_treehouse_v3",
+      "path": "assets/props/town_refresh/shared_family_treehouse_v3.png",
+      "kind": "large_prop",
+      "size": [
+        176,
+        96
+      ],
+      "alpha": "true_transparent",
+      "anchor": "bottom_ground_line",
+      "embedded_shadow": false,
+      "source_path": "assets/reference/incoming/PHASE8_shared_family_treehouse_v3_source.png",
+      "sha256": null,
+      "status": "to_produce"
+    },
+    {
+      "id": "root_archway_v3_base",
+      "path": "assets/props/town_refresh/root_archway_v3_base.png",
+      "kind": "large_prop_base",
+      "size": [
+        176,
+        166
+      ],
+      "alpha": "true_transparent",
+      "anchor": "same_as_root_archway_v3_canopy",
+      "collision": "keeps_two_collision_boxes",
+      "embedded_shadow": false,
+      "source_path": "assets/reference/incoming/PHASE8_root_archway_v3_source.png",
+      "sha256": null,
+      "status": "to_produce"
+    },
+    {
+      "id": "root_archway_v3_canopy",
+      "path": "assets/props/town_refresh/root_archway_v3_canopy.png",
+      "kind": "large_prop_foreground",
+      "size": [
+        176,
+        166
+      ],
+      "alpha": "true_transparent",
+      "anchor": "same_as_root_archway_v3_base",
+      "collision": null,
+      "embedded_shadow": false,
+      "source_path": "assets/reference/incoming/PHASE8_root_archway_v3_source.png",
+      "sha256": null,
+      "status": "to_produce"
+    },
+    {
+      "id": "town_visual_refresh_tiles_32_v3",
+      "path": "assets/tilesets/town_visual_refresh_tiles_32_v3.png",
+      "kind": "tile_atlas_source",
+      "size": [
+        256,
+        128
+      ],
+      "layout": "8_columns_x_4_rows",
+      "alpha": "opaque_tile_pixels_with_no_gutters",
+      "source_path": "assets/reference/incoming/PHASE8_town_visual_refresh_tiles_32_v3_source.png",
+      "sha256": null,
+      "status": "to_produce"
+    },
+    {
+      "id": "house_window_lantern_v3",
+      "path": "assets/props/house_window_lantern_v3.png",
+      "kind": "house_facade_candidate",
+      "size": [
+        96,
+        96
+      ],
+      "alpha": "true_transparent",
+      "preserve": "existing_prop_origin_and_collision",
+      "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
+      "sha256": null,
+      "status": "audit_then_produce_if_needed"
+    },
+    {
+      "id": "house_banner_v3",
+      "path": "assets/props/house_banner_v3.png",
+      "kind": "house_facade_candidate",
+      "size": [
+        96,
+        96
+      ],
+      "alpha": "true_transparent",
+      "preserve": "existing_prop_origin_and_collision",
+      "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
+      "sha256": null,
+      "status": "audit_then_produce_if_needed"
+    },
+    {
+      "id": "house_narrow_v3",
+      "path": "assets/props/house_narrow_v3.png",
+      "kind": "house_facade_candidate",
+      "size": [
+        96,
+        96
+      ],
+      "alpha": "true_transparent",
+      "preserve": "existing_prop_origin_and_collision",
+      "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
+      "sha256": null,
+      "status": "audit_then_produce_if_needed"
+    },
+    {
+      "id": "house_tree_window_v3",
+      "path": "assets/props/house_tree_window_v3.png",
+      "kind": "house_facade_candidate",
+      "size": [
+        128,
+        96
+      ],
+      "alpha": "true_transparent",
+      "preserve": "existing_prop_origin_and_collision",
+      "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
+      "sha256": null,
+      "status": "audit_then_produce_if_needed"
+    },
+    {
+      "id": "house_balcony_v3",
+      "path": "assets/props/house_balcony_v3.png",
+      "kind": "house_facade_candidate",
+      "size": [
+        128,
+        96
+      ],
+      "alpha": "true_transparent",
+      "preserve": "existing_prop_origin_and_collision",
+      "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
+      "sha256": null,
+      "status": "audit_then_produce_if_needed"
+    }
+  ],
+  "conditional_assets": [
+    {
+      "id": "upper_canopy_fill_pack",
+      "path": "assets/tilesets/upper_canopy_fill_tiles_32_v1.png",
+      "kind": "tile_atlas_source",
+      "size": [
+        256,
+        128
+      ],
+      "condition": "only_if_phase8_baseline_shows_void_or_platform_gaps_after_gate_cleanup",
+      "status": "audit_required"
+    },
+    {
+      "id": "interior_furniture_v3",
+      "path": "assets/reference/incoming/PHASE8_interior_furniture_v3_source.png",
+      "kind": "source_contact_sheet",
+      "condition": "redraw only the furniture that fails the ART_STYLE_LOCK audit; do not regenerate the entire cast or room blindly",
+      "status": "audit_required"
+    }
+  ],
+  "audit_targets": {
+    "family_home": [
+      "int_kitchen_window",
+      "int_stove",
+      "int_kitchen_counter",
+      "int_back_door",
+      "int_yarn_cabinet",
+      "int_yarn_basket",
+      "int_sewing_table",
+      "int_fabric_shelf",
+      "int_plant",
+      "int_side_door",
+      "int_dining_table",
+      "int_kids_corner"
+    ],
+    "captain_room": [
+      "cap_wall_map",
+      "cap_hanging_lantern",
+      "cap_painting",
+      "cap_porthole",
+      "cap_coat_rack",
+      "cap_rod_rack",
+      "cap_bookshelf",
+      "cap_chart_desk",
+      "cap_chest_bench",
+      "cap_barrel",
+      "cap_rope_coil",
+      "cap_rug",
+      "cap_side_table",
+      "cap_chest_stack",
+      "cap_fish_crate"
+    ],
+    "town_facades": [
+      "house_window_lantern",
+      "house_banner",
+      "house_narrow",
+      "shared_family_treehouse_v2",
+      "house_tree_window",
+      "house_balcony",
+      "canopy_gate"
+    ]
+  },
+  "deliverable_requirements": [
+    "Every runtime PNG passes file, dimensions, alpha and SHA-256 checks.",
+    "Every new asset is added to this manifest with a non-null sha256 before final commit.",
+    "Old assets remain available for rollback.",
+    "No source SVG/PSD/Pixquare file is placed in runtime asset directories."
+  ]
+}
