@@ -1,14 +1,15 @@
 # Phase 8：美術完成與可展示垂直切片
 
-基準分支：codex/phase-7-visual-foundation  
-基準 commit：fb3c947437a45786c45168b663a45b581cffa133  
+基準分支：master（已含 phase-7-visual-foundation 全部提交）  
+基準 commit：20689ba（fb3c947 ＋ 零基礎版場景教學）  
+工作分支：phase-8-art-complete（本地自 master 建立，已合入遠端 codex/phase-8-art-complete 的規劃文件）  
 目的：把目前已能遊玩的內容整理成「可以完整展示」的 2D 像素風切片。這一階段先處理畫面完整度、建築、TileMap、家具層級與角色可見性，不新增正式劇情、Boss、NPC 或新玩法。
 
 ## 0. 本階段已決定的範圍
 
 | 項目 | 決定 |
 |---|---|
-| 樹屋 | 重出三列高版本，目標 176×96、透明背景、門與踏墊比例保留；props 的底部接地點仍為 (144,672)，foot_inset 改回 0。 |
+| 樹屋 | 重出三列高版本，目標 176×96、透明背景、門與踏墊比例保留；**圖片最下方 16px 是門檻踏墊（畫在接地線以下）**，props 接地點仍為 (144,672)，foot_inset 設 16，貼圖頂端落在 y=592，第 18 列（角色原點 y=592）完全不被蓋。見第 6 節。 |
 | 根拱門 | 拆成同尺寸、同錨點的「拱腳＋石板」與「樹冠」兩張 PNG；拱腳走 Y-sort，樹冠才作固定前景。 |
 | 地圖拓撲 | 不因美術修正改 ASCII 可走性、出口、出生點、既有室內入口；除非驗收證明目前碰撞本身錯誤，否則不移門。 |
 | 房屋 | 目前主城可見的房屋外觀全部補到完整；共享家庭屋與船長房間是本階段的完整室內；未開放的房屋不新增室內場景。 |
@@ -56,7 +57,8 @@
 - 底緣是真正接地線，不能把草地或道路烙進圖片。
 - 不畫碰撞框，不畫角色陰影。
 - 光源方向與既有 town_refresh 素材一致。
-- 使用後將 foot_inset 設為 0；x、y、collision、傳送門與 return_position 不改。
+- 圖片 y=80 那條線是門檻／接地線，y=80～95 是踏墊；使用後將 foot_inset 設為 16（貼圖頂端 y=592、踏墊落在 672～688 蓋住傳送門 (144,674)）；x、y、collision、傳送門與 return_position 不改。
+- 為什麼不是 foot_inset 0：角色原點在格子中央，第 18 列原點 y=592；96 高＋inset 0 頂端在 576，仍蓋住腳 16px，和 Phase 7 現況（574）只差 2px。
 - 舊 shared_family_treehouse_v2.png 保留作為 fallback。
 
 #### 根拱門
@@ -76,9 +78,7 @@
 
 house_window_lantern、house_banner、house_narrow、house_tree_window、house_balcony 逐一做接觸表檢查。若重出，沿用原 ID 的碰撞與底部接地座標，新增 v3 檔案並在 props JSON 切換：
 
-- 小型立面：96×96 或 128×96。
-- 窄屋：96×96。
-- 樹屋窗／陽台：128×96。
+- 寬度不得超過原檔寬度（window_lantern 76、banner 78、narrow 56、tree_window 84、balcony 93），高度維持 96。原因：house_window_lantern／house_banner 與 house_tree_window／house_balcony 的原點各只相距 96px，128 寬會互相重疊 32px，96 寬會剛好貼邊。
 - 房屋圖只包含房屋本體，不把地面、角色、碰撞框與大段不可走區畫進去。
 - 所有外觀使用同一種樹皮／木材輪廓與暖色高光。
 
@@ -103,7 +103,9 @@ house_window_lantern、house_banner、house_narrow、house_tree_window、house_b
    - 東西向橋上列與下列。
 4. 四邊可無縫平鋪；沒有亮框、暗框、白線、透明縫或每格獨立陰影。
 5. 先在 3×3、5×5、完整主城三種尺度檢查，不能只看單格。
-6. 先用 snapshot 比較中層第 12～22 列；確認沒有格線後，才把 scenes.json 主城 tile_style_rows 從 [23,35] 擴到 [0,35]。
+6. 先用 snapshot 比較中層第 12～22 列；確認沒有格線後，把 scenes.json 主城 tile_style_rows 從 [23,35] 擴到 **[12,35]**。
+   上層第 0～11 列另外處理：地圖用到 `.`（雲端虛空）、`c`（霧）、`T`（樹根），town_refresh_atlas_for 目前把 `.` 當樹根牆、`T`／`c` 回退舊 atlas；要擴到 [0,35] 必須先交付 upper_canopy_fill_pack（雲層／霧／樹根 refresh tile）並在 tile_library 補這三個字元的分支。
+8. builder（tools/build_assets_phase5.py）目前寫死來源檔名並對每格去 2px 格框（FRAME_PX）；v3 是乾淨版，builder 需增加來源路徑與 frame=0 參數，否則每格外圈 2px 會被鏡射覆蓋。
 7. 若全圖套用後某一區風格回歸，先縮回指定 rows，記錄失敗區域，再補 tile 或調整 TileLibrary。
 
 ### P8.3 家具、建築與角色的畫面層級
@@ -119,7 +121,9 @@ house_window_lantern、house_banner、house_narrow、house_tree_window、house_b
 
 實作規則：
 
-- 共享家庭屋與船長房間內，家具預設加 z_bias: -1，讓角色完整可見。
+- 共享家庭屋與船長房間內，**先修碰撞深度，再談 z_bias**：角色被家具蓋住半身，是因為碰撞盒高度比圖片矮太多（例如 int_dining_table 圖高 92、碰撞高 46；cap_rod_rack 圖高 165、碰撞高 40），角色可以走到家具「圖片裡面」。把碰撞高度提到「圖高 − 約 16px」後，站在家具北側的角色只會被蓋到腳踝，Y-sort 保持正確。
+- z_bias: -1 只給牆上物件與地面平鋪物（窗、門、地毯、壁畫、掛燈，這些已經是 -1）。自立家具若加 -1，站在家具北側的角色會整個畫在桌面上，變成另一種錯誤。
+- 只有「玩家必須走到家具後方，而家具前緣必須蓋住角色」的少數件才拆 base／front overlay。
 - 家具仍以 JSON collision 阻擋角色，不准用圖層遮擋代替碰撞。
 - 優先檢查餐桌、縫紉桌、孩子角落、航海圖桌、船具架、箱子與側桌。
 - 若家具確實需要前緣，拆成 base 與透明 front overlay；front 只能包含玩家真的會走到後面的前緣像素。
@@ -195,6 +199,22 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 - 角色素材沒有被重生的證據。
 - validate_map、unit test、route test 結果。
 - 仍存在的視覺例外；不能用「測試通過」取代人工截圖。
+
+## 5-1. 本地審閱修正（2026-09-07，phase-8-art-complete）
+
+本地對照程式與素材後修正了以下規格，遠端規劃與本地實作以本節為準：
+
+| 項目 | 原規劃 | 修正 | 依據 |
+|---|---|---|---|
+| 樹屋 foot_inset | 0 | 16，圖片底部 16px 為踏墊 | 角色原點在格子中央（tile_to_world = 格 ×32 + 16），第 18 列原點 y=592；96 高＋inset 0 頂端 576 仍蓋腳 |
+| 房屋立面尺寸 | 96×96／128×96 | 寬度 ≤ 原檔寬、高 96 | 相鄰房屋原點僅相距 96px |
+| 室內家具 | 預設 z_bias -1 | 先加深碰撞至「圖高 − 16」；-1 只給牆上／地面物 | 自立家具 -1 會讓北側角色畫在家具上 |
+| tile_style_rows 目標 | [0,35] | v3 atlas 先到 [12,35]；[0,35] 需 upper_canopy_fill_pack ＋ tile_library 補 `.`／`T`／`c` | town_refresh_atlas_for 無 `.` 分支，回傳樹根牆 |
+| builder | 沿用 | 增加 `--atlas` 與 `--frame 0` | FRAME_PX=2 去框會破壞乾淨版 |
+| 基準 commit | fb3c947 | master 20689ba | 20689ba 含完整版場景教學 |
+| 必讀清單 | 無 PHASE_7 教學 | 加入 docs/PHASE_7_SCENE_EDIT_TUTORIAL.md（零基礎完整版） | Phase 8 教學只補差異 |
+
+其他備註：assets/props/house_tree_door.png 沒有任何場景使用，盤點時列為 UNUSED，不重出。
 
 ## 5. 不要在 Phase 8 做的事
 

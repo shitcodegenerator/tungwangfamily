@@ -1,13 +1,13 @@
 # Phase 8 實體教學：替換 TileMap、增加物品與完成房屋
 
-這份文件針對第一次自己改 Godot 場景的人。專案目前採「ASCII 地圖＋程式建立 TileMap＋Props JSON＋獨立碰撞」；不要把整張畫面輸出成一張背景圖。
+這份文件只補 Phase 8 的差異（拆層、TileMap v3、家具層級）。安裝 Godot、座標怎麼讀、Aseprite 設定、逐步畫一個花盆放進場景，請先看 docs/PHASE_7_SCENE_EDIT_TUTORIAL.md（零基礎完整版）。專案目前採「ASCII 地圖＋程式建立 TileMap＋Props JSON＋獨立碰撞」；不要把整張畫面輸出成一張背景圖。
 
 ## 1. 先做安全準備
 
 ~~~bash
 git status
 git fetch origin
-git switch --track origin/codex/phase-8-art-complete
+git switch phase-8-art-complete
 git switch -c my-phase8-art-test
 ~~~
 
@@ -92,11 +92,11 @@ godot --headless --path . -s res://tests/run_tests.gd
   "x": 144,
   "y": 672,
   "collision": [150, 60],
-  "foot_inset": 0
+  "foot_inset": 16
 }
 ~~~
 
-x、y、collision、family_home_door 傳送門與返回點不要改。完成後截樹屋門口與第 18 列上方走道。
+foot_inset 16 是因為 v3 最下方 16px 是踏墊，畫在接地線以下；這樣貼圖頂端在 y=592，第 18 列走道的角色（原點 y=592）完全不會被屋頂蓋到。x、y、collision、family_home_door 傳送門與返回點不要改。完成後截樹屋門口與第 18 列上方走道。
 
 ## 5. 把一座大型建築拆成前後兩層
 
@@ -133,7 +133,7 @@ Props JSON 概念：
 
 ## 6. 讓家具不遮角色
 
-角色被桌子遮住通常不是角色圖壞掉，而是整張家具圖片的 Y-sort 層級不適合。
+角色被桌子遮住通常不是角色圖壞掉，而是碰撞盒比圖片矮太多，角色走進了「圖片裡面」。先加深碰撞，不要先動 z_bias。
 
 在 family_home_props.json 和 captain_room_props.json：
 
@@ -142,12 +142,11 @@ Props JSON 概念：
   "texture": "int_dining_table",
   "x": 200,
   "y": 262,
-  "collision": [112,46],
-  "z_bias": -1
+  "collision": [112, 76]
 }
 ~~~
 
-這代表家具在角色後方，但 collision 仍然會擋住角色。第一批檢查：
+圖高 92、碰撞從 46 提到 76：碰撞盒從接地線往上量，角色最多只能走到圖片頂端下方 16px，被蓋到的只有腳踝，Y-sort 仍然正確。z_bias -1 只留給牆上物件、門、窗、地毯；自立家具加 -1 會讓站在北側的角色整個畫在桌面上。第一批檢查：
 
 - int_dining_table
 - int_sewing_table

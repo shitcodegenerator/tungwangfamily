@@ -1,8 +1,8 @@
 {
   "phase": "8",
   "title": "Art completion and presentable vertical slice",
-  "base_branch": "codex/phase-7-visual-foundation",
-  "base_commit": "fb3c947437a45786c45168b663a45b581cffa133",
+  "base_branch": "master",
+  "base_commit": "20689ba (fb3c947 + full scene tutorial)",
   "status": "planned",
   "policy": {
     "no_character_redraw": true,
@@ -33,7 +33,7 @@
         176,
         96
       ],
-      "foot_inset": 0,
+      "foot_inset": 16,
       "keep_position": [
         144,
         672
@@ -42,7 +42,9 @@
         150,
         60
       ],
-      "keep_portal": "family_home_door"
+      "keep_portal": "family_home_door",
+      "bottom_16px": "door_mat_below_ground_line",
+      "reason": "character origin is tile centre; row 18 origin y=592; 96px tall with inset 16 puts the image top at 592"
     },
     "root_archway": {
       "base_asset_id": "root_archway_v3_base",
@@ -73,8 +75,29 @@
       ]
     },
     "interior_occlusion": {
-      "default_furniture_z_bias": -1,
-      "foreground_rule": "split base and transparent front overlay; never put a whole opaque furniture image above characters"
+      "primary_fix": "deepen collision height to image_height - ~16 so characters can only be covered at the ankles",
+      "z_bias_minus_one_only_for": [
+        "wall_mounted",
+        "floor_flat",
+        "doors",
+        "windows",
+        "rugs"
+      ],
+      "foreground_rule": "split base and transparent front overlay only where the player must walk behind and the front edge must cover them; never put a whole opaque furniture image above characters"
+    },
+    "tile_style_rows_target": {
+      "with_v3_atlas": [
+        12,
+        35
+      ],
+      "full_map": [
+        0,
+        35
+      ],
+      "full_map_requires": [
+        "upper_canopy_fill_pack",
+        "tile_library branches for . T c"
+      ]
     }
   },
   "required_assets": [
@@ -137,77 +160,83 @@
       "alpha": "opaque_tile_pixels_with_no_gutters",
       "source_path": "assets/reference/incoming/PHASE8_town_visual_refresh_tiles_32_v3_source.png",
       "sha256": null,
-      "status": "to_produce"
+      "status": "to_produce",
+      "builder_note": "tools/build_assets_phase5.py needs --atlas <path> and --frame 0 (clean atlas, no 2px gutters)"
     },
     {
       "id": "house_window_lantern_v3",
       "path": "assets/props/house_window_lantern_v3.png",
       "kind": "house_facade_candidate",
       "size": [
-        96,
+        76,
         96
       ],
       "alpha": "true_transparent",
       "preserve": "existing_prop_origin_and_collision",
       "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
       "sha256": null,
-      "status": "audit_then_produce_if_needed"
+      "status": "audit_then_produce_if_needed",
+      "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
     },
     {
       "id": "house_banner_v3",
       "path": "assets/props/house_banner_v3.png",
       "kind": "house_facade_candidate",
       "size": [
-        96,
+        78,
         96
       ],
       "alpha": "true_transparent",
       "preserve": "existing_prop_origin_and_collision",
       "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
       "sha256": null,
-      "status": "audit_then_produce_if_needed"
+      "status": "audit_then_produce_if_needed",
+      "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
     },
     {
       "id": "house_narrow_v3",
       "path": "assets/props/house_narrow_v3.png",
       "kind": "house_facade_candidate",
       "size": [
-        96,
+        56,
         96
       ],
       "alpha": "true_transparent",
       "preserve": "existing_prop_origin_and_collision",
       "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
       "sha256": null,
-      "status": "audit_then_produce_if_needed"
+      "status": "audit_then_produce_if_needed",
+      "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
     },
     {
       "id": "house_tree_window_v3",
       "path": "assets/props/house_tree_window_v3.png",
       "kind": "house_facade_candidate",
       "size": [
-        128,
+        84,
         96
       ],
       "alpha": "true_transparent",
       "preserve": "existing_prop_origin_and_collision",
       "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
       "sha256": null,
-      "status": "audit_then_produce_if_needed"
+      "status": "audit_then_produce_if_needed",
+      "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
     },
     {
       "id": "house_balcony_v3",
       "path": "assets/props/house_balcony_v3.png",
       "kind": "house_facade_candidate",
       "size": [
-        128,
+        93,
         96
       ],
       "alpha": "true_transparent",
       "preserve": "existing_prop_origin_and_collision",
       "source_path": "assets/reference/incoming/PHASE8_house_facades_v3_source.png",
       "sha256": null,
-      "status": "audit_then_produce_if_needed"
+      "status": "audit_then_produce_if_needed",
+      "size_rule": "width must not exceed the current file; neighbouring house origins are only 96px apart"
     }
   ],
   "conditional_assets": [
@@ -277,5 +306,9 @@
     "Every new asset is added to this manifest with a non-null sha256 before final commit.",
     "Old assets remain available for rollback.",
     "No source SVG/PSD/Pixquare file is placed in runtime asset directories."
+  ],
+  "work_branch": "phase-8-art-complete",
+  "unused_assets": [
+    "assets/props/house_tree_door.png"
   ]
 }

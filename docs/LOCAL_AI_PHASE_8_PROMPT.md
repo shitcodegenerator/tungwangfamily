@@ -1,10 +1,10 @@
 # 給本地 AI：Phase 8 美術完成與可展示切片
 
-請從遠端拉取並執行本階段：
+本階段在本地分支執行（已自 master 20689ba 建立，並合入遠端 codex/phase-8-art-complete 的規劃文件；不要直接 track 遠端分支，遠端分支缺少完整版場景教學）：
 
 ~~~bash
 git fetch origin
-git switch --track origin/codex/phase-8-art-complete
+git switch phase-8-art-complete
 ~~~
 
 如果本地已有未提交修改，先停下來回報，不要覆蓋作者或其他 AI 的工作。
@@ -16,15 +16,16 @@ git switch --track origin/codex/phase-8-art-complete
 3. docs/PHASE_7_REPORT.md
 4. docs/NOTES_FOR_PLANNER_PHASE_7.md
 5. docs/ART_STYLE_LOCK.md
-6. docs/PHASE_8_ART_COMPLETION_PLAN.md
+6. docs/PHASE_8_ART_COMPLETION_PLAN.md（含第 5-1 節本地審閱修正）
 7. assets/reference/incoming/PHASE8_ART_ASSET_MANIFEST.json
-8. docs/PHASE_8_SCENE_ART_TUTORIAL.md
+8. docs/PHASE_7_SCENE_EDIT_TUTORIAL.md（零基礎完整版：安裝、座標、Aseprite、逐步畫物件）
+9. docs/PHASE_8_SCENE_ART_TUTORIAL.md（只補 Phase 8 差異：拆層、TileMap v3、家具層級）
 
 本階段最高目標是「畫面完整、不破圖、家具不遮角色、角色造型一致」。不要先加新劇情或新玩法。
 
 ## 0. 開始前
 
-1. 確認目前 HEAD 與 fb3c947437a45786c45168b663a45b581cffa133 的關係。
+1. 確認目前 HEAD 在 phase-8-art-complete 且包含 master 20689ba。
 2. 保存 Phase 7 基準截圖；不要把原截圖刪掉。
 3. 執行：
 
@@ -54,7 +55,7 @@ godot --headless --path . -s res://tests/run_tests.gd
 ### A. 樹屋與根拱門
 
 1. 將 shared_family_treehouse_v3.png 接到共享家庭樹屋。
-2. 設定 foot_inset: 0，x/y、collision、family_home_door、return_position 不變。
+2. 設定 foot_inset: 16（v3 底部 16px 是踏墊），x/y、collision、family_home_door、return_position 不變。
 3. 將 root arch 的 base 與 canopy 設為同 x/y/foot_inset：
    - base：保留 collision_boxes，一般 Y-sort。
    - canopy：collision: null、z_bias: 1，只含樹冠像素。
@@ -65,8 +66,8 @@ godot --headless --path . -s res://tests/run_tests.gd
 
 在 family_home_props.json 與 captain_room_props.json 做資料層修正：
 
-- 家具、櫃子、桌子、架子預設加 z_bias: -1。
-- 地板、地毯、牆上裝飾維持背景層。
+- 自立家具（桌、櫃、架、箱）先把 collision 高度加深到「圖高 − 約 16px」，讓角色只能被蓋到腳踝；不要預設 z_bias -1。
+- z_bias -1 只給地板、地毯、牆上裝飾、門與窗（多數已是 -1）。
 - 事件目標繩圈維持可見、透明、event_id 與原位置規格。
 - 如果某一件家具必須有前緣，不讓整張圖前景化；拆成 base／front overlay，front 只保留透明前緣。
 - 重新檢查 collision，保證角色是被碰撞擋住，不是被圖片裁掉。
@@ -81,8 +82,8 @@ godot --headless --path . -s res://tests/run_tests.gd
    - 每格 32×32。
    - 8×4 皆存在。
    - 3×3 平鋪沒有白線／暗線。
-3. 跑 builder，重建遊戲 tileset。
-4. 先把 tile_style_rows 擴到 [12,35] 做中層試跑，截圖確認；再擴到 [0,35]。
+3. 跑 builder（需先加 `--atlas` 路徑與 `--frame 0` 參數，v3 是乾淨版沒有格框），重建遊戲 tileset。
+4. 把 tile_style_rows 擴到 [12,35] 做中層試跑，截圖確認。[0,35] 要等 upper_canopy_fill_pack 交付並在 tile_library 補 `.`／`T`／`c` 分支後才做。
 5. 若上層有未開放空間，優先補齊封鎖後景與平台，不要讓玩家走進黑洞。
 6. 碰撞與 ASCII 可走性不因換圖而改變。
 
