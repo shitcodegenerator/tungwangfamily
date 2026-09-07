@@ -251,11 +251,9 @@ static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2
 		".":
 			return upper_canopy_atlas_for(parser, x, y)
 		"c":
-			# 霧只在成片（至少一個四方鄰居也是 c）時畫霧層；孤立的 c 畫成樹冠，否則會像一格藍色破洞
-			if neighbor_mask(parser, x, y, "c") == 0:
-				return upper_canopy_atlas_for(parser, x, y)
-			var sky_below := SKY_CHARS.contains(parser.char_at(x, y + 1))
-			return pick_variant(UP_MIST_FILL if sky_below else UP_CLOUD_EDGE_S, x, y)
+			# 作者 2026-09-07 決定：c 的地面一律畫樹冠（藍灰霧 tile 在樹冠中像破洞）；
+			# 霧效果等遠端交付透明霧 overlay（manifest: upper_mist_overlay_pack）後放進裝飾層，不動地面。
+			return upper_canopy_atlas_for(parser, x, y)
 		"T":
 			return pick_variant(UP_ROOT_WALL if parser.char_at(x, y - 1) == "T" else UP_ROOT_CAP, x, y)
 		"g":

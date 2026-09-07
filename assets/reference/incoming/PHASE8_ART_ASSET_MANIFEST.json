@@ -624,6 +624,28 @@
         128
       ],
       "verified_alpha": "opaque_tiles"
+    },
+    {
+      "id": "upper_mist_overlay_pack",
+      "path": "assets/tilesets/upper_mist_overlay_tiles_32_v1.png",
+      "kind": "decoration_overlay_atlas",
+      "size": [
+        256,
+        64
+      ],
+      "layout": "8_columns_x_2_rows",
+      "alpha": "true_transparent_overlay",
+      "status": "requested_by_author_2026_09_07",
+      "purpose": "主城上層 c 格的霧絲。地面已一律畫樹冠（填充包的藍灰霧 tile 在樹冠中像破洞，不再使用）；此包放在裝飾層疊在樹冠上。",
+      "spec": {
+        "row0_col0_3": "霧絲填充 4 變體：白／淡藍灰的細長霧帶，覆蓋率 30～50%，其餘完全透明，四邊可與相鄰霧格平鋪",
+        "row0_col4_7": "單格孤立霧絲 4 變體：一縷霧橫過格子中央，四邊透明（地圖上的 c 幾乎都是孤立單格，這 4 格最重要）",
+        "row1_col0_3": "霧帶左端／右端／上緣／下緣 4 格：用在成片霧的邊界",
+        "row1_col4_7": "保留（可留空或放兩種更淡的變體）",
+        "pixel_rules": "1× 像素、無柔邊、alpha 只用 0 與 255（半透明感用 2～3 階淡色與棋盤式抖色表現）、不含樹冠或天空像素、不含陰影",
+        "palette": "白 #F4F7F5、淡灰藍 #C9D6DC、灰藍 #9FB3BC 三階內"
+      },
+      "wiring": "tile_library decoration_atlas_for 在 town_refresh 樣式下對 c 回傳 overlay；tileset 第 10 列；填充包第 0 列第 4～7 欄、第 1 列第 4～7 欄、第 3 列第 0～3 欄的霧 tile 保留不用"
     }
   ],
   "audit_targets": {
@@ -680,7 +702,10 @@
   ],
   "author_decisions_2026_09_07": {
     "captain_room_furniture": "redraw whole set as v3 (15 files)",
-    "outdoor_prop_pockets": "sealed by deeper collision (applied in tide_root_town_props.json)"
+    "outdoor_prop_pockets": "sealed by deeper collision (applied in tide_root_town_props.json)",
+    "upper_c_cells": "ground always canopy; mist only as transparent overlay (request upper_mist_overlay_pack)",
+    "archway_row21_canopy_cover": "accepted as designed (split)",
+    "cap_v3_colour_count": "accepted"
   },
   "delivery_branch": "codex/phase-8-art-assets-v3",
   "delivery_base_commit": "31d898c958a530d145893a945844947e455ac512",

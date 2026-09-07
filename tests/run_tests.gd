@@ -722,7 +722,13 @@ func test_phase5_tiles() -> void:
 	_assert(tl.TR_GRASS_PATTERN.has(tl.ground_atlas_for(parser, 5, 22, options)) and tl.ground_atlas_for(parser, 13, 22, options) == tl.STAIRS, "第 22 列（中層）也用更新草地，樓梯仍退回舊 atlas")
 	_assert(tl.ground_atlas_for(parser, 13, 23, options) == tl.STAIRS, "更新列裡的樓梯退回舊 atlas 的樓梯")
 	_assert(tl.UP_CANOPY_FILL.has(tl.ground_atlas_for(parser, 7, 3, options)) and tl.UP_CANOPY_EDGE_S.has(tl.ground_atlas_for(parser, 7, 1, options)), "上層 . 用填充包樹冠；下方是平台 b 時用樹冠下緣")
-	_assert(tl.UP_MIST_FILL.has(tl.ground_atlas_for(parser, 2, 1, options)) and tl.UP_CANOPY_EDGE_S.has(tl.ground_atlas_for(parser, 9, 5, options)), "成片的 c 用填充包霧層；孤立的 c 畫成樹冠（下方是平台時用樹冠下緣）")
+	_assert(tl.UP_CANOPY_FILL.has(tl.ground_atlas_for(parser, 2, 1, options)) and tl.UP_CANOPY_EDGE_S.has(tl.ground_atlas_for(parser, 9, 5, options)), "c 的地面一律畫樹冠（成片或孤立都不用藍灰霧 tile；下方是平台時用樹冠下緣）")
+	var mist_tiles := 0
+	for y: int in range(0, 12):
+		for x: int in range(parser.width):
+			if tl.UP_MIST_FILL.has(tl.ground_atlas_for(parser, x, y, options)) or tl.UP_CLOUD_EDGE_S.has(tl.ground_atlas_for(parser, x, y, options)):
+				mist_tiles += 1
+	_assert(mist_tiles == 0, "上層地面沒有任何藍灰霧 tile（%d 格）" % mist_tiles)
 	var light_canopy := 0
 	var canopy_cells := 0
 	for y: int in range(1, 11):
