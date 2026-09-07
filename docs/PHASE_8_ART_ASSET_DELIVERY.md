@@ -122,3 +122,32 @@ godot --headless --path . -s res://tests/run_tests.gd
 4. 最小素材 preflight 與地圖圖例防護。
 
 Phase 8.5 不會要求重畫本批角色或家具，也不會自行增加劇情；它的目的，是把本地 AI 回報的反覆返工原因變成工具與規則。
+
+## Phase 8.5 增補：上層透明霧 overlay
+
+基準：`origin/phase-8-art-complete@07eb7292acb45e3a84c62c3a086f7a751ed7829f`  
+交付分支：`codex/phase-8-5-upper-mist-overlay`
+
+上層地面維持樹冠；本批只新增透明裝飾層，不再使用 `upper_canopy_fill` 裡的藍灰霧作地面 tile。
+
+| 路徑 | 尺寸／排列 | SHA-256 |
+|---|---|---|
+| `assets/tilesets/upper_mist_overlay_tiles_32_v1.png` | 256×64、8×2、32px／格 | `49602e1408500918021e06ac3a541b3db3be58f4b1cd07f35c3567982504fc20` |
+| `assets/reference/incoming/PHASE8_upper_mist_overlay_pack_source.png` | 與 runtime lossless 相同 | `49602e1408500918021e06ac3a541b3db3be58f4b1cd07f35c3567982504fc20` |
+
+分格語意：
+
+- row 0 col 0～3：可互接的霧絲填充四變體，實測覆蓋率 41.70%、41.60%、40.92%、42.29%。
+- row 0 col 4～7：孤立單格 S 彎、低捲、雙帶、鉤形；四邊最外圈全透明。
+- row 1 col 0～3：左端、右端、上緣、下緣。
+- row 1 col 4～7：完全透明保留格。
+
+獨立檢查結果：PNG signature 正常、RGBA、256×64、僅四種 RGBA 值（透明＋三個指定色）、alpha 僅 0／255、沒有格框與 gutter。四個 fill 變體的上下左右邊界 signature 相同，因此可以任意相鄰。
+
+本地接線邊界：
+
+1. 不改 `upper_canopy_fill_tiles_32_v1.png`；`c` 的 ground tile 繼續畫樹冠。
+2. 在 town_refresh 的 decoration atlas 對 `c` 選 overlay；依 manifest 接到 tileset 第 10 列。
+3. 原填充包中舊霧格保留但不使用，不要刪除。
+4. 接線後執行 `godot --headless --path . --import`、`python3 tools/verify_phase.py --fast`，再截白天與夜晚的上層局部圖。
+5. D-004 只有在本地接線且作者看過實際畫面後才能改為 `decided`。
