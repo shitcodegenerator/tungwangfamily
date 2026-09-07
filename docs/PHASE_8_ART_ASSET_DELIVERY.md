@@ -109,3 +109,16 @@ godot --headless --path . -s res://tests/run_tests.gd
 3. 船長房間：航海圖桌、船具架北側站位仍只遮到腳踝，繩圈事件仍找得到目標。
 
 若接線後任何一組畫面變差，先只回退對應 v3 texture，不要刪除舊檔或重設分支。完成接線後再跑 route test；manifest 已包含本分支所有新增 PNG 的尺寸、alpha 與 SHA-256 盤點結果。
+
+## 接線後的 Phase 8.5
+
+本批素材本身已完成遠端 PNG signature、尺寸、RGBA 與 manifest SHA-256 驗證；本地仍需做 Godot import、實際接線與場景截圖，兩者不能互相取代。
+
+接線與 Phase 8 截圖 QA 完成後，請不要直接開始新增內容。先讀並執行 [`PHASE_8_5_PROJECT_STABILIZATION_PLAN.md`](./PHASE_8_5_PROJECT_STABILIZATION_PLAN.md)。優先順序是：
+
+1. 擺放與可達性硬驗證。
+2. 單一 render_mode／遮擋規格。
+3. 文件唯一真相。
+4. 最小素材 preflight 與地圖圖例防護。
+
+Phase 8.5 不會要求重畫本批角色或家具，也不會自行增加劇情；它的目的，是把本地 AI 回報的反覆返工原因變成工具與規則。
