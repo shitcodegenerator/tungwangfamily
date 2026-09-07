@@ -237,3 +237,19 @@ caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs
 - 不為了修一張房屋圖移動所有門與出口。
 - 不把 SVG、PSD、Pixquare 原檔放進實際載入目錄；來源檔放 assets/reference/incoming/，遊戲使用的只有經檢查的 PNG。
 - 不刪除舊素材；所有新版美術都可回退。
+
+---
+
+## 5-3. Phase 8.5 穩定化 Gate（本地 AI 實作回饋整合）
+
+Phase 8 素材接線與截圖驗收完成後，先執行 [`PHASE_8_5_PROJECT_STABILIZATION_PLAN.md`](./PHASE_8_5_PROJECT_STABILIZATION_PLAN.md)，再開始 Phase 9。
+
+本 Gate 的 P0 只有三件：
+
+1. 把封路、互動不可達、出生點／返回點碰撞與未知圖例寫進 `validate_map.py` 的硬檢查。
+2. 把現役物件收斂為 `ground`／`back`／`ysort`／`split` 四種正式顯示模式；`foot_inset`、`z_bias`、collision 不再互相代償。
+3. 建立 `CURRENT_PROJECT_SPEC.md`、`INDEX.md`、`OPEN_DECISIONS.md`，讓現行規格只有一個入口，歷史 Phase 文件改為歸檔用途。
+
+同一份穩定化計畫也記錄素材 preflight、單一地圖圖例、快速／完整測試入口、builder 漸進整併與截圖保存策略。這些不是要求在 Phase 8 重寫整個專案；先做最小防護，再逐步遷移。
+
+產品方向另設強制門檻：Phase 9 應回到一段 15～20 分鐘的正式核心遊玩循環。正式劇情、NPC 原型、情緒落點與既有 CC／炸物魔王是否升格，都必須先詢問作者，不得由 AI 自行補寫。
