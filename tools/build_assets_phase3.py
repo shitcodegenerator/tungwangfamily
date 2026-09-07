@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from PIL import Image
@@ -115,8 +116,18 @@ def scaled_crop(source: str, box: tuple[int, int, int, int]) -> Image.Image:
     return crop.resize((max(1, round(crop.width * INTERIOR_SCALE)), max(1, round(crop.height * INTERIOR_SCALE))), Image.LANCZOS)
 
 
+## 遠端直接交付、同名取代切割產出的正式檔（Phase 7 透明繩圈）：builder 不得再用參考圖切割覆蓋。
+DELIVERED_REPLACEMENTS = {
+    "cap_rope_coil": "PHASE7_cap_rope_coil.png",
+}
+
+
 def build_interior_props() -> None:
     for name, (source, box) in INTERIOR_PROPS.items():
+        replacement = INCOMING / DELIVERED_REPLACEMENTS.get(name, "")
+        if name in DELIVERED_REPLACEMENTS and replacement.exists():
+            shutil.copyfile(replacement, OUT_PROPS / f"{name}.png")  # 逐 byte 複製，避免重新編碼改變 SHA
+            continue
         sprite = scaled_crop(source, box)
         sprite.save(OUT_PROPS / f"{name}.png")
     print("interior props:", len(INTERIOR_PROPS))
@@ -132,6 +143,8 @@ def build_interior_floors() -> None:
 
 
 def main() -> None:
+    OUT_NPCS.mkdir(parents=True, exist_ok=True)
+    OUT_PORTRAITS.mkdir(parents=True, exist_ok=True)
     build_npcs()
     build_portraits()
     build_interior_props()

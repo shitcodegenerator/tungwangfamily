@@ -1,137 +1,24 @@
-# AGENTS.md — 給 AI 協作者的專案守則
+# AGENTS.md — 給 AI 協作者的入口
 
-## 專案是什麼
+這是短入口，只放「先讀什麼」與「不可變原則」。完整現行規格在 **`docs/CURRENT_PROJECT_SPEC.md`**，
+文件索引在 `docs/INDEX.md`，待作者決定的事在 `docs/OPEN_DECISIONS.md`。歷史 Phase 文件已歸檔到 `docs/archive/`，不要再更新它們。
 
-「山海樹港 RPG」：Godot 4.7 2D 原型。Phase 1 完成主城「潮根城」、四位可切換角色與跟隨隊伍；
-Phase 2 完成互動（E）、對話框、城鎮生命動畫與 F5 日夜切換；Phase 3 完成 GameState、存檔、場景路由、
-兩個室內場景、兩位 NPC、資料驅動任務與 TEMP_DEMO_CONTENT 測試任務；Phase 4 完成 CC 任務切片：
-香椿乾拌麵交付、一次性炸物魔王洞窟、撿取／舉物／投擲、對話選項、CC 寵物跟隨；Phase 4.6 完成 4 幀行走表、
-待機表、接地陰影、隊伍分離、洞窟正式 tile、Boss 上緣限制與對話框 💢 圖片；Phase 5 完成每日循環
-（schema v3：day／day_seed／daily_state、家庭屋臥室門休息→隔天早晨、自動存檔、每日旗標重置、天數 HUD）
-與下層樹根廣場的新 atlas 垂直切片（tile_style "town_refresh"、八個 v2 大型 props）；Phase 6 完成資料驅動的
-世界事件執行器（`WorldEventRunner`：lock_input／wait／tween_node／dialogue／shader_param／clue／set_flag／unlock_input）、
-船長房間「物品自行移動」第一個事件（航海圖桌互動結束觸發、四人短反應、永久旗標與線索、中斷還原）與舷窗水光 Shader；
-Phase 7 完成視覺基礎修正：透明繩圈 PNG 同名替換、任務／線索日誌改為 ScrollContainer 可捲動（滾輪，<／> 切換上下頁；方向鍵保留給移動，
-捲動位置不存檔）、樹屋 `foot_inset 64` 與根拱門 `z_bias -1` 的顯示修正（碰撞、出口、ASCII 地圖不變）。
-規劃文件：`docs/PHASE_1_PROJECT_PLAN.md`、`docs/PHASE_2_PLAN.md`、`docs/PHASE_3_PLAN.md`、`docs/PHASE_3_DECISIONS.md`、
-`docs/PHASE_4_PLAN.md`、`docs/PHASE_4_6_ANIMATION_AND_CAVE_ASSETS.md`、`docs/PHASE_5_PLAN.md`、`docs/PHASE_6_PLAN.md`、
-`docs/PHASE_7_PLAN.md`、`docs/PHASE_7_SCENE_EDIT_TUTORIAL.md`、
-`docs/ART_STYLE_LOCK.md`、`docs/HOW_TO_EDIT_SCENES_AND_MAP_ASSETS.md`、
-`docs/TILEMAP_AND_MAP_ASSET_TUTORIAL.md`、`docs/LOCAL_AI_PHASE_*_PROMPT.md`。**內容邊界以 `docs/PHASE_3_DECISIONS.md` 為準**：不得自行創作正式劇情、Boss、
-父親離世演出、乾媽家庭傷痛或真實回憶；測試內容一律標記 `TEMP_DEMO_CONTENT` 或 `demo_` 前綴；
-父親原型是「國王企鵝船長」；媽媽與乾媽共用 `family_home`。炸物魔王只能是純幻想、搞笑的一次性教學 Boss，
-不得加家庭原型或沉重設定；CC 的台詞只用短句、句尾「です」，不要套到其他角色。
+## 先讀（依序）
 
-## 不可更動的規格
+1. `docs/CURRENT_PROJECT_SPEC.md` — 技術基準、內容邊界、責任分工、資料 schema、素材、驗證命令
+2. `docs/PHASE_3_DECISIONS.md` — 內容邊界原文
+3. `docs/RENDERING_AND_PLACEMENT_SPEC.md` — props 的 render_mode、碰撞與擺放規則（驗證器 MAP-P001～P007）
+4. `docs/PRODUCTION_NOTES.md` — 踩過的坑與檢查清單
+5. `docs/ART_STYLE_LOCK.md` — 素材規格
+6. 目前 Phase 的主文件（見 `docs/INDEX.md`「現在必讀」）
 
-- 邏輯解析度 640×360，地圖格 32×32，角色單格 48×64（列序 down/left/right/up）。主角：行走表 192×256（4 幀，腳底 y=61）+ 待機表 192×256（4 幀）；NPC／CC 仍用 240×256（第 0 欄站立、第 1～4 欄行走）。
-- Compatibility renderer、Nearest Neighbor、不使用第三方 addon。
-- 主城是一張連續世界地圖（960×1152），不拆成多個場景；室內是獨立小場景，經 `scenes.json` 的穩定 `scene_id` 切換。
-- 四位角色共用 `scenes/characters/playable_character.tscn` 與同一套腳本，差異只放在 `CharacterData` .tres。
-- 站立微晃動只移動 `VisualRoot`，不移動 CharacterBody2D 與碰撞盒；有待機表的角色連 VisualRoot 都不動（呼吸畫在幀裡）。`Shadow` 是每個角色場景的第一個子節點，固定在地面錨點 (0,0)，不得掛在 VisualRoot 下、不得每幀依精靈 bbox 重新置中。
+## 不可變原則
 
-## 目前明確不做
-
-小怪、經驗值、等級、裝備、技能樹、複雜屬性、完整 RPG 戰鬥框架、好感度、送禮、每日系統。
-（戰鬥只有炸物魔王這一場，邏輯只能放在 `scripts/battle/`；背包只有任務物品；分支對話只有 `choice` 選項。）
-
-## 責任分工
-
-| 檔案 | 只負責 |
-|---|---|
-| `scripts/characters/player_character.gd` | 單一角色的輸入、移動、方向、行走／待機動畫切換 |
-| `scripts/characters/follower_character.gd` | 由前一位隊員的軌跡算出想要的速度；停下時與其他隊員分離 |
-| `scripts/world/tile_library.gd` | 圖例 → atlas 座標；`tile_style: "cave"` 由 `cave_atlas_for`、`"town_refresh"`（可配 `tile_style_rows`）由 `town_refresh_atlas_for` 依四方鄰居選 tile |
-| `scripts/characters/party_controller.gd` | 切換、隊伍順序、跟隨鏈 |
-| `scripts/world/town_world.gd` | 由 ASCII 地圖與 JSON 建立世界 |
-| `scripts/camera/camera_rig.gd` | 鏡頭跟隨與邊界 |
-| `scripts/ui/debug_hud.gd` | 除錯資訊 |
-| `scripts/interaction/interactable.gd` | 被互動時發 signal、攜帶對話資料 |
-| `scripts/interaction/interaction_controller.gd` | 最近目標、提示圖示、E 鍵分派 |
-| `scripts/ui/dialogue_box.gd` | 顯示一句話（逐字、換行、頭像預留） |
-| `scripts/ui/dialogue_manager.gd` | 單線對話順序與開關 |
-| `scripts/world/day_night.gd` | CanvasModulate 日夜狀態；`play_morning` 只是色調漸變，不是存檔狀態 |
-| `scripts/world/ambient_effects.gd` | 粒子 |
-| `scripts/props/town_prop.gd` | 道具貼圖、碰撞、多幀／飄移／光暈；大型 props 的 `foot_x`／`foot_inset`／`glow_x`／`collision_boxes` |
-| `scripts/state/game_state.gd` | 唯一的遊戲狀態與序列化；`advance_day` 只由休息流程呼叫、`reset_daily_state` 只清 `daily_state` |
-| `scripts/save/save_manager.gd` | JSON 存讀檔，回傳錯誤不崩潰 |
-| `scripts/quest/quest_manager.gd` | 任務定義、進度、對話動作 |
-| `scripts/dialogue/dialogue_resolver.gd` | 依狀態挑對話版本 |
-| `scripts/world/scene_router.gd` | 場景建立、轉場、傳送門、讀檔還原 |
-| `scripts/characters/npc_character.gd` | 站立 NPC 外觀與轉向 |
-| `scripts/ui/quest_hud.gd` | 任務摘要、日誌（ScrollContainer 捲動：滾輪、`<`／`>` 翻頁；每次打開回到頂端，不抓焦點、不存捲動位置）、提示 |
-| `scripts/battle/carryable_item.gd` | 地上的投擲物（Interactable 子類），只帶 item_id 與原位 |
-| `scripts/battle/carry_system.gd` | 領頭者撿起／舉著／投擲；換場景清空 |
-| `scripts/battle/thrown_projectile.gd` | 飛行、拋物線、落點截短、命中／落地 signal |
-| `scripts/battle/fried_food_demon.gd` | Boss 狀態機，只發 signal |
-| `scripts/battle/battle_director.gd` | 這一場戰鬥的接線：命中、炸雞翅、玩家生命、勝負 |
-| `scripts/characters/pet_follower.gd` | 寵物跟隨與小動作，不在 party order |
-| `scripts/ui/battle_hud.gd` | 愛心與 Boss 生命 |
-| `scripts/ui/day_hud.gd` | 畫面上方中央的天數與時段圖示 |
-| `scripts/ui/rest_transition.gd` | 休息→早晨的全螢幕轉場（淡黑、日出卡、淡入），全黑時呼叫回呼 |
-| `scripts/debug/snapshot.gd` | `--snapshot=<scene>:<x>,<y>:<png>` 版面截圖工具（美術檢查用，不做斷言） |
-| `scripts/events/world_event_library.gd` | 載入 `assets/events/*.json`、驗證格式、依「場景 + 觸發 + requires + once」找事件、拆解 `segments` 多段對話 |
-| `scripts/events/world_event_runner.gd` | 依 actions 順序執行事件；外部能力全靠注入的 Callable；`cancel()` 還原 transform／Shader 並解鎖；暫態不進 GameState |
-
-不要把劇情、戰鬥與移動耦合進同一支腳本；不要為了「泛用」建立難以除錯的框架。
-Boss 戰邏輯只能在 `scripts/battle/`；主城、CC、物品、角色腳本不得知道戰鬥存在。戰鬥暫態不進 `GameState`。
-對話內容一律放 `assets/dialogue/*.json`、任務放 `assets/quests/*.json`；旗標與任務進度只存在 `GameState`，
-不要在公告欄、NPC 或場景腳本裡各自保存變數。`PlayableCharacter` 不得知道對話、任務或互動物件的存在。
-存檔 ID 用 `scene_id` 與角色 `id`，不要用節點路徑。
-生命感動畫與日夜只能改視覺節點（Sprite2D、CanvasModulate、粒子），不得改碰撞、角色座標或 Y-sort 基準。
-`day` 只能由 `GameState.advance_day()` 改變，而且只在共享家庭屋休息確認後由 `Main.rest_until_morning` 呼叫一次；
-切場景、讀檔、F5 都不得動 day。每日旗標放 `daily_state`（對話用 `set_daily_flag`／`requires.daily_flags`），永久旗標放 `flags`。
-世界事件只放 `assets/events/*.json`，執行器不得知道哥哥、CC、船長或任何特定物件；事件的完成旗標由 actions 的 `set_flag`
-在 `unlock_input` 之前寫入（中斷就不會留下旗標），是永久旗標、不放 `daily_state`。事件目標以 props JSON 的 `event_id` 登錄，
-不要把 `cap_rope_coil` 這類名稱寫進程式。線索是永久旗標 `clue_<id>`（定義在 `assets/events/clues.json`），schema 不變。
-Shader（`assets/shaders/`）只能套在環境道具的 Sprite2D（props JSON `shader`），不得套在角色、陰影、碰撞或互動區；載入失敗只警告。
-
-## 開工前先讀
-
-`docs/PRODUCTION_NOTES.md`：Phase 1～6 踩過的坑與新增角色／場景／對話／道具／Boss／UI／世界事件的檢查清單。
-
-## 每次修改後必跑
-
-```bash
-godot --headless --path . --import   # 改過素材或新增檔案後先跑
-python3 tools/validate_map.py
-godot --headless --path . -s res://tests/run_tests.gd
-caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
-```
-
-三者都必須通過（route test 以 exit code 0 結束並印出「結果：PASS」）。
-
-## 地圖與道具
-
-- 地圖改 `assets/maps/tide_root_town.txt`；道具、出生點、出口改 `assets/maps/tide_root_town_props.json`。
-- 道具碰撞盒以「底部中央」為原點，`collision: [寬, 高]`；`null` 代表純裝飾。
-- 道具碰撞盒相交的格子會被視為不可路徑規劃；路線驗證依賴這個規則。
-- 道具或出口加 `interact: <id>` 即成為可互動物件；`<id>` 必須存在於 `assets/dialogue/tide_root_town.json`
-  （`validate_map.py` 與單元測試都會檢查）。可加 `prompt_icon: <assets/ui 檔名>` 換提示圖示（臥室門用 `rest_prompt`）。
-- 大型 props（`assets/props/town_refresh/`）：`foot_x` 接地點距貼圖左緣像素（燈籠柱在右側）、`foot_inset` 接地線距貼圖底緣像素
-  （拱門的石板地面）、`glow_x`／`glow_y` 光暈中心、`collision_boxes: [[寬, 高, dx, dy], ...]` 多個碰撞盒（拱門兩腳）。
-- 大型 props 的視覺修正（Phase 7）只改 props JSON 的 `foot_x`／`foot_inset`／`z_bias`，不改 `x`／`y`、碰撞、出口與 ASCII 地圖：
-  樹屋 `foot_inset 64`（貼圖下移，讓第 16～17 列街道不被屋頂遮住）、根拱門 `z_bias -1`（整張畫在角色後方）。
-  `z_bias` 只用於「純視覺、角色必須永遠看得到」的大型裝飾，不得用來掩蓋碰撞錯誤；試值用 `tools/snapshot_props_trial.py` 截圖比較。
-- 道具加 `event_id: <id>` 即登錄為世界事件目標（`TownWorld.get_event_target`）；加 `shader: <assets/shaders 檔名>` 只在 Sprite2D 套 ShaderMaterial。
-  事件 JSON 的 `tween_node`／`shader_param` 只能指向同場景已登錄的 `event_id`（`validate_map.py` 會檢查）。
-- `scenes.json` 的 `tile_style: "town_refresh"` + `tile_style_rows: [first, last]` 只把新 atlas 套在部分列；
-  下層樹根廣場用第 23～35 列，中層與上層仍是舊 atlas。換樣式不得改 ASCII 地圖與可走性。
-
-## 物理層
-
-| 層 | 用途 |
-|---|---|
-| 1 World | TileMap 碰撞、道具 StaticBody2D |
-| 2 Characters | 角色本體（彼此不碰撞） |
-| 3 Interactable | 可互動物件（Interactable Area2D，含地上的投擲物）；角色的 InteractionArea 只偵測此層 |
-| 5 Boss | Boss 受擊區（Hurtbox）；ThrownProjectile 只偵測此層 |
-
-## 素材
-
-- 遊戲素材由 `tools/build_assets.py`（依序呼叫 phase2～phase4）從 `assets/reference/` 與 `assets/reference/incoming/` 切割產生，改參考圖後重跑即可；不要手改 `assets/characters`、`assets/props`、`assets/tilesets`、`assets/items`、`assets/effects` 裡的 PNG。
-- 重跑素材後一定要 `godot --headless --path . --import`，執行期不會重新匯入改過的 PNG。
-- 主角行走表 v2、待機表、陰影與洞窟 tile 組（`assets/tiles/fried_food_cave_tiles_32.png`）是遠端直接交付的正式檔，不經切割器；切割器只把洞窟 tile 組複製進 tileset 第 5 列（兩款地面的最右一欄會補平）。
-- Phase 5 城鎮更新 atlas（`assets/tilesets/town_visual_refresh_tiles_32.png`）與八個 `assets/props/town_refresh/*_v2.png` 也是正式檔；`tools/build_assets_phase5.py` 把 atlas 去格框（每格 1px 亮框 + 1px 暗框）、翻轉補齊方向錯誤的 S／SW／SE 格、合成東西向木橋後寫進 tileset 第 6～7 列（`ATLAS_ROWS = 8`）。遊戲只讀 tileset，不直接讀交付 atlas。新造型行動表由 `ACTION_<id>_v2_carry_throw_reference.png`（4 列 × 3 欄）切成 96×256，存在時優先於舊的 4×4 行動表參考。
-- 收到新參考圖先確認是 PNG（`file` 或前 8 bytes）；Phase 4 分支上有三個檔案內容是亂碼，切割器會略過並印出提示。也要確認參考圖真的是行走表：阿嬤那張四列相同、每列是五種視角，切割器有專門的重組流程。
-- 字型：Fusion Pixel 12px（OFL，`assets/ui/FUSION_PIXEL_OFL.txt`），UI 字級請用 12 的倍數。
+- **內容邊界**：不得自創正式劇情、章節、Boss、父親離世演出、家庭傷痛、真實回憶；測試內容標 `TEMP_DEMO_CONTENT`。新 NPC 先問人物個性、外型、特質。CC 台詞短句＋「です」。
+- **不重生角色**：四位主角、CC、阿嬤、船長、老龜的造型、ID 與貼圖路徑不改。
+- **架構**：Godot 4.7、640×360、32px 格、無第三方 addon；主城是一張連續地圖；戰鬥邏輯只在 `scripts/battle/`；狀態只在 `GameState`；對話／任務／事件只在 `assets/*.json`；`PlayableCharacter` 不知道對話、任務、互動物件；`day` 只在 `advance_day()` 改。
+- **擺放與層級**：每個 props 必填 `render_mode`（ground／back／ysort／split），`z_bias` 已退役；碰撞頂端對齊 32 格線；地圖字元只來自 `assets/maps/tile_legend.json`。驗證例外只能寫在 `assets/maps/validation_allowlist.json`，並有理由與到期 Phase。
+- **素材**：執行期目錄只放 PNG；原檔放 `assets/reference/incoming/` 並更新 manifest（尺寸、alpha、SHA-256）；alpha 只用 0／255。改過 PNG 必 `godot --headless --path . --import`。
+- **驗證**：平常 `python3 tools/verify_phase.py --fast`；合併前 `--full`。不以 route test PASS 取代人工看截圖，也不以人工看過取代硬驗證。
+- **文件**：每個 Phase 一份主文件（Plan／Implementation／Verification／Remaining）；待確認事項只進 `docs/OPEN_DECISIONS.md`；規格變動改 `docs/CURRENT_PROJECT_SPEC.md`。
+- **提交**：未被要求不 commit；要求時 `<type>: 中文描述` 並附 `Co-Authored-By` 與 `Claude-Session` 尾註。

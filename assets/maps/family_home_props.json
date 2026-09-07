@@ -87,50 +87,55 @@
   "props": [
     {
       "texture": "int_kitchen_window",
+      "render_mode": "back",
       "x": 118,
       "y": 62,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "int_stove",
+      "render_mode": "ysort",
       "x": 66,
       "y": 114,
       "collision": [
         46,
-        86
+        114
       ]
     },
     {
       "texture": "int_kitchen_counter",
+      "render_mode": "ysort",
       "x": 152,
       "y": 110,
       "collision": [
         108,
-        44
+        46
       ],
       "interact": "kitchen_counter"
     },
     {
       "texture": "int_back_door",
+      "render_mode": "back",
       "x": 320,
       "y": 96,
       "collision": [
         48,
-        72
+        96
       ]
     },
     {
       "texture": "int_yarn_cabinet",
+      "render_mode": "ysort",
       "x": 430,
       "y": 112,
       "collision": [
         50,
-        74
+        80
       ]
     },
     {
       "texture": "int_yarn_basket",
+      "render_mode": "ysort",
       "x": 470,
       "y": 112,
       "collision": [
@@ -145,16 +150,18 @@
     },
     {
       "texture": "int_sewing_table",
+      "render_mode": "ysort",
       "x": 548,
       "y": 176,
       "collision": [
         76,
-        66
+        80
       ],
       "interact": "sewing_table"
     },
     {
       "texture": "int_fabric_shelf",
+      "render_mode": "ysort",
       "x": 556,
       "y": 112,
       "collision": [
@@ -164,6 +171,7 @@
     },
     {
       "texture": "int_plant",
+      "render_mode": "ysort",
       "x": 500,
       "y": 172,
       "collision": [
@@ -173,10 +181,10 @@
     },
     {
       "texture": "int_side_door",
+      "render_mode": "back",
       "x": 40,
       "y": 212,
       "collision": null,
-      "z_bias": -1,
       "interact": "family_rest_door",
       "interact_size": [
         72,
@@ -190,13 +198,14 @@
     },
     {
       "texture": "int_side_door",
+      "render_mode": "back",
       "x": 600,
       "y": 212,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "int_dining_table",
+      "render_mode": "ysort",
       "x": 200,
       "y": 262,
       "collision": [
@@ -211,6 +220,7 @@
     },
     {
       "texture": "int_kids_corner",
+      "render_mode": "ysort",
       "x": 500,
       "y": 282,
       "collision": [

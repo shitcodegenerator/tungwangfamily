@@ -1,0 +1,198 @@
+{
+  "_doc": "tools/verify_assets.py 的例外清單（Phase 8.5-E）。每筆需 id、rule、path、reason、owner、expires_phase；到期自動失效。只允許既有舊素材，新交付不得加入。",
+  "current_phase": "8.5",
+  "entries": [
+    {
+      "id": "semi-breakfast_stall",
+      "rule": "ASSET-P003",
+      "path": "assets/props/breakfast_stall.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_barrel",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_barrel.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_bookshelf",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_bookshelf.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_chart_desk",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_chart_desk.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_chest_bench",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_chest_bench.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_chest_stack",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_chest_stack.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_coat_rack",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_coat_rack.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_fish_crate",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_fish_crate.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_hanging_lantern",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_hanging_lantern.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_painting",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_painting.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_porthole",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_porthole.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_rod_rack",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_rod_rack.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_rug",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_rug.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_side_table",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_side_table.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-cap_wall_map",
+      "rule": "ASSET-P003",
+      "path": "assets/props/cap_wall_map.png",
+      "reason": "Phase 3～4 由參考圖切割的舊素材，已被 v3／v2 取代但保留可回退；Phase 9 起若確定不回退就刪檔",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-blank_signpost_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/blank_signpost_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-breakfast_stall_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/breakfast_stall_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-flower_herb_bed_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/flower_herb_bed_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-harbor_crate_barrel_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/harbor_crate_barrel_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-heart_fountain_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/heart_fountain_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-lantern_post_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/lantern_post_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-root_archway_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/root_archway_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-shared_family_treehouse_v2",
+      "rule": "ASSET-P003",
+      "path": "assets/props/town_refresh/shared_family_treehouse_v2.png",
+      "reason": "Phase 5 遠端交付的 v2 大型 props 帶柔邊（當時已驗收）；下次重出時必須真透明",
+      "owner": "remote_ai",
+      "expires_phase": "10"
+    },
+    {
+      "id": "semi-tide_root_town_tileset",
+      "rule": "ASSET-P003",
+      "path": "assets/tilesets/tide_root_town_tileset.png",
+      "reason": "第 0～5 列為 Phase 1 由參考圖縮放產生的舊 tile（帶抗鋸齒）；第 6～9 列為乾淨 v3。舊列待 Phase 9 後整批換新",
+      "owner": "local_ai",
+      "expires_phase": "10"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Phase 1 素材說明
 
-本資料夾包含 Phase 1 的美術參考素材。角色圖與主城圖先作為原型素材使用；若圖片不是嚴格的最終像素格，請由本地 AI 依照 `docs/PHASE_1_PROJECT_PLAN.md` 重整成正式 Sprite、TileSet 與碰撞資料。
+本資料夾包含 Phase 1 的美術參考素材。角色圖與主城圖先作為原型素材使用；若圖片不是嚴格的最終像素格，請由本地 AI 依照 `docs/archive/phase_01/PHASE_1_PROJECT_PLAN.md` 重整成正式 Sprite、TileSet 與碰撞資料。
 
 ## 檔案
 

@@ -3,6 +3,11 @@ extends SceneTree
 ##   godot --headless --path . -s res://tests/run_tests.gd
 
 const SKY_TEST := ".c"
+## Phase 8.5-F：新測試依主題分檔（tests/suites/*.gd，每檔一個 run(t) 函式，用 t._assert）；舊 runner 保留。
+const SUITES: Array[String] = [
+	"res://tests/suites/placement_tests.gd",
+	"res://tests/suites/rendering_tests.gd",
+]
 const MapParserScript := preload("res://scripts/world/map_parser.gd")
 const TileLibraryScript := preload("res://scripts/world/tile_library.gd")
 const PartyTrailScript := preload("res://scripts/characters/party_trail.gd")
@@ -75,6 +80,9 @@ func _initialize() -> void:
 	await test_phase6_runner()
 	await test_phase7_ui()
 	await test_phase8_ui()
+	for suite_path: String in SUITES:
+		var suite: RefCounted = load(suite_path).new()
+		suite.call("run", self)
 	print("--- %d 通過，%d 失敗 ---" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -1252,10 +1260,11 @@ func test_phase7_props() -> void:
 	_assert(tree_top >= 18 * 32 - 2, "樹屋貼圖頂端不高於第 18 列：西橋頭與第 16～17 列街道不被屋頂遮住（頂端 y=%.0f）" % tree_top)
 	_assert(tree_bottom <= 23 * 32, "樹屋貼圖底緣不低於第 23 列的樹根牆（底緣 y=%.0f）" % tree_bottom)
 	var tree_collision: Array = treehouse["collision"]
-	_assert(int(treehouse.get("z_bias", 0)) == 0 and float(tree_collision[0]) == 150 and float(tree_collision[1]) == 60, "樹屋仍走 Y-sort，碰撞盒 150×60 不變")
+	_assert(String(treehouse.get("render_mode", "")) == "back" and not treehouse.has("z_bias") and float(tree_collision[0]) == 150 and float(tree_collision[1]) == 64, "樹屋 render_mode back（角色永遠在前），碰撞盒 150×64（頂端對齊 y=608，封鎖格與 60 時相同）")
 	_assert(tree_texture.get_size() == Vector2(176, 96) and float(treehouse.get("foot_inset", 0)) == 16 and tree_top == 18 * 32 + 16, "Phase 8：樹屋 v3 176×96、foot_inset 16，貼圖頂端 y=592（第 18 列角色原點）")
-	_assert(int(arch.get("z_bias", 0)) == 0 and arch.get("collision") == null and TownPropScript.collision_boxes_from(arch.get("collision_boxes")).size() == 2, "Phase 8：拱門 base 走 Y-sort（render_mode split），只有 base 保留兩隻腳的碰撞盒")
-	_assert(int(canopy.get("z_bias", 0)) > 0 and canopy.get("collision") == null and not canopy.has("collision_boxes") and float(canopy["x"]) == float(arch["x"]) and float(canopy["y"]) == float(arch["y"]) and float(canopy.get("foot_inset", 0)) == float(arch.get("foot_inset", 0)), "拱門 canopy 與 base 同錨點、同 foot_inset、沒有碰撞、z_bias 正值畫在前景")
+	_assert(String(arch.get("render_mode", "")) == "split" and String(arch.get("split_role", "")) == "base" and not arch.has("z_bias") and arch.get("collision") == null and TownPropScript.collision_boxes_from(arch.get("collision_boxes")).size() == 2, "Phase 8：拱門 base（render_mode split／base）走 Y-sort，只有 base 保留兩隻腳的碰撞盒")
+	_assert(String(canopy.get("render_mode", "")) == "split" and String(canopy.get("split_role", "")) == "canopy" and canopy.get("collision") == null and not canopy.has("collision_boxes") and float(canopy["x"]) == float(arch["x"]) and float(canopy["y"]) == float(arch["y"]) and float(canopy.get("foot_inset", 0)) == float(arch.get("foot_inset", 0)), "拱門 canopy（split／canopy）與 base 同錨點、同 foot_inset、沒有碰撞")
+	_assert(TownWorldScript.z_index_for(arch) == 0 and TownWorldScript.z_index_for(canopy) == 1 and TownWorldScript.z_index_for(treehouse) == -1, "z_index 只由 render_mode 決定：split base 0、canopy 1、back -1")
 	_assert(float(arch.get("foot_inset", 0)) == 38 and float(arch["x"]) == 480 and float(arch["y"]) == 762, "根拱門接地線、位置不變")
 	var state: GameState = GameStateScript.new()
 	_assert(not JSON.stringify(state.to_dict()).contains("scroll"), "存檔資料不含 UI 捲動位置")
@@ -1359,3 +1368,4 @@ func test_phase8_ui() -> void:
 	_assert(InputMap.has_action("debug_toggle_status"), "project.godot 登錄 debug_toggle_status（F2）")
 	_assert(hud.HELP_TEXT.contains("F2"), "測試資訊面板提示 F2")
 	hud.queue_free()
+

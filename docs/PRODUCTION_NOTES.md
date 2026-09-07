@@ -61,7 +61,7 @@
 | # | 發生過的事 | 教訓 |
 |---|---|---|
 | C1 | Phase 4.6 分支從舊一個 commit 長出來，無法 fast-forward。 | 拉遠端分支先 `git merge-base`；分歧就正常合併並確認檔案不重疊。請遠端每次開分支前先 `git pull origin master`。 |
-| C2 | 遠端與本機都會改 `docs/ASSET_REQUEST.md`、manifest，容易衝突。 | 遠端只改 `assets/reference/incoming/`、manifest 與自己的規劃文件；本機負責 `docs/*_REPORT.md`、`ASSET_REQUEST.md`、程式與測試。 |
+| C2 | 遠端與本機都會改 `docs/archive/asset_requests/ASSET_REQUEST.md`、manifest，容易衝突。 | 遠端只改 `assets/reference/incoming/`、manifest 與自己的規劃文件；本機負責 `docs/*_REPORT.md`、`docs/archive/asset_requests/ASSET_REQUEST.md`、程式與測試。 |
 | C3 | 遠端交付訊息說「本階段包含 X」，實際分支內容有時多、有時少（例如 4.5 分支自己改了切割參數並提交了產出 PNG）。 | 拉下來先 `git diff --stat`，逐項對照訊息；產出 PNG 一律本機重切覆蓋。 |
 | C4 | 使用者要求：未要求不 commit；要求時訊息格式 `<type>: 中文描述` + Co-Authored-By 與 Claude-Session 尾註。 | 做完先回報再等指示；「先提交我再跟他說」代表 commit + push 兩步都做。 |
 | C5 | 每次修改後三道驗證缺一不可：`validate_map.py` → `run_tests.gd` → `--route-test`。 | 順序固定；route test 約 5 分鐘會開視窗，使用者說「可以停止測試」就不再跑，改用單元測試與預覽圖確認。 |
@@ -118,8 +118,11 @@
 2. 新樣式一律用 `tile_style` + `tile_style_rows` 先套一個區域，ASCII 與碰撞不動，跑 `validate_map.py` 確認可走性沒變。
 3. props：先在 `assets/maps/*_props.json` 放進去，用 `--snapshot` 截圖看接地、Y-sort、與 NPC／出生點／路線的關係；碰撞盒不超出貼圖、留出通道；燈籠用 `foot_x`＋`glow_x`；有地面的物件用 `foot_inset`；多腳物件用 `collision_boxes`。
 4. 大型物件會遮到北邊的走道是 Y-sort 的正常結果，不要切碎片；先寫進報告請作者決定。Phase 7 作者決定後才用 props JSON 的視覺欄位修：
-   貼圖比地圖佔位高很多的「立面」（樹屋）用 `foot_inset` 把貼圖往下移到主要走道之外；角色必須穿過的純裝飾（根拱門）才用 `z_bias -1`。
-   兩者都會留下「角色畫在貼圖上方」的邊角案例，要截圖寫進報告。試值用 `tools/snapshot_props_trial.py`（改 JSON → snapshot → 還原）。
+   Phase 8.5 起只剩四種 `render_mode`（docs/RENDERING_AND_PLACEMENT_SPEC.md）：立面（樹屋、房屋）＝`back`、自立物件＝`ysort`、要穿過的高大物件＝`split` 兩張圖、地面花紋＝`ground`；`z_bias` 退役。
+   邊角案例（拱門正北第 21 列）截圖寫進 docs/OPEN_DECISIONS.md。試值用 `tools/snapshot_props_trial.py`（改 JSON → snapshot → 還原）。
+5. 碰撞盒只要碰到格子就整格封鎖：碰撞高度 ≥ 32 時頂端必須在 32 的倍數（MAP-P001）。伸進去的那一列若是 NPC 對話站位（Phase 8 花圃 116 封掉阿嬤／CC 站位、整串 CC 任務 route test 失敗），要選「少封一列」而不是「封鎖格不變」。
+6. 傳送門底緣與門口格中心只差 1px：route test 走到門口一律用 `_walk_to_door`（往南偏 6px 再按上）；遊戲資料不用改。
+7. 上層地形 tile 的變體用 4 格 mod 雜湊會變棋盤格；填充變體用加權週期表，暗格在畫面上像破洞就整個不用。孤立單格的特殊地形（霧 `c`）不能用不透明 tile 表現，要用透明 overlay。
 
 ### D6.6 世界事件（Phase 6 起）
 1. 事件資料只放 `assets/events/<event_id>.json`（`WorldEventLibrary.EVENT_PATHS` 登錄）；必填 `event_id`、`scene_id`、`trigger`、`actions`；`once` 事件要有 `complete_flag`，且 actions 內 `set_flag` 該旗標必須在 `unlock_input` 之前。
@@ -131,9 +134,9 @@
 7. 測試：單元測試用 `speed_scale` 加速跑一次完整事件與一次中斷；route test 在第一次互動時驗證位移、輸入鎖、脈衝、反應段數、旗標與線索，之後驗證不重播、中斷還原、重播完成、可離開場景。
 8. `validate_map.py` 會檢查事件的場景、觸發互動點、目標 `event_id`、對話 id 與線索 id 都存在。
 
-### D7 每次收工
+### D7 每次收工（Phase 8.5 起）
 1. `godot --headless --path . --import`（改過素材時）。
-2. `python3 tools/validate_map.py` → `godot --headless --path . -s res://tests/run_tests.gd` → route test。
-3. 看截圖：放大到 3 倍檢查陰影、接縫、重疊、裁切。
-4. 寫 `docs/PHASE_*_REPORT.md`：驗收表、素材檢查、修改檔案、驗證數字、已知限制；更新 `AGENTS.md`、`README.md`、`MANUAL_TEST_GUIDE.md`、`ASSET_REQUEST.md`。
+2. `python3 tools/verify_phase.py --fast`（素材 preflight → 地圖硬檢查 → 驗證器夾具 → 單元測試）；合併前 `--full`（加 import、route test、六張截圖）。
+3. 看截圖：放大到 3 倍檢查陰影、接縫、重疊、裁切；只更新真的改了畫面的 `docs/screenshots/golden/`。
+4. 寫該 Phase 的主文件 `docs/PHASE_N.md`（Plan／Implementation／Verification／Remaining）；待作者確認只寫進 `docs/OPEN_DECISIONS.md`；規格變動改 `docs/CURRENT_PROJECT_SPEC.md`，不再各自複製。
 5. 不主動 commit；被要求時用 `<type>: 中文描述` 格式並附尾註。

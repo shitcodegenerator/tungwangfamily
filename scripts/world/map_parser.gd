@@ -6,8 +6,39 @@ extends RefCounted
 ##   可走：g 草地  d 泥土  r 樹根路  p 木板  b 樹枝木地板  s 石板  m 苔石  = 橋  | 樓梯  w 沙灘
 ##   不可走：# 樹皮牆  . 虛空  c 雲霧  ~ 深水  , 淺水  T 樹心底座
 
-const WALKABLE_CHARS := "gdrpbsm=|w"
-const SOLID_CHARS := "#.c~,T"
+## 圖例唯一來源：assets/maps/tile_legend.json（Phase 8.5-E）。可走／不可走字元由檔案決定，
+## tools/validators 讀同一份檔判定 MAP-P006；不要在這裡或 TileLibrary 另外手寫一套字元表。
+const LEGEND_PATH := "res://assets/maps/tile_legend.json"
+static var WALKABLE_CHARS: String = legend_chars(true)
+static var SOLID_CHARS: String = legend_chars(false)
+
+
+## 讀圖例檔，回傳可走（或不可走）字元串；讀不到時回傳空字串並報錯（地圖會整張不可走，測試會抓到）。
+static func legend_chars(walkable: bool) -> String:
+	var result := ""
+	var legend := load_legend()
+	for ch: String in legend.get("chars", {}):
+		if bool(legend["chars"][ch].get("walkable", false)) == walkable:
+			result += ch
+	return result
+
+
+static func load_legend() -> Dictionary:
+	var text := FileAccess.get_file_as_string(LEGEND_PATH)
+	var parsed: Variant = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY or not (parsed as Dictionary).has("chars"):
+		push_error("讀不到圖例檔或格式錯誤：%s" % LEGEND_PATH)
+		return {"chars": {}}
+	return parsed
+
+
+## 該字元在指定 tile_style 是否有正式 mapping（與 tile_legend.json 的 styles 一致）。
+static func legend_supports(ch: String, style: String) -> bool:
+	var chars: Dictionary = load_legend().get("chars", {})
+	if not chars.has(ch):
+		return false
+	var styles: Array = chars[ch].get("styles", [])
+	return styles.has(style if not style.is_empty() else "default")
 
 var rows: PackedStringArray = PackedStringArray()
 var width: int = 0

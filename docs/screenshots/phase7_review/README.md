@@ -10,4 +10,4 @@
 | `../25_captain_room_before_event.png`～`../28_quest_log_clue.png` | route test 產生：事件前、位移中（透明繩圈）、完成後、捲到底的日誌線索 |
 | `../29_root_archway_party.png`、`../30_treehouse_party.png` | route test 產生：隊伍穿過根拱門、隊伍在樹屋門口 |
 
-待規劃 AI 處理的項目整理在 `docs/NOTES_FOR_PLANNER_PHASE_7.md`。
+待規劃 AI 處理的項目整理在 `docs/archive/phase_07/NOTES_FOR_PLANNER_PHASE_7.md`。

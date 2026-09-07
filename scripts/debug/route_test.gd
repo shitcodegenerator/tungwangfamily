@@ -554,7 +554,7 @@ func _phase5_checks() -> void:
 	# 家庭屋：休息點提示、取消休息
 	_check(await _walk_to_door(Vector2i(4, 21)), "走到共享家庭屋門口（新樹屋外觀）")
 	var treehouse: TownProp = _find_prop("shared_family_treehouse_v3")
-	_check(treehouse != null and treehouse.position.y + treehouse.sprite.offset.y == 592.0 and treehouse.z_index == 0, "樹屋 v3 貼圖頂端 y=592（第 18 列，第 16～17 列街道不被屋頂遮住）且仍走 Y-sort")
+	_check(treehouse != null and treehouse.position.y + treehouse.sprite.offset.y == 592.0 and treehouse.z_index == -1, "樹屋 v3 貼圖頂端 y=592（第 18 列，第 16～17 列街道不被屋頂遮住）且為 render_mode back（z_index -1，角色永遠在前）")
 	await _screenshot("30_treehouse_party")
 	_check(await _enter_portal(Vector2i.UP, "family_home"), "新樹屋門口仍可進入家庭屋")
 	state = main_node.state

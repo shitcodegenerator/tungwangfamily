@@ -1,0 +1,5 @@
+{
+  "_doc": "validate_map 硬檢查的例外清單（Phase 8.5-B）。每筆必須有 id、rule、scene、subject、reason、owner、expires_phase；current_phase 到達 expires_phase 時該例外自動失效並讓驗證失敗。新物件不得新增永久例外；能修資料就修資料。",
+  "current_phase": "8.5",
+  "entries": []
+}

@@ -1,4 +1,4 @@
-# 山海樹港 RPG — Phase 7：視覺基礎修正與日誌可讀性
+# 山海樹港 RPG — Phase 8.5：專案穩定化（Phase 8 美術完成已合入）
 
 Godot 4.7 / GDScript / Compatibility renderer 的 2D 原型。
 Phase 1：可以走、可以切換角色、其他人會跟隨、可以在一張連續的巨大樹洞城裡上下探索。
@@ -10,6 +10,10 @@ Phase 4：阿嬤早餐攤與 CC、香椿乾拌麵交付、一次性炸物魔王�
 Phase 4.6：4 幀行走表與待機表、接地陰影、隊伍分離、洞窟正式 tile。Phase 5：每日循環（休息→隔天早晨、每日旗標、天數 HUD）
 與下層樹根廣場新 atlas。Phase 6：資料驅動的世界事件執行器、船長房間「物品自行移動」事件（輸入鎖、位移、四人反應、
 永久旗標與線索、中斷還原）、舷窗水光 Shader。Phase 7：透明繩圈、任務／線索日誌可捲動、樹屋與根拱門顯示修正。
+Phase 8：v3 素材接線（樹屋、根拱門拆層、船長房 15 件家具、城鎮 atlas v3 與上層填充包，主城整張改用更新樣式）。
+Phase 8.5：地圖擺放硬檢查（MAP-P001～P007）、四種 `render_mode`、圖例唯一來源、素材 preflight、單一驗證入口、文件唯一真相。
+
+現行規格：`docs/CURRENT_PROJECT_SPEC.md`；文件索引：`docs/INDEX.md`；待決策：`docs/OPEN_DECISIONS.md`。
 
 ## 執行
 
@@ -47,17 +51,21 @@ godot --path .
 ## 驗證
 
 ```bash
-# 1. 地圖連通性（Python，僅需 Pillow 以外的標準函式庫）
-python3 tools/validate_map.py
+# 平常修改後（約 1～2 分鐘）：素材 preflight → 地圖與擺放硬檢查 → 驗證器夾具 → Godot 單元測試
+python3 tools/verify_phase.py --fast
 
-# 2. GDScript 純邏輯單元測試（headless）
+# 合併前（約 8 分鐘，會開視窗）：以上全部 ＋ import ＋ route test ＋ 六張版面截圖 → build/route_shots/
+python3 tools/verify_phase.py --full
+
+# 個別工具
+python3 tools/validate_map.py --audit        # 列出所有違規、每個 props 封鎖的格、建議 allowlist
+python3 tools/verify_assets.py               # 素材 preflight
 godot --headless --path . -s res://tests/run_tests.gd
-
-# 3. 自動化驗證：走完驗收路線、切換 20 次、測試封鎖出口與牆壁、互動／對話／輸入鎖／日夜切換，並截八張圖
-caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots
+caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/build/route_shots
+python3 tools/build_assets.py --clean --verify   # 五代 builder 在暫存目錄重建並比對 repo
 ```
 
-驗證報告見 `docs/PHASE_1_REPORT.md`～`docs/PHASE_6_REPORT.md`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
+最新報告：`docs/PHASE_8_REPORT.md`、`docs/PHASE_8_5_REPORT.md`；歷史報告在 `docs/archive/`；手動流程見 `docs/MANUAL_TEST_GUIDE.md`。
 
 美術版面檢查（不做斷言，只截圖）：
 

@@ -121,8 +121,9 @@ const UP_CLOUD_EDGE_S: Array[Vector2i] = [Vector2i(8, 9), Vector2i(9, 9), Vector
 ## 上層「天空」字元：樹冠與霧；下方不是天空（平台 b、牆 #）時改用下緣變體。
 const SKY_CHARS := ".c"
 ## 樹冠變體週期：填充包第 0、2 格較亮、第 1、3 格較暗；以亮格為主、暗格零星出現，避免 mod 4 雜湊變成棋盤格。
-const UP_CANOPY_PATTERN: Array[int] = [0, 2, 0, 0, 2, 1, 0, 2, 0, 3, 2, 0, 0, 2, 1, 0, 2]
-const UP_CANOPY_EDGE_PATTERN: Array[int] = [0, 2, 0, 1, 2, 0, 3, 0, 2]
+## 作者 2026-09-07：暗格（1、3）在畫面上像破洞，只用兩個亮格交錯。
+const UP_CANOPY_PATTERN: Array[int] = [0, 2, 0, 0, 2, 2, 0, 2, 0, 0, 2, 0, 2, 2, 0, 2, 0]
+const UP_CANOPY_EDGE_PATTERN: Array[int] = [0, 2, 0, 0, 2, 2, 0, 2, 0]
 ## 草地變體週期：7 格裡 4 格 A、2 格 B、1 格花草，依座標雜湊選取（可重現）。
 const TR_GRASS_PATTERN: Array[Vector2i] = [TR_GRASS_A, TR_GRASS_A, TR_GRASS_B, TR_GRASS_A, TR_GRASS_FLOWERS, TR_GRASS_A, TR_GRASS_B]
 const TR_STONE_PATTERN: Array[Vector2i] = [TR_STONE_A, TR_STONE_B, TR_STONE_A, TR_STONE_A, TR_STONE_B]
@@ -197,7 +198,7 @@ static func ground_atlas_for(parser: MapParser, x: int, y: int, options: Diction
 			if parser.is_walkable(x, y + 1):
 				return GRASS_CLIFF
 			return BARK
-	push_warning("未知圖例 '%s'，以樹皮牆代替" % ch)
+	push_error("未知圖例 '%s'（tile_legend.json 沒有登錄），以樹皮牆代替" % ch)
 	return BARK
 
 
@@ -286,6 +287,8 @@ static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2
 			return TR_PLANKS
 	if SIMPLE_LEGEND.has(ch):
 		return SIMPLE_LEGEND[ch]
+	# 不得靜默退回樹根牆：未知字元由 validate_map MAP-P006 與單元測試擋下，這裡只留報錯
+	push_error("town_refresh 樣式沒有字元 '%s' 的 mapping（tile_legend.json）" % ch)
 	return TR_ROOT_WALL
 
 

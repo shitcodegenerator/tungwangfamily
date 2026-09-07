@@ -368,6 +368,8 @@ def build_ui() -> None:
 
 
 def main() -> None:
+    OUT_UI.mkdir(parents=True, exist_ok=True)
+    OUT_EFFECTS.mkdir(parents=True, exist_ok=True)
     build_characters()
     build_props()
     build_tileset()

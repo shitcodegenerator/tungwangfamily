@@ -209,7 +209,7 @@ sed -n 19p assets/maps/tide_root_town.txt
 | `texture` | 圖片檔名（不含 `.png`），對應 `assets/props/<texture>.png`；`town_refresh/xxx` 表示在子資料夾 | 必填 |
 | `x`、`y` | **接地點**的世界座標（不是圖片左上角）。物件會「站」在這個點上 | 必填 |
 | `collision` | 走不進去的矩形 `[寬, 高]`，以接地點為底部中央；純裝飾寫 `null` | 必填 |
-| `z_bias` | 顯示層級偏移：`-1` 永遠畫在角色後面（遠景、拱門）；不寫 = 依腳底高低自動前後（Y-sort） | 0 |
+| `render_mode` | **必填**。`ysort`＝依腳底高低自動前後（桌、櫃、燈柱、攤位）；`back`＝永遠在角色後面（牆掛物、門窗、雲、房屋立面、樹屋）；`ground`＝地面花紋（地毯、池面，不能有碰撞）；`split`＝拱門這種要走到後方的高大物件，拆 `split_role` `base`／`canopy` 兩筆。完整規則：docs/RENDERING_AND_PLACEMENT_SPEC.md | 必填（驗證器會擋） |
 | `foot_x` | 接地點距圖片**左緣**幾像素（圖片不對稱時用，例如燈柱在右邊） | 圖片寬 ÷ 2 |
 | `foot_inset` | 接地線距圖片**底緣**幾像素（圖片底部畫了地面、或想把整張圖往下移） | 0 |
 | `glow` + `glow_x`／`glow_y` | 夜晚光暈與其中心 | 無 |
@@ -237,7 +237,7 @@ foot_x = 60（燈籠，燈柱在右邊）
 
 **Y-sort 是什麼**：遊戲用「腳底 y」決定誰畫在前面——腳底越靠下（y 越大）越前面。
 物件的腳底就是 `(x, y)`。所以角色走到物件下方（y 比較大）會蓋住物件，走到上方會被物件蓋住。
-`z_bias: -1` 會跳出這個規則，整張永遠在角色後面。
+`render_mode: back` 或 `ground` 會跳出這個規則，整張永遠在角色後面；`split` 的 canopy 永遠在角色前面。舊欄位 `z_bias` 已退役，寫了驗證器會報 MAP-P007。
 
 ---
 
@@ -352,7 +352,7 @@ open preview.png
 
 > 哪些圖不能直接覆蓋：`assets/characters/`、`assets/items/`、`assets/effects/` 和舊城的 `assets/props/*.png`（沒有 `town_refresh/`、不是 `cap_` 開頭的那些）
 > 是由 `tools/build_assets.py` 從 `assets/reference/` 切出來的，重跑切割器會被蓋掉。要改這些，把新圖放到 `assets/reference/incoming/`，
-> 並在 `docs/ASSET_REQUEST.md` 或交給本地 AI 說明「用這張取代 X」。`assets/props/town_refresh/*_v2.png`、`cap_*.png`、洞窟 tile 是正式檔，可直接覆蓋。
+> 並在 `docs/archive/asset_requests/ASSET_REQUEST.md` 或交給本地 AI 說明「用這張取代 X」。`assets/props/town_refresh/*_v2.png`、`cap_*.png`、洞窟 tile 是正式檔，可直接覆蓋。
 
 ---
 
@@ -385,7 +385,7 @@ open preview.png
 5. `python3 tools/validate_map.py` → 應該 `地圖驗證通過`。若說物件不可站或擋住路徑，把 `y` 換到別格（每次移 32）。
 6. 截圖：`caffeinate -dis godot --path . --always-on-top -- "--snapshot=tide_root_town:14,34:$PWD/check.png"`（格 = 座標 ÷ 32：448÷32=14、1088÷32=34）。
 7. 實際玩一下：`godot --path .`，走到花盆四個方向：從下面靠近會被 20×8 的碰撞擋住；從上面走過去，角色會被花盆蓋住（正常，因為你在它後面）。
-8. 純裝飾不想擋路 → `"collision": null`。想永遠在角色後面（例如牆上的畫）→ 加 `"z_bias": -1`。
+8. 純裝飾不想擋路 → `"collision": null`。想永遠在角色後面（例如牆上的畫）→ `"render_mode": "back"`；地面花紋 → `"ground"`；一般自立物件 → `"ysort"`（每個物件都要寫）。
 9. 跑 `godot --headless --path . -s res://tests/run_tests.gd`。
 
 ---
@@ -398,17 +398,17 @@ open preview.png
 |---|---|---|
 | 圖片左右歪，門不在門口 | `foot_x` | 接地點應該在門的中央，量出門中央距圖片左緣幾 px |
 | 圖片底部畫了地面／石板，角色站在上面卻被蓋住 | `foot_inset` = 地面的高度 | 讓接地線落在地面的上緣 |
-| 建築太高，蓋住北邊整條街 | `foot_inset` 加大（整張下移） | Phase 7 的樹屋用 64；代價是門正上方那格草地會被屋頂上緣蓋到一點 |
-| 角色穿過拱門、走道時被兩側根系蓋住 | `z_bias: -1` | 整張畫在角色後面；代價是站在它北邊時角色會畫在頂上 |
+| 建築太高，蓋住北邊整條街 | 重出「圖高剛好」的版本，並用 `foot_inset` 把踏墊畫在接地線以下 | Phase 8 樹屋 v3 是 176×96、foot_inset 16，頂端剛好在第 18 列；不要用 foot_inset 硬把大圖往下推 |
+| 角色穿過拱門、走道時被兩側根系蓋住 | 拆成 `render_mode: split` 的 base（拱腳＋碰撞）與 canopy（樹冠，無碰撞） | 石板在腳下、樹冠在頭上；需要兩張圖（見 docs/PHASE_8_SCENE_ART_TUTORIAL.md 第 5 節） |
 | 以上都不對 | 才動 `x`／`y` | 會一起移動碰撞盒；改完一定重跑 `validate_map.py` 和 F1 看紅框 |
 
-**絕對不要**為了躲圖片去改 `.txt` 地圖的字元、改 `collision`／`collision_boxes` 數值、或把角色圖縮放——那會讓路線、存檔與測試全部壞掉。
+**絕對不要**為了躲圖片去改 `.txt` 地圖的字元、或把角色圖縮放——那會讓路線、存檔與測試全部壞掉。碰撞高度可以調，但頂端要落在 32 的倍數（跑 `python3 tools/validate_map.py --audit` 會直接算給你兩個候選值）。
 
 **快速試值工具**（改 JSON → 截圖 → 自動還原 JSON，不會弄髒檔案）：
 
 ```bash
 python3 tools/snapshot_props_trial.py 試1 \
-  '{"town_refresh/shared_family_treehouse_v2": {"foot_inset": 48}}' \
+  '{"town_refresh/shared_family_treehouse_v3": {"foot_inset": 16}}' \
   'tide_root_town:4,17:橋頭;tide_root_town:5,18:門上;tide_root_town:4,21:門口'
 ```
 
@@ -424,7 +424,7 @@ tileset 是切割器產生的檔案，直接改會在下次重跑 `tools/build_a
 1. 找格子：`scripts/world/tile_library.gd` 裡 `const STONE := Vector2i(9, 0)` 表示石板在第 9 欄、第 0 列。像素位置 = 欄×32、列×32 → 左上角 (288, 0)。
 2. 在 Aseprite 打開 `assets/tilesets/tide_root_town_tileset.png`，格線設 32，找到 (288,0)～(319,31) 那格，畫你的新石板（遵守 4.5 無縫）。
 3. 存檔（同檔名）→ `godot --headless --path . --import` → `--snapshot` 拍一張街道看。
-4. 滿意的話，**把那一格另存成 32×32 的獨立 PNG** 放到 `assets/reference/incoming/`（例如 `stone_v2_32.png`），並在 `docs/ASSET_REQUEST.md` 記一行「用 incoming/stone_v2_32.png 取代 tileset (9,0)」，讓本地 AI 把它寫進切割器；否則之後會被還原。
+4. 滿意的話，**把那一格另存成 32×32 的獨立 PNG** 放到 `assets/reference/incoming/`（例如 `stone_v2_32.png`），並在 `docs/archive/asset_requests/ASSET_REQUEST.md` 記一行「用 incoming/stone_v2_32.png 取代 tileset (9,0)」，讓本地 AI 把它寫進切割器；否則之後會被還原。
 5. 想換整組草↔石板過渡（12 格）：先畫成 4 欄 × 3 列的 128×96 小 atlas，命名清楚（`grass_stone_n`、`_ne`… 或直接畫在一張圖上附說明），放 `assets/reference/incoming/`，交給本地 AI 接進 `tile_style` 規則——這部分要改程式，不建議自己接。
 
 ---
@@ -445,7 +445,7 @@ Shader 是套在物件圖片上的小程式（例如舷窗水光）。你只需�
 四位主角與 CC 的圖是整套的：行走表、待機表、持物／投擲表、頭像。**只換一張**會在按 E 撿東西或切換動作的瞬間變回舊造型。
 如果你想重畫角色：
 
-1. 先只畫「站立、面向下」一格 48×64，腳底在 y=61，放在 `assets/reference/incoming/`，貼在 `docs/ASSET_REQUEST.md` 請本地 AI 幫你併一張「舊 vs 新」對照圖。
+1. 先只畫「站立、面向下」一格 48×64，腳底在 y=61，放在 `assets/reference/incoming/`，貼在 `docs/archive/asset_requests/ASSET_REQUEST.md` 請本地 AI 幫你併一張「舊 vs 新」對照圖。
 2. 確認造型後再畫四方向站立 → 4 幀走路 → 待機 → 持物／投擲 → 頭像（順序寫在 `docs/ART_STYLE_LOCK.md` 3.2）。
 3. 列序是 下／左／右／上；每列的臉朝向要自己看，不要信「應該一樣」。
 4. 陰影不要畫進去。
@@ -455,13 +455,13 @@ Shader 是套在物件圖片上的小程式（例如舷窗水光）。你只需�
 ## 11. 收工檢查清單（每次改完照跑）
 
 ```bash
-godot --headless --path . --import                                  # 改過 PNG 才需要
-python3 tools/validate_map.py                                        # 最後一行：地圖驗證通過
-godot --headless --path . -s res://tests/run_tests.gd                # 最後一行：--- N 通過，0 失敗 ---
-caffeinate -dis godot --path . --always-on-top -- --route-test --shots=$PWD/docs/screenshots   # 約 5 分鐘，會開視窗自動走一遍；結尾：結果：PASS
+godot --headless --path . --import          # 改過 PNG 才需要
+python3 tools/verify_phase.py --fast        # 素材檢查 → 地圖硬檢查 → 夾具 → 單元測試；最後一行：PASS
+python3 tools/verify_phase.py --full        # 合併前：再加 import、route test（約 5 分鐘會開視窗）與六張截圖 → build/route_shots/
 ```
 
-route test 會重寫 `docs/screenshots/` 裡的所有截圖；只 `git add` 你真的改到畫面的那幾張，其他用 `git checkout -- docs/screenshots/` 還原。
+route test 的截圖放在 `build/`（不進 git）；只有 `docs/screenshots/golden/` 的 11 張代表畫面會進 git，畫面真的改了才更新那幾張。
+驗證失敗時看訊息開頭的代碼（MAP-P001～P007、ASSET-*），對照 docs/RENDERING_AND_PLACEMENT_SPEC.md 第 4 節；`python3 tools/validate_map.py --audit` 會列出每個物件封了哪些格。
 
 人工看截圖（放大 3 倍）：
 
@@ -480,7 +480,7 @@ route test 會重寫 `docs/screenshots/` 裡的所有截圖；只 `git add` 你�
 | 物件周圍有一圈方形色塊 | 背景不是透明（白底／棋盤格／烙了地板） | 回繪圖軟體用魔術棒選背景刪除；Color Mode 要 RGBA；用 4.6 檢查四角 alpha |
 | 物件邊緣有白線 | 半透明像素或軟體自動補邊 | 關抗鋸齒；Aseprite 匯出時不要 Resize；用 4.6 檢查「半透明」是否為 0 |
 | 物件像浮在空中 | 圖片底部是透明或 `foot_inset` 太大 | 底部一排要有實心像素；`foot_inset` 只設成「圖裡地面的高度」 |
-| 角色走到物件前面卻被蓋住 | `z_bias` 設錯或接地點太低 | 純裝飾用 `null` 碰撞且不要 `z_bias`；接地點 y 應在圖片底緣 |
+| 角色走到物件前面卻被蓋住 | `render_mode` 選錯或接地點太低 | 自立物件用 `ysort`；接地點 y 應在圖片底緣 |
 | 角色可以穿過物件 | `collision` 是 `null` 或太小 | 寫 `[寬, 高]`；F1 看紅框是否覆蓋物件底部 |
 | `validate_map.py` 說「不可站」「不可達」 | 物件放進牆裡或擋住唯一通道 | 換一格（x 或 y ±32），或縮小碰撞 |
 | JSON 錯誤 `Expecting ',' delimiter` | 少逗號、多逗號、引號不是半形 | 用 6.4 的指令找行號；用 VS Code 不用 Word |
@@ -500,7 +500,7 @@ route test 會重寫 `docs/screenshots/` 裡的所有截圖；只 `git add` 你�
 | Prop | 放在地圖上的物件（房子、燈籠、桌子），一張圖 + 可選碰撞 |
 | 接地點／錨點 | 物件「站」在地上的那個點；本專案 = 圖片底部中央（可用 `foot_x`、`foot_inset` 調） |
 | Y-sort | 腳底越低越前面的自動前後排序 |
-| z_bias／z_index | 手動指定的層級；負數在角色後面 |
+| render_mode／z_index | 顯示層級由 `render_mode` 決定（ground／back 在角色後面、ysort 依腳底、split canopy 在前面）；`z_bias` 已退役 |
 | 碰撞（collision） | 角色走不進去的隱形方塊；F1 可顯示 |
 | 匯入（import） | Godot 把 PNG 轉成它內部格式的步驟；改圖後必跑 |
 | headless | 不開視窗執行 Godot（跑測試、匯入用） |

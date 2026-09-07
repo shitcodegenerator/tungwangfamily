@@ -1,0 +1,23 @@
+{
+  "_doc": "ASCII 地圖圖例的唯一來源（Phase 8.5-E）。MapParser 由此決定可走／不可走；tools/validators 由此判定未知字元（MAP-P006）與該 tile_style 是否有正式 mapping；TileLibrary 的 atlas 對應仍在 GDScript，但單元測試會逐字元確認每個樣式都不會落到 fallback。新增地形：先在這裡加字元，再在 tile_library.gd 加對應，再跑 validate_map 與單元測試。",
+  "tile_size": 32,
+  "styles": ["default", "town_refresh", "cave"],
+  "chars": {
+    "g": {"name": "草地", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "d": {"name": "泥土", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "r": {"name": "樹根路", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "p": {"name": "木板（室內地板、洞窟地面）", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "b": {"name": "樹枝木地板（上層平台）", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "s": {"name": "石板", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "m": {"name": "苔石（廣場中心）", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "=": {"name": "東西向木橋", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "|": {"name": "樓梯", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "w": {"name": "沙灘", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
+    "#": {"name": "牆（樹皮／樹根牆／岩壁）", "walkable": false, "styles": ["default", "town_refresh", "cave"]},
+    ".": {"name": "上層樹冠（舊：虛空）", "walkable": false, "styles": ["default", "town_refresh"]},
+    "c": {"name": "霧格：地面畫樹冠，霧絲待 overlay", "walkable": false, "styles": ["default", "town_refresh"]},
+    "~": {"name": "深水（動畫水面）", "walkable": false, "styles": ["default", "town_refresh"]},
+    ",": {"name": "淺水／靜態深水", "walkable": false, "styles": ["default", "town_refresh"]},
+    "T": {"name": "樹根（不可走）", "walkable": false, "styles": ["default", "town_refresh"]}
+  }
+}

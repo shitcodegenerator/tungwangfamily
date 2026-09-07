@@ -12,12 +12,16 @@
 from __future__ import annotations
 
 import math
+import os
 import random
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter
 
-ROOT = Path(__file__).resolve().parent.parent
+# Phase 8.5-F：TUNGWORLD_BUILD_ROOT 可把所有輸入／輸出換到暫存目錄（--clean --verify 從零重建用）；
+# 五代 builder 都從這裡 import ROOT／OUT_*，所以只要改這一處。
+ROOT = Path(os.environ.get("TUNGWORLD_BUILD_ROOT", Path(__file__).resolve().parent.parent))
+REPO_ROOT = Path(__file__).resolve().parent.parent
 REF = ROOT / "assets" / "reference"
 OUT_CHARS = ROOT / "assets" / "characters" / "playable"
 OUT_TILES = ROOT / "assets" / "tilesets"
@@ -385,5 +389,66 @@ def main() -> None:
     build_assets_phase5.main([])
 
 
+def rebuild_and_verify(clean: bool, verify: bool) -> int:
+    """--clean：把 assets/reference 複製到暫存目錄、在那裡從零重建全部 builder 產出；
+    --verify：逐檔比對暫存產出與 repo 內同路徑檔案的 SHA-256，不一致就列出並以非 0 結束（不會覆蓋 repo）。
+    repo 裡有但 builder 沒產出的 PNG 就是「遠端直接交付的正式檔」，會另外列出數量。"""
+    import hashlib
+    import shutil
+    import subprocess
+    import sys
+    import tempfile
+
+    if not clean:
+        main()
+        return 0
+    temp_root = Path(tempfile.mkdtemp(prefix="tungworld_build_"))
+    # 複製整棵 assets（含遠端直接交付的正式檔，builder 會讀它們），再讓 builder 在暫存目錄覆寫自己的產出；
+    # 以 mtime 是否被改寫分辨「builder 產出」與「直接交付」。
+    shutil.copytree(REPO_ROOT / "assets", temp_root / "assets", ignore=shutil.ignore_patterns("*.import", ".DS_Store"))
+    import time
+
+    started = time.time()
+    env = dict(os.environ, TUNGWORLD_BUILD_ROOT=str(temp_root))
+    result = subprocess.run([sys.executable, str(REPO_ROOT / "tools" / "build_assets.py")], env=env, cwd=REPO_ROOT, text=True, capture_output=True)
+    if result.returncode != 0:
+        print(result.stdout[-2000:])
+        print(result.stderr[-2000:])
+        print(f"從零重建失敗（暫存目錄保留：{temp_root}）")
+        return 1
+    produced = sorted(p for p in (temp_root / "assets").rglob("*.png") if "reference" not in p.parts and p.stat().st_mtime >= started)
+    mismatched: list[str] = []
+    missing: list[str] = []
+    for path in produced:
+        rel = path.relative_to(temp_root)
+        repo_file = REPO_ROOT / rel
+        if not repo_file.exists():
+            missing.append(str(rel))
+        elif hashlib.sha256(repo_file.read_bytes()).hexdigest() != hashlib.sha256(path.read_bytes()).hexdigest():
+            mismatched.append(str(rel))
+    repo_pngs = {str(p.relative_to(REPO_ROOT)) for p in (REPO_ROOT / "assets").rglob("*.png") if "reference" not in p.parts}
+    delivered = sorted(repo_pngs - {str(p.relative_to(temp_root)) for p in produced})
+    print(f"從零重建：{len(produced)} 張產出，{len(delivered)} 張為遠端直接交付（不經 builder）")
+    if not verify:
+        print(f"暫存目錄：{temp_root}")
+        return 0
+    for rel in mismatched:
+        print(f"MISMATCH {rel}")
+    for rel in missing:
+        print(f"MISSING  {rel}（builder 會產出但 repo 沒有）")
+    shutil.rmtree(temp_root, ignore_errors=True)
+    if mismatched or missing:
+        print(f"builder 產出與 repo 不一致：{len(mismatched)} 不同、{len(missing)} 缺少。若是刻意改了 builder，請重跑 python3 tools/build_assets.py 並提交產出。")
+        return 1
+    print("builder 產出與 repo 一致（--clean --verify 通過）")
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    cli = argparse.ArgumentParser(description="五代素材 builder 的單一入口")
+    cli.add_argument("--clean", action="store_true", help="在暫存目錄從零重建（不動 repo）")
+    cli.add_argument("--verify", action="store_true", help="與 --clean 併用：比對產出與 repo")
+    options = cli.parse_args()
+    raise SystemExit(rebuild_and_verify(options.clean, options.verify))

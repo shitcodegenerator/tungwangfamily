@@ -1,5 +1,7 @@
 # 給本地 AI：Phase 8 美術完成與可展示切片
 
+> 2026-09-07 附註：Phase 8 兩批已完成（docs/PHASE_8_REPORT.md）。本文提到的 `z_bias` 已在 Phase 8.5 退役，改為 `render_mode`（docs/RENDERING_AND_PLACEMENT_SPEC.md）；驗證命令改用 `python3 tools/verify_phase.py --fast／--full`。
+
 本階段在本地分支執行（已自 master 20689ba 建立，並合入遠端 codex/phase-8-art-complete 的規劃文件；不要直接 track 遠端分支，遠端分支缺少完整版場景教學）：
 
 ~~~bash
@@ -13,8 +15,8 @@ git switch phase-8-art-complete
 
 1. AGENTS.md
 2. docs/PRODUCTION_NOTES.md
-3. docs/PHASE_7_REPORT.md
-4. docs/NOTES_FOR_PLANNER_PHASE_7.md
+3. docs/archive/phase_07/PHASE_7_REPORT.md
+4. docs/archive/phase_07/NOTES_FOR_PLANNER_PHASE_7.md
 5. docs/ART_STYLE_LOCK.md
 6. docs/PHASE_8_ART_COMPLETION_PLAN.md（含第 5-1 節本地審閱修正）
 7. assets/reference/incoming/PHASE8_ART_ASSET_MANIFEST.json

@@ -470,6 +470,10 @@ def build_cave_tiles() -> None:
 
 
 def main() -> None:
+    OUT_PETS.mkdir(parents=True, exist_ok=True)
+    OUT_BOSS.mkdir(parents=True, exist_ok=True)
+    OUT_NPCS.mkdir(parents=True, exist_ok=True)
+    OUT_ITEMS.mkdir(parents=True, exist_ok=True)
     build_cc()
     build_boss()
     build_items()

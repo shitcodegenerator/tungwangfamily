@@ -110,30 +110,35 @@ Props JSON 概念：
 ~~~json
 {
   "texture": "town_refresh/root_archway_v3_base",
+  "render_mode": "split",
+  "split_role": "base",
   "x": 480,
   "y": 762,
   "collision": null,
   "foot_inset": 38,
-  "collision_boxes": [[49,40,-57,0],[57,40,62,0]]
+  "collision_boxes": [[49,58,-57,0],[57,58,62,0]]
 }
 ~~~
 
 ~~~json
 {
   "texture": "town_refresh/root_archway_v3_canopy",
+  "render_mode": "split",
+  "split_role": "canopy",
   "x": 480,
   "y": 762,
   "collision": null,
-  "foot_inset": 38,
-  "z_bias": 1
+  "foot_inset": 38
 }
 ~~~
+
+`render_mode: split` 的 base 走 Y-sort、canopy 固定在角色前方（程式依 render_mode 決定 z_index，不再寫 `z_bias`）。碰撞盒高 58 是讓頂端 y=704 落在第 22 列格線上（驗證器 MAP-P001）。
 
 不要讓 canopy 帶 collision；不要把 base 的兩腳碰撞搬到 canopy。若兩張接縫不合，修圖的錨點，不要在 JSON 中把兩張圖設成不同縮放。
 
 ## 6. 讓家具不遮角色
 
-角色被桌子遮住通常不是角色圖壞掉，而是碰撞盒比圖片矮太多，角色走進了「圖片裡面」。先加深碰撞，不要先動 z_bias。
+角色被桌子遮住通常不是角色圖壞掉，而是碰撞盒比圖片矮太多，角色走進了「圖片裡面」。先加深碰撞；自立家具的 `render_mode` 一律是 `ysort`，不要改成 `back`。
 
 在 family_home_props.json 和 captain_room_props.json：
 
@@ -146,7 +151,7 @@ Props JSON 概念：
 }
 ~~~
 
-圖高 92、碰撞從 46 提到 76：碰撞盒從接地線往上量，角色最多只能走到圖片頂端下方 16px，被蓋到的只有腳踝，Y-sort 仍然正確。z_bias -1 只留給牆上物件、門、窗、地毯；自立家具加 -1 會讓站在北側的角色整個畫在桌面上。第一批檢查：
+圖高 92、碰撞從 46 提到 76：碰撞盒從接地線往上量，角色最多只能走到圖片頂端下方 16px，被蓋到的只有腳踝，Y-sort 仍然正確。`render_mode: back` 只給牆上物件、門、窗，`ground` 只給地毯；自立家具改成 back 會讓站在北側的角色整個畫在桌面上。碰撞高度取「圖高 − 16」後再往上對齊到 32 的倍數（`python3 tools/validate_map.py --audit` 會算），否則多出的幾 px 會把上一整列封掉。第一批檢查：
 
 - int_dining_table
 - int_sewing_table
@@ -191,7 +196,7 @@ godot --headless --path . --import
 - 碰撞寫在 JSON，不畫在圖片內。
 - foot_x 修正接地點水平位置。
 - foot_inset 修正貼圖底部到接地線的距離。
-- z_bias 只作小幅視覺層級，不拿來掩蓋錯誤碰撞。
+- render_mode 決定層級（ground／back／ysort／split），每個物件必填；沒有 z_bias。
 
 每次增加一件物品，先只設定 texture、x、y、collision；截圖看落地後，再增加 glow、interact、frames 或 shader。
 

@@ -6,7 +6,8 @@
     {
       "path": "assets/props/cap_rope_coil.png",
       "role": "replacement",
-      "source_preview": "assets/props/cap_rope_coil.svg",
+      "source_preview": "assets/reference/incoming/PHASE7_cap_rope_coil_source.svg",
+      "delivered_copy": "assets/reference/incoming/PHASE7_cap_rope_coil.png",
       "sha256": "0dce9b1708162dada0cf813e905a0930c61d3168e98c6a693051a68c2a7ebfe9",
       "width": 55,
       "height": 40,

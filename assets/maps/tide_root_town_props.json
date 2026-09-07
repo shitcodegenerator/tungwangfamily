@@ -226,6 +226,7 @@
   "props": [
     {
       "texture": "house_window_lantern",
+      "render_mode": "back",
       "x": 208,
       "y": 512,
       "collision": [
@@ -235,6 +236,7 @@
     },
     {
       "texture": "house_banner",
+      "render_mode": "back",
       "x": 304,
       "y": 512,
       "collision": [
@@ -244,6 +246,7 @@
     },
     {
       "texture": "house_narrow",
+      "render_mode": "back",
       "x": 864,
       "y": 512,
       "collision": [
@@ -253,17 +256,19 @@
     },
     {
       "texture": "town_refresh/shared_family_treehouse_v3",
+      "render_mode": "back",
       "x": 144,
       "y": 672,
       "collision": [
         150,
-        60
+        64
       ],
       "foot_inset": 16,
       "note": "Phase 8：v3 176×96，y=80 是門檻線、最下 16px 是踏墊（foot_inset 16 讓踏墊畫在接地線以下，貼圖頂端 y=592 不蓋第 16～17 列街道）。門口傳送門 (144,674) 與返回點 (144,702)、碰撞盒 150×60 不變。render_mode: back"
     },
     {
       "texture": "house_tree_window",
+      "render_mode": "back",
       "x": 720,
       "y": 672,
       "collision": [
@@ -273,6 +278,7 @@
     },
     {
       "texture": "house_balcony",
+      "render_mode": "back",
       "x": 816,
       "y": 672,
       "collision": [
@@ -282,10 +288,10 @@
     },
     {
       "texture": "tree_heart",
+      "render_mode": "back",
       "x": 480,
       "y": 448,
       "collision": null,
-      "z_bias": -1,
       "interact": "tree_heart",
       "interact_size": [
         128,
@@ -298,6 +304,7 @@
     },
     {
       "texture": "bulletin_board",
+      "render_mode": "ysort",
       "x": 656,
       "y": 480,
       "collision": [
@@ -308,6 +315,7 @@
     },
     {
       "texture": "lamp_post",
+      "render_mode": "ysort",
       "x": 368,
       "y": 512,
       "collision": [
@@ -321,6 +329,7 @@
     },
     {
       "texture": "lamp_post",
+      "render_mode": "ysort",
       "x": 688,
       "y": 512,
       "collision": [
@@ -334,6 +343,7 @@
     },
     {
       "texture": "lamp_post",
+      "render_mode": "ysort",
       "x": 368,
       "y": 608,
       "collision": [
@@ -347,6 +357,7 @@
     },
     {
       "texture": "lamp_post",
+      "render_mode": "ysort",
       "x": 656,
       "y": 608,
       "collision": [
@@ -360,6 +371,7 @@
     },
     {
       "texture": "town_refresh/lantern_post_v2",
+      "render_mode": "ysort",
       "x": 176,
       "y": 960,
       "collision": [
@@ -373,6 +385,7 @@
     },
     {
       "texture": "town_refresh/lantern_post_v2",
+      "render_mode": "ysort",
       "x": 688,
       "y": 1056,
       "collision": [
@@ -386,6 +399,7 @@
     },
     {
       "texture": "town_refresh/lantern_post_v2",
+      "render_mode": "ysort",
       "x": 400,
       "y": 1088,
       "collision": [
@@ -399,6 +413,7 @@
     },
     {
       "texture": "town_refresh/lantern_post_v2",
+      "render_mode": "ysort",
       "x": 592,
       "y": 1056,
       "collision": [
@@ -412,6 +427,7 @@
     },
     {
       "texture": "signpost",
+      "render_mode": "ysort",
       "x": 80,
       "y": 512,
       "collision": [
@@ -421,6 +437,7 @@
     },
     {
       "texture": "town_refresh/blank_signpost_v2",
+      "render_mode": "ysort",
       "x": 736,
       "y": 864,
       "collision": [
@@ -431,6 +448,7 @@
     },
     {
       "texture": "signpost",
+      "render_mode": "ysort",
       "x": 368,
       "y": 96,
       "collision": [
@@ -440,6 +458,7 @@
     },
     {
       "texture": "fence",
+      "render_mode": "ysort",
       "x": 32,
       "y": 544,
       "collision": [
@@ -449,6 +468,7 @@
     },
     {
       "texture": "fence",
+      "render_mode": "ysort",
       "x": 32,
       "y": 576,
       "collision": [
@@ -458,6 +478,7 @@
     },
     {
       "texture": "fence",
+      "render_mode": "ysort",
       "x": 928,
       "y": 896,
       "collision": [
@@ -467,6 +488,7 @@
     },
     {
       "texture": "fence",
+      "render_mode": "ysort",
       "x": 928,
       "y": 928,
       "collision": [
@@ -476,19 +498,20 @@
     },
     {
       "texture": "canopy_gate",
+      "render_mode": "back",
       "x": 480,
       "y": 64,
       "collision": [
         106,
-        60
+        64
       ]
     },
     {
       "texture": "cloud_big",
+      "render_mode": "back",
       "x": 240,
       "y": 300,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         6,
@@ -497,10 +520,10 @@
     },
     {
       "texture": "cloud_long",
+      "render_mode": "back",
       "x": 600,
       "y": 300,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         8,
@@ -509,10 +532,10 @@
     },
     {
       "texture": "cloud_small",
+      "render_mode": "back",
       "x": 110,
       "y": 70,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         5,
@@ -521,10 +544,10 @@
     },
     {
       "texture": "cloud_swirl",
+      "render_mode": "back",
       "x": 880,
       "y": 120,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         4,
@@ -533,10 +556,10 @@
     },
     {
       "texture": "cloud_small",
+      "render_mode": "back",
       "x": 760,
       "y": 340,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         6,
@@ -545,10 +568,10 @@
     },
     {
       "texture": "cloud_big",
+      "render_mode": "back",
       "x": 440,
       "y": 350,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.9,
       "drift": [
         7,
@@ -557,10 +580,10 @@
     },
     {
       "texture": "cloud_long",
+      "render_mode": "back",
       "x": 250,
       "y": 130,
       "collision": null,
-      "z_bias": -1,
       "alpha": 0.85,
       "drift": [
         5,
@@ -569,69 +592,70 @@
     },
     {
       "texture": "tree_spiral",
+      "render_mode": "back",
       "x": 300,
       "y": 192,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "tree_platform",
+      "render_mode": "back",
       "x": 620,
       "y": 192,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "harbor_berth",
+      "render_mode": "ground",
       "x": 800,
       "y": 876,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "lily_pond",
+      "render_mode": "ground",
       "x": 140,
       "y": 1090,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "lily_pond",
+      "render_mode": "ground",
       "x": 850,
       "y": 1088,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "vine_branch",
+      "render_mode": "back",
       "x": 368,
       "y": 448,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "vine_branch",
+      "render_mode": "back",
       "x": 608,
       "y": 448,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "vine_branch",
+      "render_mode": "back",
       "x": 96,
       "y": 400,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "lily_pond",
+      "render_mode": "ground",
       "x": 544,
       "y": 1088,
-      "collision": null,
-      "z_bias": -1
+      "collision": null
     },
     {
       "texture": "flag_banner",
+      "render_mode": "ysort",
       "x": 336,
       "y": 832,
       "collision": [
@@ -643,6 +667,7 @@
     },
     {
       "texture": "flag_banner",
+      "render_mode": "ysort",
       "x": 624,
       "y": 832,
       "collision": [
@@ -654,6 +679,7 @@
     },
     {
       "texture": "flag_banner",
+      "render_mode": "ysort",
       "x": 80,
       "y": 480,
       "collision": [
@@ -665,6 +691,7 @@
     },
     {
       "texture": "flag_banner",
+      "render_mode": "ysort",
       "x": 880,
       "y": 608,
       "collision": [
@@ -676,15 +703,17 @@
     },
     {
       "texture": "town_refresh/breakfast_stall_v2",
+      "render_mode": "ysort",
       "x": 208,
       "y": 900,
       "collision": [
         132,
-        119
+        132
       ]
     },
     {
       "texture": "town_refresh/heart_fountain_v2",
+      "render_mode": "ysort",
       "x": 640,
       "y": 992,
       "collision": [
@@ -694,6 +723,8 @@
     },
     {
       "texture": "town_refresh/root_archway_v3_base",
+      "render_mode": "split",
+      "split_role": "base",
       "x": 480,
       "y": 762,
       "collision": null,
@@ -702,13 +733,13 @@
       "collision_boxes": [
         [
           49,
-          40,
+          58,
           -57,
           0
         ],
         [
           57,
-          40,
+          58,
           62,
           0
         ]
@@ -716,24 +747,27 @@
     },
     {
       "texture": "town_refresh/root_archway_v3_canopy",
+      "render_mode": "split",
+      "split_role": "canopy",
       "x": 480,
       "y": 762,
       "collision": null,
       "foot_inset": 38,
-      "z_bias": 1,
       "note": "Phase 8：拱門樹冠層，與 base 同一個底部中央錨點，沒有地面像素、沒有碰撞，z_bias 1 固定畫在角色前方"
     },
     {
       "texture": "town_refresh/harbor_crate_barrel_v2",
+      "render_mode": "ysort",
       "x": 672,
       "y": 832,
       "collision": [
         88,
-        86
+        96
       ]
     },
     {
       "texture": "town_refresh/flower_herb_bed_v2",
+      "render_mode": "ysort",
       "x": 272,
       "y": 1088,
       "collision": [

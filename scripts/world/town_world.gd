@@ -149,7 +149,7 @@ func _build_props() -> void:
 		if typeof(raw_collision) == TYPE_ARRAY and raw_collision.size() == 2:
 			collision_size = Vector2(raw_collision[0], raw_collision[1])
 		props.add_child(prop)
-		prop.setup(texture, collision_size, float(entry.get("alpha", 1.0)), int(entry.get("z_bias", 0)), entry)
+		prop.setup(texture, collision_size, float(entry.get("alpha", 1.0)), z_index_for(entry), entry)
 		_register_prop_blocking(prop.position, collision_size)
 		for rect: Rect2 in prop.extra_collision_rects:
 			_register_prop_blocking(Vector2(rect.get_center().x, rect.end.y), rect.size)
@@ -326,6 +326,22 @@ static func _vector_from(raw: Variant, fallback: Vector2) -> Vector2:
 
 
 ## 任何與碰撞盒相交（內縮 1px，避免剛好貼齊格線的誤判）的格子都視為不可路徑規劃。
+## Phase 8.5-C：props 的顯示層級只由 render_mode 決定（docs/RENDERING_AND_PLACEMENT_SPEC.md）：
+##   ground／back → -1（角色永遠在前）、ysort → 0（底部中央原點 Y-sort）、split → base 0／canopy 1。
+## 沒有 render_mode 的舊資料退回 z_bias 並報錯（validate_map MAP-P007 會擋在資料層）。
+static func z_index_for(entry: Dictionary) -> int:
+	var mode := String(entry.get("render_mode", ""))
+	match mode:
+		"ground", "back":
+			return -1
+		"ysort":
+			return 0
+		"split":
+			return 1 if String(entry.get("split_role", "")) == "canopy" else 0
+	push_error("props %s 沒有正式 render_mode（現值 '%s'），退回 z_bias" % [entry.get("texture", "?"), mode])
+	return int(entry.get("z_bias", 0))
+
+
 func _register_prop_blocking(bottom_center: Vector2, size: Vector2) -> void:
 	if size == Vector2.ZERO:
 		return

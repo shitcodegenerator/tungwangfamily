@@ -3,3 +3,7 @@
 .DS_Store
 docs/screenshots/*.tmp
 build/
+# Phase 8.5-F：route test 與 verify_phase 的大量截圖不進 git，只保留 docs/screenshots/golden/
+docs/screenshots/route_runs/
+tools/validators/__pycache__/
+tools/tests/__pycache__/
