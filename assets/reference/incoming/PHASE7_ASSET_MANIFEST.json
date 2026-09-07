@@ -1,0 +1,38 @@
+{
+  "phase": "7",
+  "base_commit": "4cbaae0f94380c02a08aca1bf1afeb878b9ed321",
+  "purpose": "Replace the captain-room rope coil with a true transparent pixel asset.",
+  "assets": [
+    {
+      "path": "assets/props/cap_rope_coil.png",
+      "role": "replacement",
+      "source_preview": "assets/props/cap_rope_coil.svg",
+      "sha256": "0dce9b1708162dada0cf813e905a0930c61d3168e98c6a693051a68c2a7ebfe9",
+      "width": 55,
+      "height": 40,
+      "format": "PNG",
+      "channels": "RGBA",
+      "alpha_required": true,
+      "opaque_image_forbidden": true,
+      "palette_colors": 10,
+      "max_palette_colors": 24,
+      "nearest_neighbor": true,
+      "ground_shadow_included": false,
+      "keep_existing_props_entry": true,
+      "keep_existing_event_id": "captain_mystery_item",
+      "checks": {
+        "png_signature_hex": "89504e470d0a1a0a",
+        "minimum_transparent_pixels": 1,
+        "no_baked_floor_background": true,
+        "no_antialiasing": true
+      }
+    }
+  ],
+  "not_included": [
+    "new characters",
+    "new NPCs",
+    "new bosses",
+    "new formal story text",
+    "new gameplay item systems"
+  ]
+}
