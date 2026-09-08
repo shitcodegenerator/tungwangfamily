@@ -635,7 +635,7 @@
       ],
       "layout": "8_columns_x_2_rows",
       "alpha": "true_transparent_overlay",
-      "status": "requested_by_author_2026_09_07",
+      "status": "delivered_to_branch_pending_local_wiring",
       "purpose": "主城上層 c 格的霧絲。地面已一律畫樹冠（填充包的藍灰霧 tile 在樹冠中像破洞，不再使用）；此包放在裝飾層疊在樹冠上。",
       "spec": {
         "row0_col0_3": "霧絲填充 4 變體：白／淡藍灰的細長霧帶，覆蓋率 30～50%，其餘完全透明，四邊可與相鄰霧格平鋪",
@@ -645,7 +645,32 @@
         "pixel_rules": "1× 像素、無柔邊、alpha 只用 0 與 255（半透明感用 2～3 階淡色與棋盤式抖色表現）、不含樹冠或天空像素、不含陰影",
         "palette": "白 #F4F7F5、淡灰藍 #C9D6DC、灰藍 #9FB3BC 三階內"
       },
-      "wiring": "tile_library decoration_atlas_for 在 town_refresh 樣式下對 c 回傳 overlay；tileset 第 10 列；填充包第 0 列第 4～7 欄、第 1 列第 4～7 欄、第 3 列第 0～3 欄的霧 tile 保留不用"
+      "wiring": "tile_library decoration_atlas_for 在 town_refresh 樣式下對 c 回傳 overlay；tileset 第 10 列；填充包第 0 列第 4～7 欄、第 1 列第 4～7 欄、第 3 列第 0～3 欄的霧 tile 保留不用",
+      "sha256": "49602e1408500918021e06ac3a541b3db3be58f4b1cd07f35c3567982504fc20",
+      "source_path": "assets/reference/incoming/PHASE8_upper_mist_overlay_pack_source.png",
+      "source_sha256": "49602e1408500918021e06ac3a541b3db3be58f4b1cd07f35c3567982504fc20",
+      "delivery_branch": "codex/phase-8-5-upper-mist-overlay",
+      "delivery_base_commit": "07eb7292acb45e3a84c62c3a086f7a751ed7829f",
+      "verified_dimensions": [
+        256,
+        64
+      ],
+      "verified_layout": "8_columns_x_2_rows_no_gutters",
+      "verified_alpha": "binary_alpha_only_0_255",
+      "verified_palette": [
+        "#F4F7F5",
+        "#C9D6DC",
+        "#9FB3BC"
+      ],
+      "verified_fill_coverage": [
+        0.417,
+        0.416,
+        0.4092,
+        0.4229
+      ],
+      "verified_isolated_outer_edges": "fully_transparent",
+      "verified_reserved_cells": "row1_col4_7_fully_transparent",
+      "art_process": "built-in image generation for silhouette study; final atlas redrawn and hard-validated as exact 1x pixel clusters"
     }
   ],
   "audit_targets": {
@@ -762,6 +787,16 @@
         128
       ],
       "alpha": "binary_alpha_or_opaque"
+    },
+    {
+      "path": "assets/reference/incoming/PHASE8_upper_mist_overlay_pack_source.png",
+      "sha256": "49602e1408500918021e06ac3a541b3db3be58f4b1cd07f35c3567982504fc20",
+      "size": [
+        256,
+        64
+      ],
+      "alpha": "binary_alpha_only_0_255",
+      "note": "lossless exact atlas source; same bytes as runtime PNG"
     }
   ],
   "local_wiring_2026_09_07": {
