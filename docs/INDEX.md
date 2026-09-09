@@ -11,6 +11,7 @@
 | 內容邊界原文 | `docs/PHASE_3_DECISIONS.md` |
 | props 顯示層級與擺放規則、驗證器代碼 | `docs/RENDERING_AND_PLACEMENT_SPEC.md` |
 | 待決策／已決策 | `docs/OPEN_DECISIONS.md` |
+| 給遠端規劃 AI：主城改平面城鎮的地圖需求（D-013） | `docs/NOTES_FOR_PLANNER_FLAT_TOWN.md` |
 | 踩過的坑與產出檢查清單 | `docs/PRODUCTION_NOTES.md` |
 | 素材風格鎖定 | `docs/ART_STYLE_LOCK.md` |
 | 目前 Phase：8.5 穩定化 | 計畫 `docs/PHASE_8_5_PROJECT_STABILIZATION_PLAN.md`、報告 `docs/PHASE_8_5_REPORT.md` |
