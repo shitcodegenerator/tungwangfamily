@@ -1,0 +1,100 @@
+{
+  "phase": "9-flat-town",
+  "title": "Flat town layout — shared family house facade only",
+  "base_branch": "origin/phase-8-art-complete",
+  "base_commit": "6d4251176c97d990ddca414751266cb4487ec195",
+  "delivery_branch": "codex/phase-9-flat-town",
+  "status": "source_delivered_pending_local_wiring",
+  "policy": {
+    "allowed_new_art": [
+      "shared_family_house_facade_v1"
+    ],
+    "no_character_redraw": true,
+    "no_other_prop_or_tile_redraw": true,
+    "preserve_old_assets_for_rollback": true,
+    "tile_size": [
+      32,
+      32
+    ],
+    "filter": "Nearest",
+    "mipmaps": false,
+    "no_antialiasing": true,
+    "alpha_values": [
+      0,
+      255
+    ]
+  },
+  "assets": [
+    {
+      "id": "shared_family_house_facade_v1",
+      "kind": "ordinary_house_facade",
+      "source_path": "assets/reference/incoming/PHASE9_shared_family_house_facade_v1.png",
+      "runtime_target": "assets/props/town_refresh/shared_family_house_facade_v1.png",
+      "size": [
+        176,
+        96
+      ],
+      "mode": "RGBA",
+      "alpha": "binary_alpha_only_0_255",
+      "opaque_bbox": [
+        2,
+        0,
+        174,
+        96
+      ],
+      "sha256": "9661031a0af519286b5b5ccc6a0d87a727b340bdb83cdecb77748898dc9f39bd",
+      "render_mode": "back",
+      "anchor": "bottom_center_with_ground_line_y80",
+      "door_center_x": 88,
+      "door_threshold_y": 80,
+      "foot_x": 88,
+      "foot_inset": 16,
+      "collision": [
+        150,
+        64
+      ],
+      "embedded_shadow": false,
+      "embedded_ground_or_wall": false,
+      "portal_id": "family_home_door",
+      "portal_position": [
+        144,
+        290
+      ],
+      "prop_position": [
+        144,
+        288
+      ],
+      "status": "delivered_source_only",
+      "style_references": [
+        "assets/props/house_window_lantern.png",
+        "assets/props/house_banner.png",
+        "assets/props/house_narrow.png",
+        "assets/props/house_tree_window.png",
+        "assets/props/house_balcony.png"
+      ],
+      "art_process": "Built-in image generation used only for the facade study with the five existing house sprites as strict style references; final file was background-extracted, nearest-neighbour reduced, palette-quantized without dithering, binary-alpha normalized, and ground-line corrected to the exact runtime canvas.",
+      "local_wiring": "Copy bytes to runtime_target without resampling; retain shared_family_treehouse_v3 for rollback; run Godot import and project asset verification."
+    }
+  ],
+  "verification": {
+    "file": "PNG image data, 176 x 96, 8-bit/color RGBA, non-interlaced",
+    "verified_dimensions": [
+      176,
+      96
+    ],
+    "verified_mode": "RGBA",
+    "verified_alpha_values": [
+      0,
+      255
+    ],
+    "verified_opaque_bbox": [
+      2,
+      0,
+      174,
+      96
+    ],
+    "verified_bottom_rows": "y=81..95 contains only the centered 38-40px doorstep cluster",
+    "verified_sha256": "9661031a0af519286b5b5ccc6a0d87a727b340bdb83cdecb77748898dc9f39bd",
+    "checked_utc": "2026-09-09"
+  }
+}
