@@ -635,7 +635,7 @@
       ],
       "layout": "8_columns_x_2_rows",
       "alpha": "true_transparent_overlay",
-      "status": "delivered_to_branch_pending_local_wiring",
+      "status": "wired_locally_2026_09_08_pending_author_visual_review",
       "purpose": "主城上層 c 格的霧絲。地面已一律畫樹冠（填充包的藍灰霧 tile 在樹冠中像破洞，不再使用）；此包放在裝飾層疊在樹冠上。",
       "spec": {
         "row0_col0_3": "霧絲填充 4 變體：白／淡藍灰的細長霧帶，覆蓋率 30～50%，其餘完全透明，四邊可與相鄰霧格平鋪",
@@ -670,7 +670,18 @@
       ],
       "verified_isolated_outer_edges": "fully_transparent",
       "verified_reserved_cells": "row1_col4_7_fully_transparent",
-      "art_process": "built-in image generation for silhouette study; final atlas redrawn and hard-validated as exact 1x pixel clusters"
+      "art_process": "built-in image generation for silhouette study; final atlas redrawn and hard-validated as exact 1x pixel clusters",
+      "local_wiring": {
+        "tileset_row": 10,
+        "tileset_size": [
+          576,
+          352
+        ],
+        "builder": "tools/build_assets_phase5.py --mist（預設）",
+        "tile_library": "decoration_atlas_for → upper_mist_overlay_for（town_refresh 且字元為 c；橫向鄰居優先：左右都是 c 用填充、只有右邊 c 用左端、只有左邊 c 用右端；沒有左右鄰居時上下鄰居用上緣／下緣；四方皆非 c 用孤立格）",
+        "ground_unchanged": "c 的地面仍為 UP_CANOPY_FILL／UP_CANOPY_EDGE_S",
+        "legacy_mist_tiles": "填充包第 8 列 4～7、12～15 欄保留不用"
+      }
     }
   ],
   "audit_targets": {
@@ -802,14 +813,14 @@
   "local_wiring_2026_09_07": {
     "branch": "phase-8-art-complete",
     "merged_delivery": "codex/phase-8-art-assets-v3@3847042",
-    "tileset": "assets/tilesets/tide_root_town_tileset.png rebuilt 576x320 (rows 6-7 v3 atlas frame 0, rows 8-9 upper fill pack)",
+    "tileset": "assets/tilesets/tide_root_town_tileset.png rebuilt 576x352 (rows 6-7 v3 atlas frame 0, rows 8-9 upper fill pack, row 10 mist overlay 8x2 folded to 16 columns)",
     "tile_style_rows": [
       0,
       35
     ],
     "tile_library_upper_rules": {
       ".": "UP_CANOPY_FILL (weighted pattern) / UP_CANOPY_EDGE_S when south is not sky",
-      "c": "UP_MIST_FILL / UP_CLOUD_EDGE_S only when at least one 4-neighbour is c; isolated c renders as canopy",
+      "c": "ground: UP_CANOPY_FILL / UP_CANOPY_EDGE_S (always canopy); decoration: row-10 UP_MIST_OVERLAY_* chosen by 4-neighbour c mask (2026-09-08 wiring)",
       "T": "UP_ROOT_WALL / UP_ROOT_CAP when north is not T"
     },
     "treehouse": {
@@ -850,9 +861,9 @@
     "captain_room": "all 15 props switched to cap_*_v3; positions, collision, interact, event_id, shader unchanged",
     "house_facades": "kept v2 (audit KEEP, not delivered)",
     "open_for_author": [
-      "isolated c cells render as canopy (no transparent mist overlay in pack)",
       "archway canopy z_bias 1 covers bodies of characters standing on row 21",
-      "cap_*_v3 colour counts far above a limited pixel palette"
+      "cap_*_v3 colour counts far above a limited pixel palette",
+      "mist overlay wired 2026-09-08: author to review day/night upper screenshots before D-004 becomes decided"
     ]
   }
 }

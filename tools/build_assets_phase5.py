@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Phase 5／8 素材產生器：城鎮視覺更新 atlas → tileset 第 6～7 列；上層填充包 → 第 8～9 列。
+"""Phase 5／8 素材產生器：城鎮視覺更新 atlas → tileset 第 6～7 列；上層填充包 → 第 8～9 列；霧 overlay → 第 10 列。
 
 輸入：assets/tilesets/town_visual_refresh_tiles_32_v3.png（Phase 8 乾淨版 atlas，8 欄 × 4 列，每格 32×32，無格框）。
       Phase 5 的 town_visual_refresh_tiles_32.png 有 2px 亮暗格框，需改用 --atlas <路徑> --frame 2。
       assets/tilesets/upper_canopy_fill_tiles_32_v1.png（Phase 8 上層填充包，8 欄 × 4 列，供主城第 0～11 列的 .／c／T）。
-輸出：assets/tilesets/tide_root_town_tileset.png 擴充為 10 列，第 6～7 列放「修正後」的 32 格：
+      assets/tilesets/upper_mist_overlay_tiles_32_v1.png（Phase 8.5 透明霧 overlay，8 欄 × 2 列，只疊在裝飾層的 c 格上）。
+輸出：assets/tilesets/tide_root_town_tileset.png 擴充為 11 列，第 6～7 列放「修正後」的 32 格：
 
     tileset (c + 8 × (r % 2), 6 + r // 2)  ←  atlas (c, r)
 
@@ -17,6 +18,8 @@
     第 8～9 列（Phase 8 上層填充包，同樣的 (c + 8 × (r % 2), 8 + r // 2) 對應，不去格框、不翻轉）：
     第 8 列 第 0～3 欄：樹冠填充（.）、第 4～7 欄：霧層填充（c）、第 8～11 欄：樹冠下緣、第 12～15 欄：霧層過渡
     第 9 列 第 0～3 欄：根牆（T）、第 4～7 欄：根牆頂、第 8～11 欄：雲層下緣、第 12～15 欄：根牆帽／苔痕
+    第 10 列（Phase 8.5 霧 overlay，(c + 8 × r, 10) 對應，原樣放入）：第 0～3 欄：霧絲填充 4 變體、第 4～7 欄：孤立單格、
+    第 8～11 欄：左端／右端／上緣／下緣、第 12～15 欄：交付保留的透明格。第 8 列的藍灰霧 tile 保留但不再使用。
 
 修正內容（見 docs/archive/phase_05/PHASE_5_REPORT.md）：
 1. 交付的 atlas 每格最外圈 1px 偏亮、次外圈 1px 偏暗（生成時的格框），平鋪後會出現整齊格線；
@@ -43,11 +46,13 @@ from build_assets_phase4 import is_valid_png
 REFRESH_ATLAS = OUT_TILES / "town_visual_refresh_tiles_32_v3.png"
 LEGACY_REFRESH_ATLAS = OUT_TILES / "town_visual_refresh_tiles_32.png"
 FILL_ATLAS = OUT_TILES / "upper_canopy_fill_tiles_32_v1.png"
+MIST_ATLAS = OUT_TILES / "upper_mist_overlay_tiles_32_v1.png"
 TILESET = OUT_TILES / "tide_root_town_tileset.png"
 ATLAS_COLUMNS = 18
-ATLAS_ROWS = 10
+ATLAS_ROWS = 11
 REFRESH_FIRST_ROW = 6
 FILL_FIRST_ROW = 8
+MIST_ROW = 10  # Phase 8.5 增補：透明霧 overlay 8×2 摺成第 10 列 0～15 欄（只用在裝飾層）
 FRAME_PX = 0  # Phase 8 v3 atlas 沒有格框；Phase 5 交付版每格四邊有 2px（亮 1px + 暗 1px）
 LEGACY_FRAME_PX = 2
 BRIDGE_EW_TOP = (16, 7)
@@ -116,22 +121,30 @@ def bridge_east_west(planks: Image.Image) -> tuple[Image.Image, Image.Image]:
     return top, bottom
 
 
-def load_atlas_cells(atlas_path: Path, label: str) -> dict[tuple[int, int], Image.Image] | None:
-    """讀 8×4 的 32px atlas，回傳 {(欄, 列): 32×32 圖}；不是合法 PNG 或尺寸不對時回傳 None。"""
+def load_atlas_cells(atlas_path: Path, label: str, rows: int = 4) -> dict[tuple[int, int], Image.Image] | None:
+    """讀 8×rows 的 32px atlas，回傳 {(欄, 列): 32×32 圖}；不是合法 PNG 或尺寸不對時回傳 None。"""
     if not is_valid_png(atlas_path):
         print(f"略過{label}：{atlas_path} 不是合法 PNG")
         return None
     src = Image.open(atlas_path).convert("RGBA")
-    if src.size != (8 * TILE, 4 * TILE):
-        raise SystemExit(f"{label}尺寸應為 256×128，實際 {src.size}")
+    if src.size != (8 * TILE, rows * TILE):
+        raise SystemExit(f"{label}尺寸應為 256×{rows * TILE}，實際 {src.size}")
     return {
         (column, row): src.crop((column * TILE, row * TILE, (column + 1) * TILE, (row + 1) * TILE))
-        for row in range(4)
+        for row in range(rows)
         for column in range(8)
     }
 
 
-def build_refresh_tiles(atlas_path: Path = REFRESH_ATLAS, frame: int = FRAME_PX, fill_path: Path | None = FILL_ATLAS) -> None:
+def check_binary_alpha(cells: dict[tuple[int, int], Image.Image], label: str) -> None:
+    """透明 overlay 只允許 alpha 0／255（專案規範：無柔邊）。"""
+    for key, tile in cells.items():
+        bad = {a for a in tile.getchannel("A").getdata() if a not in (0, 255)}
+        if bad:
+            raise SystemExit(f"{label} {key} 含半透明 alpha {sorted(bad)[:5]}…，不符合 0／255 規範")
+
+
+def build_refresh_tiles(atlas_path: Path = REFRESH_ATLAS, frame: int = FRAME_PX, fill_path: Path | None = FILL_ATLAS, mist_path: Path | None = MIST_ATLAS) -> None:
     cells = load_atlas_cells(atlas_path, "城鎮更新 atlas")
     if cells is None:
         return
@@ -158,27 +171,39 @@ def build_refresh_tiles(atlas_path: Path = REFRESH_ATLAS, frame: int = FRAME_PX,
             slot_column, slot_row = tileset_slot(column, row, FILL_FIRST_ROW)
             atlas.paste(tile, (slot_column * TILE, slot_row * TILE))
             fill_count += 1
+    mist_count = 0
+    mist_cells = load_atlas_cells(mist_path, "上層霧 overlay", rows=2) if mist_path is not None else None
+    if mist_cells is not None:
+        # Phase 8.5 增補：透明霧 overlay 原樣放進第 10 列（8×2 摺成 16 欄）；第 12～15 欄是交付的保留透明格
+        check_binary_alpha(mist_cells, "上層霧 overlay")
+        for (column, row), tile in mist_cells.items():
+            slot_column, slot_row = tileset_slot(column, row, MIST_ROW)
+            atlas.paste(tile, (slot_column * TILE, slot_row * TILE))
+            mist_count += 1
     atlas.save(TILESET)
 
     worst = 0.0
     for tile in fixed.values():
         worst = max(worst, abs(ring_brightness(tile, 0) - ring_brightness(tile, 2)), abs(ring_brightness(tile, 1) - ring_brightness(tile, 2)))
     print(f"tileset: {atlas.size}（第 {REFRESH_FIRST_ROW}～{FILL_FIRST_ROW - 1} 列 = 城鎮更新 tile 32 格 + 東西向木橋 2 格，"
-          f"第 {FILL_FIRST_ROW}～{ATLAS_ROWS - 1} 列 = 上層填充 {fill_count} 格；外圈與內圈亮度差最大 {worst:.1f}）")
+          f"第 {FILL_FIRST_ROW}～{MIST_ROW - 1} 列 = 上層填充 {fill_count} 格，第 {MIST_ROW} 列 = 霧 overlay {mist_count} 格；外圈與內圈亮度差最大 {worst:.1f}）")
 
 
 def main(argv: list[str] | None = None) -> None:
     """--atlas：來源 atlas 路徑（預設 Phase 8 的 town_visual_refresh_tiles_32_v3.png）。
     --frame：每格四邊要去掉的格框厚度；Phase 8 乾淨版 v3 為 0，Phase 5 交付版有 2px 亮暗框。
     --fill：上層填充包路徑（預設 upper_canopy_fill_tiles_32_v1.png）；--no-fill 不放第 8～9 列。
+    --mist：上層霧 overlay 路徑（預設 upper_mist_overlay_tiles_32_v1.png，8×2）；--no-mist 第 10 列留空。
     build_assets.py 整批重建時傳入 argv=[]，避免吃到外層命令列參數。"""
     parser = argparse.ArgumentParser(description="城鎮視覺更新 atlas → tileset 第 6～7 列，上層填充包 → 第 8～9 列")
     parser.add_argument("--atlas", type=Path, default=REFRESH_ATLAS, help="來源 8×4 atlas（256×128）")
     parser.add_argument("--frame", type=int, default=FRAME_PX, help="每格去框厚度 px，乾淨版 atlas 用 0、Phase 5 版用 2")
     parser.add_argument("--fill", type=Path, default=FILL_ATLAS, help="上層填充包 8×4 atlas（256×128）")
-    parser.add_argument("--no-fill", action="store_true", help="不放上層填充包（tileset 仍為 10 列，第 8～9 列留空）")
+    parser.add_argument("--no-fill", action="store_true", help="不放上層填充包（tileset 仍為 11 列，第 8～9 列留空）")
+    parser.add_argument("--mist", type=Path, default=MIST_ATLAS, help="上層霧 overlay 8×2 atlas（256×64）")
+    parser.add_argument("--no-mist", action="store_true", help="不放霧 overlay（第 10 列留空）")
     args = parser.parse_args(argv)
-    build_refresh_tiles(args.atlas, args.frame, None if args.no_fill else args.fill)
+    build_refresh_tiles(args.atlas, args.frame, None if args.no_fill else args.fill, None if args.no_mist else args.mist)
 
 
 if __name__ == "__main__":

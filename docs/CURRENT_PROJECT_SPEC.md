@@ -34,7 +34,7 @@
 | `scripts/characters/follower_character.gd`、`party_controller.gd`、`party_trail.gd` | 跟隨、分離、切換、隊伍順序 |
 | `scripts/characters/pet_follower.gd` | CC 寵物跟隨，不在 party order |
 | `scripts/world/map_parser.gd` | ASCII 地圖；可走／不可走字元只來自 `assets/maps/tile_legend.json` |
-| `scripts/world/tile_library.gd` | 圖例字元 → atlas 座標；`tile_style` `cave`／`town_refresh` 依四方鄰居選 tile；上層 `.`／`c`／`T` 用填充包（第 8～9 列） |
+| `scripts/world/tile_library.gd` | 圖例字元 → atlas 座標；`tile_style` `cave`／`town_refresh` 依四方鄰居選 tile；上層 `.`／`c`／`T` 用填充包（第 8～9 列）；`c` 的霧絲由 `decoration_atlas_for` 以第 10 列透明 overlay 疊在裝飾層（`upper_mist_overlay_for` 依四方 `c` 鄰居選填充／端／緣／孤立格） |
 | `scripts/world/town_world.gd` | 由 ASCII 地圖與 props JSON 建立世界；`z_index_for(render_mode)`；碰撞盒 → 封鎖格 |
 | `scripts/props/town_prop.gd` | props 貼圖、碰撞、多幀／飄移／光暈／shader；`foot_x`／`foot_inset`／`collision_boxes` |
 | `scripts/world/scene_router.gd`、`portal.gd` | 場景建立、轉場、傳送門（只看領頭者）、讀檔還原 |
@@ -72,7 +72,7 @@
 
 - 執行期目錄（`assets/props`、`tilesets`、`characters`、`ui`、`effects`、`items`、`portraits`）只放 PNG（與 .import／.tres／.ttf／.json 資料）；SVG／PSD／Aseprite 原檔與參考大圖放 `assets/reference/incoming/`，每次交付更新 `PHASE*_ASSET_MANIFEST.json`（路徑、尺寸、alpha、SHA-256）。
 - 像素規則（`docs/ART_STYLE_LOCK.md`）：1× 像素、alpha 只用 0／255、不烙地板／牆／陰影、色盤與光源一致。既有帶柔邊的舊檔列在 `assets/reference/incoming/ASSET_PREFLIGHT_ALLOWLIST.json`（到期自動失效）。
-- 主城 tileset `assets/tilesets/tide_root_town_tileset.png` 576×320：第 0～5 列 Phase 1 舊 atlas、第 6～7 列 Phase 8 v3 城鎮更新 tile、第 8～9 列上層填充包。由 `python3 tools/build_assets_phase5.py` 產生（預設即 v3／frame 0／fill）。
+- 主城 tileset `assets/tilesets/tide_root_town_tileset.png` 576×352：第 0～5 列 Phase 1 舊 atlas、第 6～7 列 Phase 8 v3 城鎮更新 tile、第 8～9 列上層填充包（第 8 列藍灰霧格保留不用）、第 10 列 Phase 8.5 透明霧 overlay（`upper_mist_overlay_tiles_32_v1.png` 8×2 摺成 16 欄，12～15 欄為保留透明格）。由 `python3 tools/build_assets_phase5.py` 產生（預設即 v3／frame 0／fill／mist）。
 - 五代 builder 單一入口：`python3 tools/build_assets.py`（依序 phase1～5）；`--clean --verify` 在暫存目錄重建並比對 repo。遠端直接交付的正式檔（v2 行走表、洞窟 tile、v2／v3 props、atlas）不經切割；Phase 7 繩圈由 builder 逐 byte 複製 `incoming/PHASE7_cap_rope_coil.png`。
 - 改過任何 PNG 後必跑 `godot --headless --path . --import`。
 - 不重生四位主角、CC、阿嬤、船長、老龜；不改角色 ID 與貼圖路徑。

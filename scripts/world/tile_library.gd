@@ -16,12 +16,14 @@ extends RefCounted
 ##            第 6 列 0～7 草地 A／B／花草、泥土、石板 A／B、木板、深水（靜態）；8～15 石板路 edge N/S/W/E、corner NW/NE/SW/SE
 ##            第 7 列 0～7 水岸 edge N/S/W/E、corner NW/NE/SW/SE；8～15 草崖、樹根牆、南北橋面、橋側、水面動畫 4 幀；
 ##            16～17 東西向木橋上列／下列。tile_style = "town_refresh" 時由 town_refresh_atlas_for 依鄰居選 tile。
+##   第 8～9 列：Phase 8 上層填充包（樹冠／霧／樹根；藍灰霧 tile 保留但不再使用）。
+##   第 10 列：Phase 8.5 透明霧 overlay（upper_mist_overlay_tiles_32_v1.png 8×2 摺成 16 欄），只由 decoration_atlas_for 疊在 c 格的樹冠上。
 
 const TILE_SIZE := 32
 const TILE_VECTOR := Vector2i(TILE_SIZE, TILE_SIZE)
 const ATLAS_COLUMNS := 18
-## 第 0～5 列舊 atlas、第 6～7 列 Phase 5／8 城鎮更新 tile、第 8～9 列 Phase 8 上層填充包（tools/build_assets_phase5.py）
-const ATLAS_ROWS := 10
+## 第 0～5 列舊 atlas、第 6～7 列 Phase 5／8 城鎮更新 tile、第 8～9 列 Phase 8 上層填充包、第 10 列 Phase 8.5 霧 overlay（tools/build_assets_phase5.py）
+const ATLAS_ROWS := 11
 const UPPER_ZONE_LAST_ROW := 11
 const WATER_FRAMES := 4
 const WATER_FRAME_SECONDS := 0.28
@@ -113,11 +115,22 @@ const TR_BRIDGE_EW_BOTTOM := Vector2i(17, 7)
 ## 第 8～9 列：Phase 8 上層填充包（upper_canopy_fill_tiles_32_v1.png，8×4 摺成 16 欄 × 2 列）。
 ## 主城第 0～11 列的 .（樹冠）、c（霧）、T（樹根）在 town_refresh 樣式下用這些 tile，不再退回星空虛空或樹根牆。
 const UP_CANOPY_FILL: Array[Vector2i] = [Vector2i(0, 8), Vector2i(1, 8), Vector2i(2, 8), Vector2i(3, 8)]
+## 填充包的藍灰霧地面 tile：作者 2026-09-07 決定不再使用（在樹冠中像破洞），保留常數只供測試確認地面沒有用到。
 const UP_MIST_FILL: Array[Vector2i] = [Vector2i(4, 8), Vector2i(5, 8), Vector2i(6, 8), Vector2i(7, 8), Vector2i(12, 8), Vector2i(13, 8), Vector2i(14, 8), Vector2i(15, 8)]
 const UP_CANOPY_EDGE_S: Array[Vector2i] = [Vector2i(8, 8), Vector2i(9, 8), Vector2i(10, 8), Vector2i(11, 8)]
 const UP_ROOT_WALL: Array[Vector2i] = [Vector2i(0, 9), Vector2i(1, 9), Vector2i(2, 9), Vector2i(3, 9)]
 const UP_ROOT_CAP: Array[Vector2i] = [Vector2i(4, 9), Vector2i(5, 9), Vector2i(6, 9), Vector2i(7, 9), Vector2i(12, 9), Vector2i(13, 9), Vector2i(14, 9), Vector2i(15, 9)]
 const UP_CLOUD_EDGE_S: Array[Vector2i] = [Vector2i(8, 9), Vector2i(9, 9), Vector2i(10, 9), Vector2i(11, 9)]
+## 第 10 列：Phase 8.5 透明霧 overlay（alpha 只有 0／255，疊在裝飾層；地面仍是樹冠）。
+## 0～3 可互接的霧絲填充、4～7 孤立單格（四邊最外圈透明）、8 左端、9 右端、10 上緣、11 下緣、12～15 交付保留的透明格。
+const UP_MIST_OVERLAY_ROW := 10
+const UP_MIST_OVERLAY_FILL: Array[Vector2i] = [Vector2i(0, 10), Vector2i(1, 10), Vector2i(2, 10), Vector2i(3, 10)]
+const UP_MIST_OVERLAY_ISOLATED: Array[Vector2i] = [Vector2i(4, 10), Vector2i(5, 10), Vector2i(6, 10), Vector2i(7, 10)]
+const UP_MIST_OVERLAY_END_W := Vector2i(8, 10)
+const UP_MIST_OVERLAY_END_E := Vector2i(9, 10)
+const UP_MIST_OVERLAY_EDGE_N := Vector2i(10, 10)
+const UP_MIST_OVERLAY_EDGE_S := Vector2i(11, 10)
+const MIST_CHARS := "c"
 ## 上層「天空」字元：樹冠與霧；下方不是天空（平台 b、牆 #）時改用下緣變體。
 const SKY_CHARS := ".c"
 ## 樹冠變體週期：填充包第 0、2 格較亮、第 1、3 格較暗；以亮格為主、暗格零星出現，避免 mod 4 雜湊變成棋盤格。
@@ -253,7 +266,7 @@ static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2
 			return upper_canopy_atlas_for(parser, x, y)
 		"c":
 			# 作者 2026-09-07 決定：c 的地面一律畫樹冠（藍灰霧 tile 在樹冠中像破洞）；
-			# 霧效果等遠端交付透明霧 overlay（manifest: upper_mist_overlay_pack）後放進裝飾層，不動地面。
+			# 霧絲由 decoration_atlas_for 以第 10 列的透明 overlay 疊在裝飾層（upper_mist_overlay_for），不動地面。
 			return upper_canopy_atlas_for(parser, x, y)
 		"T":
 			return pick_variant(UP_ROOT_WALL if parser.char_at(x, y - 1) == "T" else UP_ROOT_CAP, x, y)
@@ -295,6 +308,31 @@ static func town_refresh_atlas_for(parser: MapParser, x: int, y: int) -> Vector2
 ## 依座標雜湊從變體池挑一格（確定性，截圖可重現）。
 static func pick_variant(pool: Array[Vector2i], x: int, y: int) -> Vector2i:
 	return pool[posmod(x * 5 + y * 11, pool.size())]
+
+
+## 上層 c 格的霧 overlay（裝飾層）：依四方是否也是 c 決定接法，確定性、不吃亂數。
+##   四方都不是 c → 孤立單格變體；左右都是 c（或只有上下都是 c）→ 可互接的填充變體；
+##   只有右邊是 c → 左端、只有左邊是 c → 右端；沒有左右鄰居時只有下方是 c → 上緣、只有上方是 c → 下緣。
+##   霧帶以橫向為主（填充變體的霧絲是橫帶），所以左右鄰居優先於上下鄰居。
+static func upper_mist_overlay_for(parser: MapParser, x: int, y: int) -> Vector2i:
+	var mask := neighbor_mask(parser, x, y, MIST_CHARS)
+	var west := (mask & NEIGHBOR_W) != 0
+	var east := (mask & NEIGHBOR_E) != 0
+	var north := (mask & NEIGHBOR_N) != 0
+	var south := (mask & NEIGHBOR_S) != 0
+	if west and east:
+		return pick_variant(UP_MIST_OVERLAY_FILL, x, y)
+	if east:
+		return UP_MIST_OVERLAY_END_W
+	if west:
+		return UP_MIST_OVERLAY_END_E
+	if north and south:
+		return pick_variant(UP_MIST_OVERLAY_FILL, x, y)
+	if south:
+		return UP_MIST_OVERLAY_EDGE_N
+	if north:
+		return UP_MIST_OVERLAY_EDGE_S
+	return pick_variant(UP_MIST_OVERLAY_ISOLATED, x, y)
 
 
 ## 上層樹冠：下方仍是天空用填充變體，否則用樹冠下緣；變體依週期表以亮格為主。
@@ -356,7 +394,10 @@ static func decoration_atlas_for(parser: MapParser, x: int, y: int, rng: RandomN
 	if String(options.get(TILE_STYLE_KEY, "")) == TILE_STYLE_CAVE:
 		return cave_decoration_for(parser, x, y, rng)
 	if uses_town_refresh(options, y):
-		# 城鎮更新 tile 自帶花草變體，不疊舊 atlas 的裝飾（風格不同）
+		# 城鎮更新 tile 自帶花草變體，不疊舊 atlas 的裝飾（風格不同）；
+		# 只有上層 c 格疊 Phase 8.5 透明霧 overlay（地面仍是樹冠）。
+		if parser.char_at(x, y) == "c":
+			return upper_mist_overlay_for(parser, x, y)
 		return Vector2i(-1, -1)
 	var ch := parser.char_at(x, y)
 	var roll := rng.randf()

@@ -70,6 +70,7 @@ func _initialize() -> void:
 	test_phase46_sheets()
 	test_phase46_logic()
 	test_phase5_tiles()
+	test_upper_mist_overlay()
 	test_game_state_v3()
 	test_daily_flags_in_dialogue()
 	test_phase5_props()
@@ -586,7 +587,7 @@ func test_phase4_assets() -> void:
 	_assert(throw_frame.region == Rect2(48, 128, 48, 64), "throw_right 取自行動表第 1 欄第 2 列")
 	_assert(PlayerScript.build_sprite_frames(sheet).get_animation_names().size() == 8, "沒有行動表時只有 8 個動畫")
 	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
-	_assert(tileset != null and tileset.get_size() == Vector2(576, 320), "tileset 擴充為 10 列（第 6～7 列為 Phase 5 城鎮更新、第 8～9 列為 Phase 8 上層填充）")
+	_assert(tileset != null and tileset.get_size() == Vector2(576, 352), "tileset 擴充為 11 列（第 6～7 列為 Phase 5 城鎮更新、第 8～9 列為 Phase 8 上層填充、第 10 列為霧 overlay）")
 	for name: String in ["fx_teleport", "fx_hit_sparkle", "fx_poof", "fx_victory", "fx_chicken_wing"]:
 		_assert(ResourceLoader.exists("res://assets/effects/%s.png" % name), "特效貼圖 %s 存在" % name)
 	var grandma: Texture2D = load("res://assets/characters/npcs/grandma_turtle_sheet.png")
@@ -790,9 +791,77 @@ func test_phase5_tiles() -> void:
 	var tile_set: TileSet = TileLibraryScript.build_ground_tileset(ImageTexture.create_from_image(big))
 	var source: TileSetAtlasSource = tile_set.get_source(0)
 	_assert(source.get_tile_animation_frames_count(tl.TR_WATER) == tl.WATER_FRAMES and not source.has_tile(Vector2i(13, 7)) and source.has_tile(tl.TR_BRIDGE_EW_BOTTOM), "更新水面 4 幀動畫、幀格不獨立成 tile、東西向木橋 tile 存在")
-	_assert(tl.ATLAS_ROWS == 10 and source.has_tile(tl.UP_CANOPY_FILL[0]) and source.has_tile(tl.UP_ROOT_CAP[7]), "tileset 擴為 10 列，第 8～9 列的上層填充 tile 存在")
+	_assert(tl.ATLAS_ROWS == 11 and source.has_tile(tl.UP_CANOPY_FILL[0]) and source.has_tile(tl.UP_ROOT_CAP[7]), "tileset 擴為 11 列，第 8～9 列的上層填充 tile 存在")
 	var tileset_texture: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
-	_assert(tileset_texture != null and tileset_texture.get_size() == Vector2(576, 320), "正式 tileset 貼圖為 576×320（10 列）")
+	_assert(tileset_texture != null and tileset_texture.get_size() == Vector2(576, 352), "正式 tileset 貼圖為 576×352（11 列）")
+
+
+## Phase 8.5 增補：上層 c 格的透明霧 overlay（assets/tilesets/upper_mist_overlay_tiles_32_v1.png → tileset 第 10 列，只疊在裝飾層）。
+func test_upper_mist_overlay() -> void:
+	var tl := TileLibraryScript
+	var overlay: Texture2D = load("res://assets/tilesets/upper_mist_overlay_tiles_32_v1.png")
+	_assert(overlay != null and overlay.get_size() == Vector2(256, 64), "霧 overlay 交付 atlas 為 256×64（8×2 格 32×32）")
+	var tileset: Texture2D = load("res://assets/tilesets/tide_root_town_tileset.png")
+	var image := tileset.get_image()
+	var overlay_image := overlay.get_image()
+	var same := true
+	var reserved_clear := true
+	var binary_alpha := true
+	for row: int in range(2):
+		for col: int in range(8):
+			var slot := Vector2i(col + 8 * row, tl.UP_MIST_OVERLAY_ROW)
+			var cell := image.get_region(Rect2i(slot.x * 32, slot.y * 32, 32, 32))
+			var source := overlay_image.get_region(Rect2i(col * 32, row * 32, 32, 32))
+			for y: int in range(32):
+				for x: int in range(32):
+					var a := cell.get_pixel(x, y).a
+					# 只比實心像素：匯入的 fix_alpha_border 會把透明像素的 RGB 染成鄰格顏色
+					if (a > 0.0 or source.get_pixel(x, y).a > 0.0) and cell.get_pixel(x, y) != source.get_pixel(x, y):
+						same = false
+					if a > 0.0 and a < 1.0:
+						binary_alpha = false
+					if row == 1 and col >= 4 and a > 0.0:
+						reserved_clear = false
+	_assert(same, "tileset 第 10 列 0～15 欄的實心像素逐像素等於交付 atlas（8×2 摺成一列，不去框不翻轉）")
+	_assert(binary_alpha and reserved_clear, "霧 overlay alpha 只有 0／255，第 10 列 12～15 欄保留格完全透明")
+	var isolated_edges_clear := true
+	for coords: Vector2i in tl.UP_MIST_OVERLAY_ISOLATED:
+		var cell := image.get_region(Rect2i(coords.x * 32, coords.y * 32, 32, 32))
+		for i: int in range(32):
+			if cell.get_pixel(i, 0).a > 0.0 or cell.get_pixel(i, 31).a > 0.0 or cell.get_pixel(0, i).a > 0.0 or cell.get_pixel(31, i).a > 0.0:
+				isolated_edges_clear = false
+	_assert(isolated_edges_clear, "孤立霧格四邊最外圈全透明（不會與鄰格的樹冠接縫）")
+	var registry: Dictionary = SceneRouterScript.parse_registry(FileAccess.get_file_as_string("res://assets/maps/scenes.json"))
+	var options := {
+		tl.TILE_STYLE_KEY: String(registry["tide_root_town"].get("tile_style", "")),
+		tl.TILE_STYLE_ROWS_KEY: registry["tide_root_town"].get("tile_style_rows", []),
+	}
+	var parser := _load_map()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	_assert(tl.UP_CANOPY_FILL.has(tl.ground_atlas_for(parser, 2, 1, options)) and tl.UP_CANOPY_FILL.has(tl.ground_atlas_for(parser, 13, 7, options)), "接了 overlay 後 c 的地面仍然是樹冠")
+	_assert(tl.decoration_atlas_for(parser, 2, 1, rng, options) == tl.UP_MIST_OVERLAY_END_W and tl.decoration_atlas_for(parser, 3, 1, rng, options) == tl.UP_MIST_OVERLAY_END_E, "橫向成對的 cc：左格用左端、右格用右端")
+	_assert(tl.UP_MIST_OVERLAY_ISOLATED.has(tl.decoration_atlas_for(parser, 13, 7, rng, options)) and tl.UP_MIST_OVERLAY_ISOLATED.has(tl.decoration_atlas_for(parser, 27, 4, rng, options)), "四方都不是 c 的孤立 c 用孤立單格變體")
+	_assert(tl.decoration_atlas_for(parser, 7, 3, rng, options).x < 0 and tl.decoration_atlas_for(parser, 14, 29, rng, options).x < 0 and tl.decoration_atlas_for(parser, 12, 13, rng, options).x < 0, "樹冠 .、廣場 m、樹根 T 都不疊霧")
+	var strip := MapParserScript.from_text("#######\n#ccccc#\n#######")
+	var strip_options := {tl.TILE_STYLE_KEY: "town_refresh", tl.TILE_STYLE_ROWS_KEY: []}
+	_assert(tl.decoration_atlas_for(strip, 1, 1, rng, strip_options) == tl.UP_MIST_OVERLAY_END_W and tl.decoration_atlas_for(strip, 5, 1, rng, strip_options) == tl.UP_MIST_OVERLAY_END_E, "橫向霧帶的兩端用左端／右端")
+	var middle := {}
+	for x: int in range(2, 5):
+		var atlas := tl.decoration_atlas_for(strip, x, 1, rng, strip_options)
+		middle[atlas] = true
+		_assert(tl.UP_MIST_OVERLAY_FILL.has(atlas), "橫向霧帶中段 (%d,1) 用可互接的填充變體" % x)
+	_assert(middle.size() >= 2, "填充變體依座標交錯（%d 種）" % middle.size())
+	var column := MapParserScript.from_text("###\n#c#\n#c#\n#c#\n###")
+	_assert(tl.decoration_atlas_for(column, 1, 1, rng, strip_options) == tl.UP_MIST_OVERLAY_EDGE_N and tl.decoration_atlas_for(column, 1, 3, rng, strip_options) == tl.UP_MIST_OVERLAY_EDGE_S and tl.UP_MIST_OVERLAY_FILL.has(tl.decoration_atlas_for(column, 1, 2, rng, strip_options)), "縱向霧帶：頂用上緣、底用下緣、中段填充")
+	var a := tl.upper_mist_overlay_for(parser, 13, 7)
+	var b := tl.upper_mist_overlay_for(parser, 13, 7)
+	_assert(a == b and a.y == tl.UP_MIST_OVERLAY_ROW, "霧 overlay 依座標確定性選取（不吃亂數），都在 tileset 第 10 列")
+	var legacy_options := {tl.TILE_STYLE_KEY: "", tl.TILE_STYLE_ROWS_KEY: []}
+	_assert(tl.decoration_atlas_for(parser, 13, 7, rng, legacy_options).x < 0, "舊樣式（非 town_refresh）不疊霧 overlay")
+	var big := Image.create(tl.ATLAS_COLUMNS * 32, tl.ATLAS_ROWS * 32, false, Image.FORMAT_RGBA8)
+	var source_tiles: TileSetAtlasSource = tl.build_ground_tileset(ImageTexture.create_from_image(big)).get_source(0)
+	_assert(source_tiles.has_tile(tl.UP_MIST_OVERLAY_FILL[0]) and source_tiles.has_tile(tl.UP_MIST_OVERLAY_ISOLATED[3]) and source_tiles.has_tile(Vector2i(15, tl.UP_MIST_OVERLAY_ROW)), "TileSet 建有第 10 列的霧 overlay tile")
 
 
 func _ring_brightness(cell: Image, ring: int) -> float:

@@ -15,7 +15,7 @@
     "w": {"name": "沙灘", "walkable": true, "styles": ["default", "town_refresh", "cave"]},
     "#": {"name": "牆（樹皮／樹根牆／岩壁）", "walkable": false, "styles": ["default", "town_refresh", "cave"]},
     ".": {"name": "上層樹冠（舊：虛空）", "walkable": false, "styles": ["default", "town_refresh"]},
-    "c": {"name": "霧格：地面畫樹冠，霧絲待 overlay", "walkable": false, "styles": ["default", "town_refresh"]},
+    "c": {"name": "霧格：地面畫樹冠，裝飾層疊透明霧 overlay", "walkable": false, "styles": ["default", "town_refresh"]},
     "~": {"name": "深水（動畫水面）", "walkable": false, "styles": ["default", "town_refresh"]},
     ",": {"name": "淺水／靜態深水", "walkable": false, "styles": ["default", "town_refresh"]},
     "T": {"name": "樹根（不可走）", "walkable": false, "styles": ["default", "town_refresh"]}

@@ -1,8 +1,9 @@
 extends Node
 ## 版面截圖工具：把隊伍放到指定場景的指定格，等畫面穩定後存 PNG，全部拍完就離開。
 ##
-## 執行：caffeinate -dis godot --path . --always-on-top -- --snapshot=<scene_id>:<格x>,<格y>:<絕對路徑.png>[;<下一組>...]
-## 例：--snapshot="tide_root_town:14,29:/tmp/plaza.png;family_home:3,6:/tmp/rest.png"
+## 執行：caffeinate -dis godot --path . --always-on-top -- --snapshot=<scene_id>:<格x>,<格y>:<絕對路徑.png>[:<day|dusk|night>][;<下一組>...]
+## 例：--snapshot="tide_root_town:14,29:/tmp/plaza.png;family_home:3,6:/tmp/rest.png;tide_root_town:14,6:/tmp/upper_night.png:night"
+## 第 4 段可省略（預設 day）；指定時段時以 DayNightController.set_state(index, true) 立即切換（不存檔、不改 day）。
 ## 只用於美術版面檢查（Phase 5 大型 props 的接地、Y-sort 與碰撞），不做任何斷言。
 
 const SETTLE_SECONDS := 0.8
@@ -16,14 +17,19 @@ func _ready() -> void:
 			continue
 		for group: String in arg.trim_prefix("--snapshot=").split(";", false):
 			var parts := group.split(":")
-			if parts.size() != 3:
+			if parts.size() < 3 or parts.size() > 4:
 				push_error("snapshot 參數格式錯誤：%s" % group)
+				continue
+			var daytime := StringName(parts[3]) if parts.size() == 4 else DayNightController.STATE_NAMES[0]
+			if not DayNightController.STATE_NAMES.has(daytime):
+				push_error("snapshot 時段只能是 day／dusk／night：%s" % group)
 				continue
 			var tile := parts[1].split(",")
 			specs.append({
 				"scene": parts[0],
 				"tile": Vector2i(int(tile[0]), int(tile[1])),
 				"path": parts[2],
+				"daytime": daytime,
 			})
 	_run.call_deferred()
 
@@ -43,6 +49,8 @@ func _run() -> void:
 		party.place(world.arrival_positions(center))
 		var camera: CameraRig = main.get("camera")
 		camera.follow(party.get_leader(), true)
+		var day_night: DayNightController = main.get("day_night")
+		day_night.set_state(DayNightController.STATE_NAMES.find(StringName(spec["daytime"])), true)
 		await get_tree().create_timer(SETTLE_SECONDS).timeout
 		await get_tree().process_frame
 		await get_tree().process_frame

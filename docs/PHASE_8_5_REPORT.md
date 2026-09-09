@@ -76,7 +76,7 @@
 - `docs/screenshots/` 歷史截圖 51MB 未清理（計畫明定本階段不改寫 history；D-012）。
 - MAP-P007 只驗資料一致性，不讀 PNG 高度判斷「跨多列且會與角色交錯」；跨列判斷交給人工截圖與 `--snapshot`。
 - 快速 golden 視覺回歸（像素比對）未做；目前 golden 只是人工比對用。
-- 上層 `c` 的霧 overlay 等遠端交付（D-004）。
+- 上層 `c` 的霧 overlay 已於 2026-09-08 接線（`codex/phase-8-5-upper-mist-overlay` → tileset 第 10 列、只疊裝飾層；地面仍是樹冠），D-004 等作者看過白天／夜晚畫面後定案。
 
 ## 5. Phase 8.5 Gate 對照
 
